@@ -1,0 +1,853 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+
+<sub-flow name="otmc_services_inventory_subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare DeviceInformationSubscriptionMsg">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8", skipNullOn="everywhere"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#deviceInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	
+	organization-information : {
+		organization-id : p('organization_information.organization_id')
+	},
+	
+	device-type : 'otmc service',
+	
+	device-information-type: 'device inventory',
+		
+	(device-filter : {
+		device-id-list : {
+		(payload.otmc_services_inventory_subscription.subscription_config.*otmc_services_spec  map
+			device-id  : $.otmc_services_id.id
+		)
+		}
+	}) when payload.otmc_services_inventory_subscription.subscription_config.*otmc_services_spec != null,
+	 	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'	
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.otmc_services_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.otmc_services_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 2
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+    <sub-flow name="otmc-services-inventory-publish-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare otmc_services_inventory_publish Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+---
+otmc_services_inventory_publish @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	subscription_id: {
+		uuid : payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	inventory_config: {
+		full_sync : true when payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+			inventory_id : {
+				uuid : payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+			(payload.anyTypeInventoryUpdateMsg.tmdd-object-list.*tmdd-object map {
+				otmc_services_inventory : {
+					otmc_services_id : {
+						id : $.inventory-header.device-id
+					},
+					action : $.inventory-header.inventory-action,
+					otmc_services_inventory_attr : {
+						otmc_object_id : $.inventory-header.device-id,
+						(otmc_object_type : "TRAFFIC_LIGHT_CONTROLLER") when $.inventory-header.otmc-info.object-type == "traffic light controller",
+						(otmc_object_type: "RAMP_METERING_CONTROLLER") when $.inventory-header.otmc-info.object-type == "ramp metering controller",
+						(otmc_object_type: "VARIABLE_MESSAGE_SIGN") when $.inventory-header.otmc-info.object-type == "variable message sign",
+						(otmc_object_type: "PARKING_FACILITY") when $.inventory-header.otmc-info.object-type == "parking facility",
+						(otmc_object_type: "VIDEO_CAMERA") when $.inventory-header.otmc-info.object-type == "video camera",
+						(otmc_object_type: "ROTARY_PANEL") when $.inventory-header.otmc-info.object-type == "rotary panel",
+						(otmc_object_type: "SPECIFIC_SERVICE") when $.inventory-header.otmc-info.object-type == "specific service",
+						(otmc_object_type: "TRAFFIC_SERVICE") when $.inventory-header.otmc-info.object-type == "traffic service",
+						(otmc_object_type: "INFORMATION_SERVICE") when $.inventory-header.otmc-info.object-type == "information service",
+						(otmc_object_type: "REROUTING_SERVICE") when $.inventory-header.otmc-info.object-type == "rerouting service",
+						timestamp: dateTimeToTimeStamp($.inventory-header.last-update-time.date, $.inventory-header.last-update-time.time),
+						(
+							location_for_display : {
+								latitude : $.inventory-header.device-location.latitude,
+								longitude : $.inventory-header.device-location.longitude
+							}
+						) when $.inventory-header.device-location != null,
+						direction : $.inventory-header.link-direction,
+						(
+							$.inventory-header.otmc-info.involved-objects.*object map {
+								involved_object : {
+									otmc_object_id : $.id,
+									(otmc_object_type : "TRAFFIC_LIGHT_CONTROLLER") when $.object-type == "traffic light controller",
+									(otmc_object_type: "RAMP_METERING_CONTROLLER") when $.object-type == "ramp metering controller",
+									(otmc_object_type: "VARIABLE_MESSAGE_SIGN") when $.object-type == "variable message sign",
+									(otmc_object_type: "PARKING_FACILITY") when $.object-type == "parking facility",
+									(otmc_object_type: "VIDEO_CAMERA") when $.object-type == "video camera",
+									(otmc_object_type: "ROTARY_PANEL") when $.object-type == "rotary panel",
+									(otmc_object_type: "SPECIFIC_SERVICE") when $.object-type == "specific service",
+									(otmc_object_type: "TRAFFIC_SERVICE") when $.object-type == "traffic service",
+									(otmc_object_type: "INFORMATION_SERVICE") when $.object-type == "information service",
+									(otmc_object_type: "REROUTING_SERVICE") when $.object-type == "rerouting service"
+								}
+							} when $.inventory-header.otmc-info.involved-objects != null otherwise {}
+						),
+						encoded_parameters : $.inventory-header.otmc-info.encoded-parameters,
+						owner : $.inventory-header.data-owner
+					} 
+				}
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>  
+            <return-data file="static_messages/c2cMessageReceipt_ok.xml"/> 
+        </static-component>
+    </sub-flow>
+    <sub-flow name="otmc-services-status-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare deviceInformationSubscription Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#deviceInformationSubscriptionMsg : {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	organization-information: {
+		organization-id : p('organization_information.organization_id')
+	},
+	device-type: "otmc service",
+	device-information-type: "device status",
+	(
+	device-filter : {
+		device-id-list : {
+			(payload.otmc_services_status_subscription.subscription_config.*otmc_services_spec  map {
+				device-id  : $.otmc_services_id.id
+			})
+		}
+	}
+	) when payload.otmc_services_status_subscription.subscription_config.*otmc_services_spec != null,
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.otmc_services_status_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.otmc_services_status_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 2
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+    <sub-flow name="otmc-services-status-subscription-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare otmc_services_status_subscription Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+otmc_services_status_subscription @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	subscription_config : {
+		subscription_id : {
+			uuid: payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		(
+			all_otmc_services : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								otmc_services_spec : {
+									otmc_services_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		)
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+    </sub-flow>
+    <sub-flow name="otmc-services-status-publish">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare anyTypeStatusUpdate Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeStatusUpdateMsg : {
+	tmdd-object-list @(xsi#schemaLocation : 'http://www.tmdd.org/3/messages'): {
+		(
+			payload.otmc_services_status_publish.*otmc_services_publish map {
+				tmdd-object @(xsi#type : 'tmdd:OTMC-Service'): {
+					status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.otmc_services_id.id,
+						(device-status : "on") when $.otmc_services_status_attr.availability == "AVAILABLE",
+						(device-status : "marginal") when $.otmc_services_status_attr.availability == "PARTIALLY_AVAILABLE",
+						(device-status : "off") when $.otmc_services_status_attr.availability == "UNAVAILABLE",
+						(device-comm-status : "operational") when $.otmc_services_status_attr.service_state == "ACTIVE",
+						(device-comm-status : "offline") when $.otmc_services_status_attr.service_state == "INACTIVE",
+						last-comm-time : toDateAndTime($.otmc_services_status_attr.timestamp),
+						device-type : "otmc service",
+						otmc-parameters : {
+							(availability-explanation : $.otmc_services_status_attr.parameters.availability_explanation) when $.otmc_services_status_attr.parameters.availability_explanation != null,
+							(state-source-description : $.otmc_services_status_attr.parameters.state_source_description) when $.otmc_services_status_attr.parameters.state_source_description != null,
+							(state-explanation : $.otmc_services_status_attr.parameters.state_explanation) when $.otmc_services_status_attr.parameters.state_explanation != null,
+							deployed-by-list : {
+								(object : {
+									id : $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_id,
+									(object-type : "traffic light controller") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+									(object-type : "ramp metering controller") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "RAMP_METERING_CONTROLLER",
+									(object-type : "variable message sign") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+									(object-type : "parking facility") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "PARKING_FACILITY",
+									(object-type : "video camera") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "VIDEO_CAMERA",
+									(object-type : "rotary panel") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "ROTARY_PANEL",
+									(object-type : "specific service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "SPECIFIC_SERVICE",
+									(object-type : "traffic service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "TRAFFIC_SERVICE",
+									(object-type : "information service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "INFORMATION_SERVICE",
+									(object-type : "rerouting service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "REROUTING_SERVICE",
+									system-id : $.otmc_services_status_attr.deployed_by.system_id
+								}) when $.otmc_services_status_attr.deployed_by != null
+							},
+							encoded-parameters : $.otmc_services_status_attr.parameters.encoded_parameters
+						}					
+					},
+					(
+						otmc-service-response-list : {
+							($.*otmc_services_response map {
+								service-response : {
+									id : $.otmc_id.id,
+									request-id : $.request_id,
+									request-state : $.request_state
+								}
+							})
+						}
+					) when $.*otmc_services_response != null
+				}
+			} when payload.otmc_services_status_publish.*otmc_services_publish != null otherwise {}
+		)
+	},
+	c2cMsgAdmin : {
+		subscriptionID : payload.otmc_services_status_publish.subscription_id.uuid
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+    <sub-flow name="otmc-services-status-publish-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare otmc_services-status_publish Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+---
+otmc_services_status_publish @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta : {
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+		},
+		subscription_id : {
+			uuid : payload.anyTypeStatusUpdateMsg.c2cMsgAdmin.subscriptionID
+		},
+		(
+			payload.anyTypeStatusUpdateMsg.tmdd-object-list.*tmdd-object map {
+				otmc_services_publish : {
+					otmc_services_id : {
+						id : $.status-header.device-id
+					},
+					otmc_services_status_attr : {
+						timestamp : dateTimeToTimeStamp($.status-header.last-comm-time.date, $.status-header.last-comm-time.time),
+						(availability : "AVAILABLE") when $.status-header.device-status == "on",
+						(availability : "PARTIALLY_AVAILABLE") when $.status-header.device-status == "marginal",
+						(availability : "UNAVAILABLE") when $.status-header.device-status == "off",
+						(service_state : "ACTIVE") when $.status-header.device-comm-status== "operational",
+						(service_state : "INACTIVE") when $.status-header.device-comm-status== "offline",
+						(deployed_by : {
+							system_id : $.status-header.otmc-parameters.deployed-by-list.object.system-id,
+							(service_ref : {
+								otmc_object_id : $.status-header.otmc-parameters.deployed-by-list.object.id,
+								(otmc_object_type : "TRAFFIC_LIGHT_CONTROLLER") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "traffic light controller",
+								(otmc_object_type: "RAMP_METERING_CONTROLLER") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "ramp metering controller",
+								(otmc_object_type: "VARIABLE_MESSAGE_SIGN") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "variable message sign",
+								(otmc_object_type: "PARKING_FACILITY") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "parking facility",
+								(otmc_object_type: "VIDEO_CAMERA") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "video camera",
+								(otmc_object_type: "ROTARY_PANEL") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "rotary panel",
+								(otmc_object_type: "SPECIFIC_SERVICE") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "specific service",
+								(otmc_object_type: "TRAFFIC_SERVICE") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "traffic service",
+								(otmc_object_type: "INFORMATION_SERVICE") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "information service",
+								(otmc_object_type: "REROUTING_SERVICE") when $.status-header.otmc-parameters.deployed-by-list.object.object-type == "rerouting service"
+							}) when $.status-header.otmc-parameters.deployed-by-list.object != null
+							}) when $.status-header.otmc-parameters.deployed-by-list.object != null,
+							parameters : {
+								(availability_explanation : $.status-header.otmc-parameters.availability-explanation) when $.status-header.otmc-parameters.availability-explanation != null,
+								(state_source_description : $.status-header.otmc-parameters.state-source-description) when $.status-header.otmc-parameters.state-source-description != null,
+								(state_explanation : $.status-header.otmc-parameters.state-explanation) when $.status-header.otmc-parameters.state-explanation != null,
+								(encoded_parameters : $.status-header.otmc-parameters.encoded-parameters) when $.status-header.otmc-parameters.encoded-parameters != null
+							}
+						},
+						(
+								$.otmc-service-device-list.*service-device map {
+									otmc_services_device_status : {
+										otmc_object_id : $.id,
+										otmc_object_cdm_type : "bermdrip",
+										(availability : "AVAILABLE") when $.availability == "on",
+										(availability : "UNAVAILABLE") when $.availability == "off",
+										(
+											$.deployed-by.*object map {
+												deployed_by : {
+													system_id : $.system-id,
+													service_ref : {
+														otmc_object_id : $.id,
+														(otmc_object_type : "TRAFFIC_LIGHT_CONTROLLER") when $.object-type == "traffic light controller",
+														(otmc_object_type: "RAMP_METERING_CONTROLLER") when $.object-type == "ramp metering controller",
+														(otmc_object_type: "VARIABLE_MESSAGE_SIGN") when $.object-type == "variable message sign",
+														(otmc_object_type: "PARKING_FACILITY") when $.object-type == "parking facility",
+														(otmc_object_type: "VIDEO_CAMERA") when $.object-type == "video camera",
+														(otmc_object_type: "ROTARY_PANEL") when $.object-type == "rotary panel",
+														(otmc_object_type: "SPECIFIC_SERVICE") when $.object-type == "specific service",
+														(otmc_object_type: "TRAFFIC_SERVICE") when $.object-type == "traffic service",
+														(otmc_object_type: "INFORMATION_SERVICE") when $.object-type == "information service",
+														(otmc_object_type: "REROUTING_SERVICE") when $.object-type == "rerouting service"
+													}
+												}
+											} when $.deployed-by.*object != null otherwise {}
+										),
+										parameters : {
+											availability_explanation : $.availability-explanation
+										}
+									}
+								} when $.otmc-service-device-list != null otherwise {}
+							),
+							(
+								$.otmc-service-response-list.*service-response map {
+									otmc_services_response : {
+										otmc_id : {
+											id : $.id
+										},
+										request_id : $.request-id,
+										service_ref : {
+											otmc_object_id : "dummy",
+											otmc_object_type : "VIDEO_CAMERA"
+										},
+										request_state : "ACCEPTED" when $.request-state == "accepted" otherwise "REJECTED"
+									}
+								} when $.otmc-service-response-list.*service-response != null otherwise {}
+							)
+					
+				}
+			} when payload.anyTypeStatusUpdateMsg.tmdd-object-list.*tmdd-object != null otherwise {}
+		)
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>  
+            <return-data file="static_messages/c2cMessageReceipt_ok.xml"/> 
+        </static-component>
+    </sub-flow>
+    <sub-flow name="otmc-services-info-request-inventory">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare otmc_services_info_request Inventory Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+otmc_services_info_request @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	info_spec : {
+		inventory : true when payload.anyTypeInventoryRequestMsg.device-information-type == "device inventory"
+				otherwise false,
+		status : false
+	},
+	(all_otmc_services : true when payload.anyTypeInventoryRequestMsg.device-filter.device-id-list == null
+		otherwise {
+			(payload.anyTypeInventoryRequestMsg.device-filter.device-id-list.*device-id map {
+				otmc_services_spec : {
+					otmc_services_id : {
+						id : $
+					}
+				}
+			})
+		}),
+	all_subscriptions : false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare anyTypeInventoryMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeInventoryMsg : {
+	tmdd-object-list : {
+		(
+			payload.otmc_services_info_reply.*otmc_services_publish map {
+				tmdd-object @(xsi#type : 'tmdd:OTMC-Service'): {
+					inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.otmc_services_id.id,
+						(device-location : {
+							latitude : $.otmc_services_inventory_attr.location_for_display.latitude,
+							longitude : $.otmc_services_inventory_attr.location_for_display.longitude
+						}) when $.otmc_services_inventory_attr.location_for_display != null,
+						device-name : "device name",
+						last-update-time : toDateAndTime($.otmc_services_inventory_attr.timestamp),
+						link-direction : $.otmc_services_inventory_attr.direction,
+						device-type : "otmc service",
+						data-owner : $.otmc_services_inventory_attr.owner,
+						otmc-info : {
+							(object-type : "traffic light controller") when $.otmc_services_inventory_attr.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+							(object-type : "ramp metering controller") when $.otmc_services_inventory_attr.otmc_object_type == "RAMP_METERING_CONTROLLER",
+							(object-type : "variable message sign") when $.otmc_services_inventory_attr.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+							(object-type : "parking facility") when $.otmc_services_inventory_attr.otmc_object_type == "PARKING_FACILITY",
+							(object-type : "video camera") when $.otmc_services_inventory_attr.otmc_object_type == "VIDEO_CAMERA",
+							(object-type : "rotary panel") when $.otmc_services_inventory_attr.otmc_object_type == "ROTARY_PANEL",
+							(object-type : "specific service") when $.otmc_services_inventory_attr.otmc_object_type == "SPECIFIC_SERVICE",
+							(object-type : "traffic service") when $.otmc_services_inventory_attr.otmc_object_type == "TRAFFIC_SERVICE",
+							(object-type : "information service") when $.otmc_services_inventory_attr.otmc_object_type == "INFORMATION_SERVICE",
+							(object-type : "rerouting service") when $.otmc_services_inventory_attr.otmc_object_type == "REROUTING_SERVICE",
+							encoded-parameters : $.otmc_services_inventory_attr.encoded_parameters,
+							involved-objects : {
+								(
+									$.otmc_services_inventory_attr.*involved_object map {
+										object : {
+											id : $.otmc_object_id,
+											(object-type : "traffic light controller") when $.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+											(object-type : "ramp metering controller") when $.otmc_object_type == "RAMP_METERING_CONTROLLER",
+											(object-type : "variable message sign") when $.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+											(object-type : "parking facility") when $.otmc_object_type == "PARKING_FACILITY",
+											(object-type : "video camera") when $.otmc_object_type == "VIDEO_CAMERA",
+											(object-type : "rotary panel") when $.otmc_object_type == "ROTARY_PANEL",
+											(object-type : "specific service") when $.otmc_object_type == "SPECIFIC_SERVICE",
+											(object-type : "traffic service") when $.otmc_object_type == "TRAFFIC_SERVICE",
+											(object-type : "information service") when $.otmc_object_type == "INFORMATION_SERVICE",
+											(object-type : "rerouting service") when $.otmc_object_type == "REROUTING_SERVICE"
+										}
+									}
+								)
+							}
+						}
+					}
+				}
+			} when payload.otmc_services_info_reply.*otmc_services_publish != null otherwise {}
+		)
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+    </sub-flow>
+    <sub-flow name="otmc-services-info-request-status">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare otmc_services_info_request Status Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+otmc_services_info_request @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	info_spec: {
+		inventory: false,
+		status: true when payload.anyTypeStatusRequestMsg.device-information-type == "device status"
+				otherwise false
+	},
+	(
+	all_otmc_services: true when payload.anyTypeStatusRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.anyTypeStatusRequestMsg.device-filter.device-id-list.*device-id map {
+			otmc_services_spec:{
+				otmc_services_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare anyTypeStatusMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeStatusMsg : {
+	tmdd-object-list : {
+		(
+			payload.otmc_services_info_reply.*otmc_services_publish map {
+				tmdd-object @(xsi#type : 'tmdd:OTMC-Service'): {
+					status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.otmc_services_id.id,
+						(device-status : "on") when $.otmc_services_status_attr.availability == "AVAILABLE",
+						(device-status : "marginal") when $.otmc_services_status_attr.availability == "PARTIALLY_AVAILABLE",
+						(device-status : "off") when $.otmc_services_status_attr.availability == "UNAVAILABLE",
+						(device-comm-status : "operational") when $.otmc_services_status_attr.service_state == "ACTIVE",
+						(device-comm-status : "offline") when $.otmc_services_status_attr.service_state == "INACTIVE",
+						last-comm-time : toDateAndTime($.otmc_services_status_attr.timestamp),
+						device-type : "otmc service",
+						otmc-parameters : {
+							(availability-explanation : $.otmc_services_status_attr.parameters.availability_explanation) when $.otmc_services_status_attr.parameters.availability_explanation != null,
+							(state-source-description : $.otmc_services_status_attr.parameters.state_source_description) when $.otmc_services_status_attr.parameters.state_source_description != null,
+							(state-explanation : $.otmc_services_status_attr.parameters.state_explanation) when $.otmc_services_status_attr.parameters.state_explanation != null,
+							deployed-by-list : {
+								(object : {
+									(id : $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_id when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_id != null otherwise {}),
+									(object-type : "traffic light controller") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+									(object-type : "ramp metering controller") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "RAMP_METERING_CONTROLLER",
+									(object-type : "variable message sign") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+									(object-type : "parking facility") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "PARKING_FACILITY",
+									(object-type : "video camera") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "VIDEO_CAMERA",
+									(object-type : "rotary panel") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "ROTARY_PANEL",
+									(object-type : "specific service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "SPECIFIC_SERVICE",
+									(object-type : "traffic service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "TRAFFIC_SERVICE",
+									(object-type : "information service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "INFORMATION_SERVICE",
+									(object-type : "rerouting service") when $.otmc_services_status_attr.deployed_by.service_ref.otmc_object_type == "REROUTING_SERVICE",
+									system-id : $.otmc_services_status_attr.deployed_by.system_id
+								}) when $.otmc_services_status_attr.deployed_by != null
+							},
+							encoded-parameters : $.otmc_services_status_attr.parameters.encoded_parameters
+						}
+					},
+					(otmc-service-device-list : {
+						(
+							$.*otmc_services_device_status map {
+								service-device : {
+									id : $.otmc_object_id,
+									(availability : "on") when $.availability == "AVAILABLE",
+									(availability : "off") when $.availability == "UNAVAILABLE",
+									(deployed-by : {
+										(
+											$.*deployed_by map {
+												object : {
+													(id : $.service_ref.otmc_object_id) when $.service_ref != null,
+													(object-type : "traffic light controller") when $.service_ref.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER" and $.service_ref != null,
+													(object-type : "ramp metering controller") when $.service_ref.otmc_object_type == "RAMP_METERING_CONTROLLER" and $.service_ref != null,
+													(object-type : "variable message sign") when $.service_ref.otmc_object_type == "VARIABLE_MESSAGE_SIGN" and $.service_ref != null,
+													(object-type : "parking facility") when $.service_ref.otmc_object_type == "PARKING_FACILITY" and $.service_ref != null,
+													(object-type : "video camera") when $.service_ref.otmc_object_type == "VIDEO_CAMERA" and $.service_ref != null,
+													(object-type : "rotary panel") when $.service_ref.otmc_object_type == "ROTARY_PANEL" and $.service_ref != null,
+													(object-type : "specific service") when $.service_ref.otmc_object_type == "SPECIFIC_SERVICE" and $.service_ref != null,
+													(object-type : "traffic service") when $.service_ref.otmc_object_type == "TRAFFIC_SERVICE" and $.service_ref != null,
+													(object-type : "information service") when $.service_ref.otmc_object_type == "INFORMATION_SERVICE" and $.service_ref != null,
+													(object-type : "rerouting service") when $.service_ref.otmc_object_type == "REROUTING_SERVICE" and $.service_ref != null,
+													system-id : $.system_id
+												}
+											}
+										)
+									}) when $.*deployed_by != null,
+									availability-explanation : $.parameters.availability_explanation
+								}
+							}
+						)
+					}) when $.*otmc_services_device_status != null
+				}
+			} when payload.otmc_services_info_reply.*otmc_services_publish != null otherwise {}
+		) 
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+    </sub-flow>
+
+	
+	<sub-flow name="otmc-services-control-request-NTCIP-To-CDM">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID" />
+		<dw:transform-message doc:name="Prepare otmc_services_control_request Message" metadata:id="2c78df24-b745-48dd-9ff0-ca16c57442b3">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+---
+otmc_services_control_request @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid		
+		},
+		message_create_date: timeZone
+	},
+	otmc_services_control: {
+		otmc_services_id: {
+			id: payload.genericDeviceControlRequestMsg.device-control-request-header.device-id
+		},
+		otmc_services_control_attr: {
+			otmc_id: {
+				id: payload.genericDeviceControlRequestMsg.device-control-request-header.device-id
+			},
+			timestamp : dateTimeToTimeStamp(payload.genericDeviceControlRequestMsg.device-control-request-header.command-request-time.date, payload.genericDeviceControlRequestMsg.device-control-request-header.command-request-time.time),
+			(otmc_object_type: "TRAFFIC_LIGHT_CONTROLLER" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "traffic light controller" otherwise {}),
+			(otmc_object_type: "RAMP_METERING_CONTROLLER" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "ramp metering controller" otherwise {}),	
+			(otmc_object_type: "VARIABLE_MESSAGE_SIGN" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "variable message sign" otherwise {}),	
+			(otmc_object_type: "PARKING_FACILITY" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "parking facility" otherwise {}),	
+			(otmc_object_type: "VIDEO_CAMERA" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "video camera" otherwise {}),	
+			(otmc_object_type: "ROTARY_PANEL" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "rotary panel" otherwise {}),	
+			(otmc_object_type: "SPECIFIC_SERVICE" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "specific service" otherwise {}),	
+			(otmc_object_type: "TRAFFIC_SERVICE" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "traffic service" otherwise {}),	
+			(otmc_object_type: "INFORMATION_SERVICE" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "information service" otherwise {}),	
+			(otmc_object_type: "REROUTING_SERVICE" when payload.genericDeviceControlRequestMsg.device-control-request-header.object-type == "reroutings service" otherwise {}),	
+			reason: "reason",
+			request_id : payload.genericDeviceControlRequestMsg.device-control-request-header.request-id,
+			service_start_request: {
+				duration: payload.genericDeviceControlRequestMsg.generic-object-list.generic-object.generic-element-list.generic-element.element-name,
+				encoded_parameters:	payload.genericDeviceControlRequestMsg.generic-object-list.generic-object.generic-element-list.generic-element.element-value			
+			}			
+		}
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare otmcServicesControlResponseMsg Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#deviceControlResponseMsg @(xsi#type: 'tmdd:DeviceControlResponseCharm'): {
+	
+	organization-information:{
+		organization-id: 'RWS'
+	},
+	
+	
+	device-id: payload.otmc_services_control_reply.otmc_services_control_mutations.otmc_services_control_attr.otmc_id.id,
+	
+	request-id : 0,
+	
+	request-status: "requested changes completed" when payload.otmc_services_control_reply.otmc_services_control_mutations.processed == "true"
+	otherwise "request rejected invalid command parameters",
+	
+	device-type : "otmc service",
+	comments : "dummyComments"
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+	</sub-flow>
+	
+	<sub-flow name="otmc-services-control-request">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID" />
+		<dw:transform-message doc:name="Prepare genericDeviceControlRequestMsg Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#genericDeviceControlRequestMsg : {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	((payload.otmc_services_control_request.*otmc_services_control map {
+		device-control-request-header @(xsi#type : 'tmdd:DeviceControlRequestHeaderCharm') : {
+			authentication: {
+				user-id: p('user_id'),
+				password: p('password')
+			},
+			organization-requesting : {
+				organization-id : p('organization_information.organization_id')
+			},
+			device-id : $.otmc_services_id.id,
+			request-id : $.otmc_services_control_attr.request_id,
+			command-request-time : toDateAndTime($.otmc_services_control_attr.timestamp),
+			reason : $.otmc_services_control_attr.reason,
+			(object-type : "traffic light controller" when $.otmc_services_control_attr.otmc_object_type	== "TRAFFIC_LIGHT_CONTROLLER" otherwise {
+			}),
+			(object-type : "ramp metering controller" when $.otmc_services_control_attr.otmc_object_type	== "RAMP_METERING_CONTROLLER" otherwise {
+			}),
+			(object-type : "variable message sign" when $.otmc_services_control_attr.otmc_object_type	== "VARIABLE_MESSAGE_SIGN" otherwise {
+			}),
+			(object-type : "parking facility" when $.otmc_services_control_attr.otmc_object_type	== "PARKING_FACILITY" otherwise {
+			}),
+			(object-type : "video camera" when $.otmc_services_control_attr.otmc_object_type	== "VIDEO_CAMERA" otherwise {
+			}),
+			(object-type : "rotary panel" when $.otmc_services_control_attr.otmc_object_type	== "ROTARY_PANEL" otherwise {
+			}),
+			(object-type : "specific service" when $.otmc_services_control_attr.otmc_object_type	== "SPECIFIC_SERVICE" otherwise {
+			}),
+			(object-type : "traffic service" when $.otmc_services_control_attr.otmc_object_type	== "TRAFFIC_SERVICE" otherwise {
+			}),
+			(object-type : "information service" when $.otmc_services_control_attr.otmc_object_type	== "INFORMATION_SERVICE" otherwise {
+			}),
+			(object-type : "reroutings service" when $.otmc_services_control_attr.otmc_object_type	== "REROUTING_SERVICE" otherwise {
+			})
+		},
+		generic-object-list : {
+			generic-object : {
+				object-name : 'start' when null != $.otmc_services_control_attr.service_start_request otherwise 'update' when null != $.otmc_services_control_attr.service_update_request otherwise 'stop',				
+				(generic-element-list : {
+					generic-element : {
+						element-name : "duration",
+						element-value : $.otmc_services_control_attr.service_start_request.duration
+					},
+					generic-element : {
+						element-name : "encoded_parameters",
+						element-value : $.otmc_services_control_attr.service_start_request.encoded_parameters
+					}
+				}) when $.otmc_services_control_attr.service_start_request != null,
+				(generic-element-list : {
+					generic-element : {
+						element-name : "duration",
+						element-value : $.otmc_services_control_attr.service_update_request.duration
+					},
+					generic-element : {
+						element-name : "encoded_parameters",
+						element-value : $.otmc_services_control_attr.service_update_request.encoded_parameters
+					}
+				}) when $.otmc_services_control_attr.service_update_request !=null
+			}
+		}
+	})  when payload.otmc_services_control_request.*otmc_services_control != null otherwise {
+	})
+}]]></dw:set-payload>
+		</dw:transform-message>
+
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+        <flow-ref name="ntcip_client_control" doc:name="ntcip_client_control"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare otmcServicesControlResponseMsg Message" metadata:id="db19a3ce-75ee-48b3-9bac-90ad271cd8cf">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+otmc_services_control_reply @(xmlns: "http://services.otmc.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta_reply: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone,
+		request_id : {
+			uuid : payload.deviceControlResponseMsg.request-id
+		}
+	},
+	otmc_services_control_mutations: {
+		processed : true when payload.deviceControlResponseMsg.request-status == "requested changes completed" otherwise false,
+		otmc_services_control_attr : {
+			otmc_id : {
+				id : payload.deviceControlResponseMsg.device-id
+			},
+			timestamp : timeZone,
+			otmc_object_type : "REROUTING_SERVICE",
+			reason : "reason",
+			request_id : payload.deviceControlResponseMsg.request-id
+		},
+		otmc_services_control_response : {
+			timestamp : timeZone,
+			request_id : payload.deviceControlResponseMsg.request-id
+		}
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+	</sub-flow>
+
+</mule>

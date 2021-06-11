@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ndw_sg_inventory_publish xmlns="http://sg.ndw.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+    </message_id>
+    <message_create_date>2017-10-12T10:11:17Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+  </subscription_id>
+  <inventory_config>
+    <full_sync>true</full_sync>
+    <inventory_id>
+      <uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+    </inventory_id>
+    <ndw_inventory>
+      <action>add</action>
+      <ndw_id>
+        <id>NdwId1</id>
+      </ndw_id>
+      <ndw_inventory_attr>
+        <name>NDW</name>
+         <description>description</description>
+          <ndw_mode>server</ndw_mode>
+        <scan_enabled>true</scan_enabled>
+      </ndw_inventory_attr>
+    </ndw_inventory>
+  </inventory_config>
+</ndw_sg_inventory_publish>

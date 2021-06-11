@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<context:property-placeholder
+		location="classpath:backbone-app.properties, classpath:backbone-app.override.properties"
+		ignore-resource-not-found="true" />
+
+	<spring:beans>
+		<spring:bean id="connectionFactory"
+			class="org.apache.activemq.ActiveMQConnectionFactory">
+			<spring:property name="brokerURL" value="tcp://localhost:61616" />
+		</spring:bean>
+      <spring:bean id="schemaErrorHanlder"
+         class="com.cgi.charm.common.filter.CharmSchemaErrorHandler" />
+		<context:component-scan base-package="com.cgi.charm.backbone" />
+		<util:properties id="backBoneRoutingProperties"
+			location="classpath:backbone-app.properties, classpath:backbone-app.override.properties"
+			ignore-resource-not-found="true" />
+	</spring:beans>
+
+	<!-- JMS brokers declared for different regions -->
+	<jms:activemq-connector name="broker1" numberOfConsumers="40"
+		brokerURL="${broker1.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker1.maxredelivery}" password="${broker1.password}" 
+		username="${broker1.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<jms:activemq-connector name="broker2"
+		brokerURL="${broker2.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker2.maxredelivery}" password="${broker2.password}"
+		username="${broker2.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<jms:activemq-connector name="broker3"
+		brokerURL="${broker3.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker3.maxredelivery}" password="${broker3.password}"
+		username="${broker3.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<jms:activemq-connector name="broker4"
+		brokerURL="${broker4.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker4.maxredelivery}" password="${broker4.password}"
+		username="${broker4.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<jms:activemq-connector name="broker5"
+		brokerURL="${broker5.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker5.maxredelivery}" password="${broker5.password}"
+		username="${broker5.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<jms:activemq-connector name="broker6"
+		brokerURL="${broker6.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="${broker6.maxredelivery}" password="${broker6.password}"
+		username="${broker6.username}" validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever  />
+	</jms:activemq-connector>
+
+	<message-properties-transformer name="rm_property_content-type"
+		encoding="UTF-8" doc:name="Message Properties">
+		<delete-message-property key="Content-Type" />
+	</message-properties-transformer>
+
+	<mulexml:namespace-manager>
+		<mulexml:namespace prefix="location"
+			uri="http://location.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="bridge"
+			uri="http://bridge.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="nina"
+			uri="http://nina.cdm.charm.cgi.com" />
+	</mulexml:namespace-manager>
+
+	<!-- JMS enpoints -->
+	<jms:endpoint name="backbone-app-sync-inbound"
+		connector-ref="broker1" queue="${backbone-app.sync}"
+		exchange-pattern="request-response" doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="backbone-app-async-inbound"
+		connector-ref="broker1" queue="${backbone-app.async}"
+		 doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="backbone-app-async-outbound"
+		connector-ref="broker1" queue="${backbone-app.outbound}"
+		 doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="backbone-app-exception" connector-ref="broker1"
+		queue="${backbone-exception-queue}" 
+		doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<!-- Backbone file connector -->
+	<file:connector name="backboneFileConnector" streaming="true"
+		validateConnections="true" pollingFrequency="${backbone.file.pollingFrequency}"
+		doc:name="File connector" moveToDirectory="${backbone.file.processed}"
+		moveToPattern="#[message.inboundProperties.originalFilename]_#[function:dateStamp]" />
+
+	<!-- Backbone connector -->
+	<vm:connector name="vmconnector" validateConnections="true"
+		doc:name="VM" >
+	</vm:connector>
+      
+      <!-- Schema filter -->
+   <custom-filter name="customSchemaFilter"
+      class="com.cgi.charm.common.filter.CharmSchemaFilter" doc:name="Custom">
+      <spring:property name="schemaLocations" value="${backbone.app.xsd.path}" />
+      <spring:property name="returnResult" value="false" />
+      <spring:property name="errorHandler" ref="schemaErrorHanlder" />
+   </custom-filter>
+    <ee:object-store-caching-strategy name="Routing_Caching_Strategy" keyGenerationExpression="#[flowVars.dynamicRouting]" doc:name="Caching Strategy"/>
+    <choice-exception-strategy name="Generic_Choice_strategy">
+        <catch-exception-strategy when="#[exception.getCause().toString().contains('flowVars.dynamicRouting')]" logException="false" doc:name="Catch Exception Strategy">
+            <logger level="WARN" message="Message Id(#[flowVars.messageId]), Using Static Routing, since App property (#[flowVars.dynamicRouting]) is not found in properties" doc:name="Logger"/>
+            <flow-ref name="static-routing-flow" doc:name="Flow Reference"/>
+            <flow-ref name="log-sent-message" doc:name="Flow Reference"/>
+         </catch-exception-strategy>
+         </choice-exception-strategy>
+    <sub-flow name="static-routing-flow">
+            <set-variable value="#[xpath3('local-name(/*)')]"
+         variableName="dynamicRouting" doc:name="Setting dynamicRouting"></set-variable>
+        <enricher target="#[flowVars.queuePath]" doc:name="Message Enricher">
+            <ee:cache cachingStrategy-ref="Routing_Caching_Strategy" doc:name="Cache">
+                <set-payload value="#[dw('p(flowVars.dynamicRouting)').trim()]" doc:name="Set Payload"/>
+            </ee:cache>
+        </enricher>
+        <flow-ref name="backbone-wirelog-outgoing" doc:name="backbone-wirelog-outgoing"/>
+        <flow-ref name="log-sending-message" doc:name="log-sending-message"/>
+        <flow-ref name="outbound-broker1-queues" doc:name="outbound-broker1-queues"/>
+      </sub-flow>
+   
+   <choice-exception-strategy name="common_backbone_exception_handling_strategy" >
+         <catch-exception-strategy
+            when="exception.causedBy(org.mule.api.routing.filter.FilterUnacceptedException)" logException="false"
+            doc:name="Strategy for schema validation exception">
+            <static-component>
+               <return-data file="static_messages/invalid_xml.xml" />
+            </static-component>
+            <mulexml:xslt-transformer returnClass="java.lang.String"
+               encoding="UTF-8" xsl-file="xslt/backbone/invalid_cdm.xsl"
+               outputEncoding="UTF-8" maxIdleTransformers="2"
+               maxActiveTransformers="5" doc:name="XSLT">
+               <mulexml:context-property key="xmlContent"
+                  value="#[flowVars.receivedMsg]" />
+            </mulexml:xslt-transformer>
+            <set-payload
+               value="#[payload.replaceAll(&quot;&amp;lt;&quot;,&quot;&lt;&quot;).replaceAll(&quot;&amp;gt;&quot;,&quot;&gt;&quot;).replaceAll(&quot;&amp;#xD;&quot;,&quot;&quot;)]"
+               doc:name="Set Payload" />
+            <flow-ref name="moveMessageToErrorQueue" doc:name="Flow Reference" />
+         </catch-exception-strategy>
+         <catch-exception-strategy
+            when="exception.causedBy(java.lang.IllegalArgumentException)"
+            doc:name="Strategy for routing exception" logException="false">
+            <mulexml:xslt-transformer returnClass="java.lang.String"
+               encoding="UTF-8" xsl-file="xslt/backbone/routing_failed_message.xsl"
+               outputEncoding="UTF-8" maxIdleTransformers="2"
+               maxActiveTransformers="5" doc:name="XSLT">
+               <mulexml:context-property key="xmlContent"
+                  value="#[flowVars.receivedMsg]" />
+            </mulexml:xslt-transformer>
+            <set-payload
+               value="#[payload.replaceAll(&quot;&amp;lt;&quot;,&quot;&lt;&quot;).replaceAll(&quot;&amp;gt;&quot;,&quot;&gt;&quot;).replaceAll(&quot;&amp;#xD;&quot;,&quot;&quot;)]"
+               doc:name="Set Payload" />
+            <flow-ref name="moveMessageToErrorQueue" doc:name="Flow Reference" />
+         </catch-exception-strategy>
+         <catch-exception-strategy logException="false"
+            doc:name="Catch Exception Strategy  for all other exceptions">
+            <mulexml:xslt-transformer
+               maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT"
+               encoding="UTF-8" outputEncoding="UTF-8" returnClass="java.lang.String"
+               xsl-file="xslt/backbone/processing_failed_message.xsl" />
+            <set-payload
+               value="#[payload.replaceAll(&quot;&amp;lt;&quot;,&quot;&lt;&quot;).replaceAll(&quot;&amp;gt;&quot;,&quot;&gt;&quot;).replaceAll(&quot;&amp;#xD;&quot;,&quot;&quot;)]"
+               doc:name="Set Payload" />
+            <flow-ref name="moveMessageToErrorQueue" doc:name="Flow Reference" />
+         </catch-exception-strategy>
+      </choice-exception-strategy>
+      
+      <sub-flow name="moveMessageToErrorQueue">
+      <logger message="Moving message to error queue!!" level="INFO"
+         category="backbone-app" doc:name="Logger" />
+      <flow-ref name="backboneIndentationFlow" doc:name="backboneIndentationFlow" />
+      <logger message="#[payload]" level="DEBUG" category="backbone-app"
+         doc:name="Logger" />
+      <outbound-endpoint ref="backbone-app-exception"
+         doc:name="Outbound for exception queue" />
+   </sub-flow>
+   
+   <sub-flow name="backboneIndentationFlow">
+      <mulexml:xml-prettyprinter-transformer
+         mimeType="text/xml" returnClass="java.lang.String" indentEnabled="${backbone.default.indent}"
+         newlines="${backbone.default.indent}" />
+   </sub-flow>
+   
+   <sub-flow name="backbone-wirelog-incoming">
+      <logger
+         message="Receive  message : #[xpath3('local-name(/*)')] MsgId: [#[xpath3('//*:message_id/*:uuid')]]"
+         level="DEBUG" category="com.cgi.charm.backbone" doc:name="Logger Message" />
+      <flow-ref name="backboneIndentationFlow" doc:name="backboneIndentationFlow" />
+      <logger message="#[payload]" level="DEBUG" category="com.cgi.charm.backbone"
+         doc:name="Logger Payload" />
+   </sub-flow>
+   
+   <sub-flow name="backbone-wirelog-outgoing">
+      <logger
+         message="Sent : #[xpath3('local-name(/*)')] MsgId: [#[xpath3('//*:message_id/*:uuid')]]"
+         level="DEBUG" category="com.cgi.charm.backbone" doc:name="Logger Message" />
+      <flow-ref name="backboneIndentationFlow" doc:name="backboneIndentationFlow" />
+      <logger message="#[payload]" level="DEBUG" category="com.cgi.charm.backbone"
+         doc:name="Logger Payload" />
+   </sub-flow>
+</mule>

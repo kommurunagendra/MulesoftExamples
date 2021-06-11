@@ -1,0 +1,39 @@
+<tmdd:dMSStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <c2cMsgAdmin> 
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID> 
+  </c2cMsgAdmin>  
+  <dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSDeviceStatusCharm">  
+    <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm"> 
+      <organization-information> 
+        <organization-id>RWS</organization-id> 
+      </organization-information>  
+      <device-id>prism_id_1</device-id>  
+      <device-status>marginal</device-status>  
+      <last-comm-time> 
+        <date>20060606</date>  
+        <time>181818</time>
+      </last-comm-time>  
+      <device-type>cms sign</device-type> 
+    </device-status-header>  
+    <current-message>prism_state_mnemonic_1</current-message>  
+    <message-number>1</message-number>  
+    <sign-test>failed</sign-test> 
+  </dms-status-item>  
+  <dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSDeviceStatusCharm">  
+    <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm"> 
+      <organization-information> 
+        <organization-id>RWS</organization-id> 
+      </organization-information>  
+      <device-id>prism_id_2</device-id>  
+      <device-status>marginal</device-status>  
+      <last-comm-time> 
+        <date>20070707</date>  
+        <time>171717</time>
+      </last-comm-time>  
+      <device-type>cms sign</device-type> 
+    </device-status-header>  
+    <current-message>prism_state_mnemonic_2</current-message>  
+    <message-number>2</message-number>  
+    <sign-test>failed</sign-test> 
+  </dms-status-item> 
+</tmdd:dMSStatusUpdateMsg>

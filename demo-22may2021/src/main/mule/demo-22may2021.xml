@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="07fca839-a90e-4c2f-92a0-79046f9a3384" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="demo-22may2021Flow" doc:id="3c2004f4-ba0d-4836-a531-9cb308b36ebe" >
+		<http:listener doc:name="Listener" doc:id="0a7e6264-4ee9-4823-b81e-92f01fc3a68c" config-ref="HTTP_Listener_config" path="/demo" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Logger" doc:id="47aaea08-30f3-48be-b88c-cc00d378adc4" message="flow started in GET method"/>
+		<set-payload value="Messge:GET" doc:name="Set Payload" doc:id="66c76ebf-1226-48c9-9d46-4c1bc3b6040a" />
+	</flow>
+	<flow name="demo-22may2021Flow1" doc:id="f4a61e7a-7b40-47ec-9985-b296607a5855" >
+		<http:listener doc:name="Listener" doc:id="c5a5059f-e6c8-4ce4-a174-7f6b4856363e" config-ref="HTTP_Listener_config" path="/demo" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Logger" doc:id="04f9ffdf-f158-42f3-ae3d-500899574831" message="flow started in POST method"/>
+		<set-payload value="Messge:post " doc:name="Set Payload" doc:id="8a61c4e1-30be-45d5-a5e8-cedcf99aaeab" />
+	</flow>
+</mule>

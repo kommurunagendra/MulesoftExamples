@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+
+	<description>
+		Contains processors that are used in various other flows.
+	</description>
+	
+	<message-properties-transformer name="rm_property_content-type"
+		encoding="UTF-8" doc:name="Message Properties">
+		<delete-message-property key="Content-Type" />
+	</message-properties-transformer>
+
+	<mulexml:jaxb-xml-to-object-transformer
+		name="cdm_xml_to_object" jaxbContext-ref="cdm" doc:name="XML to JAXB Object" />
+	<mulexml:jaxb-object-to-xml-transformer
+		name="cdm_object_to_xml" jaxbContext-ref="cdm" doc:name="JAXB Object to XML" />
+
+	<!--  properties for device type routing -->
+	<global-property name="devicetype.bermdrip" value="graphical dms" doc:name="Device Type for Bermdrip App"/>
+	<global-property name="devicetype.bridge" value="bridge" doc:name="Device Type for Bridge App"/>	
+	<global-property name="devicetype.detectorcat" value="detector-cat" doc:name="Device Type for Detector-Cat App"/>
+	<global-property name="devicetype.detectorSi" value="detector-si" doc:name="Device Type for Detector-Si App"/>
+	<global-property name="devicetype.drip" value="text dms" doc:name="Device Type for Drip App"/>
+	<global-property name="devicetype.hardshoulder" value="hard shoulder inventory" doc:name="Device Type for Hardshoulder App"/>
+	<global-property name="devicetype.msi" value="msi" doc:name="Device Type for Msi App"/>
+	<global-property name="devicetype.ndwAvg" value="ndw avg information" doc:name="Device Type for NDW AVG App"/>
+	<global-property name="devicetype.ndwSg" value="ndw sg information" doc:name="Device Type for NDW SG App"/>
+	<global-property name="devicetype.nina" value="nina information" doc:name="Device Type for Nina App"/>
+	<global-property name="devicetype.otmc.inbound" value="otmc-inbound" doc:name="Device Type for OTMC Inbound App"/>
+	<global-property name="devicetype.otmc.inbound.information" value="otmc-inbound information" doc:name="Device Type for OTMC Inbound App"/>
+	<global-property name="devicetype.otmc.inbound.info" value="otmc-inbound active" doc:name="Device Type for OTMC Inbound App"/>
+	<global-property name="devicetype.otmc.outbound" value="otmc-outbound" doc:name="Device Type for OTMC Outbound App"/>
+	<global-property name="devicetype.otmc.outbound.information" value="otmc-outbound information" doc:name="Device Type for OTMC Outbound App"/>
+	<global-property name="devicetype.otmc.outbound.info" value="otmc-outbound active" doc:name="Device Type for OTMC Outbound App"/>
+	<global-property name="devicetype.otmc.services" value="otmc service" doc:name="Device Type for OTMC Services App"/>
+	<global-property name="devicetype.parkingFacility" value="parking" doc:name="Device Type for Parking Facility App"/>
+	<global-property name="devicetype.prism" value="cms sign" doc:name="Device Type for Prism App"/>	
+	<global-property name="devicetype.situation" value="situation" doc:name="Device Type for Situation App"/>
+	<global-property name="devicetype.tlc" value="TDI" doc:name="Device Type for TLC App"/>
+	<global-property name="devicetype.traveltime" value="traveltime" doc:name="Device Type for TravelTime App"/>
+	<global-property name="devicetype.weather" value="environmental sensor station" doc:name="Device Type for Weather App"/>	
+	<global-property name="devicetype.wind" value="wind sensor" doc:name="Device Type for Wind App"/>
+		
+    <sub-flow name="transformToXML">
+        <string-to-byte-array-transformer doc:name="String to Byte Array"/>
+        <byte-array-to-object-transformer mimeType="application/xml" doc:name="Byte Array to Object"/>
+    </sub-flow>
+    <sub-flow name="generateUUID">
+		<set-variable doc:name="Variable" value="#[java.util.UUID.randomUUID().toString()]" variableName="uuid"/>
+	</sub-flow>
+    <sub-flow name="wirelog_incoming">
+		<logger category="dynac-interface-app" message=" #[message.payloadAs(java.lang.String)]"
+			doc:name="wire log" level="DEBUG" />
+	</sub-flow>
+    <sub-flow name="wirelog_outgoing">
+        <flow-ref name="indentationFlow" doc:name="indentationFlow"/>
+
+	</sub-flow>
+    <sub-flow name="outbound_cdm_backbone_request_response">
+        <logger message="Incoming Message to CDM : #[payload]" level="DEBUG" category="dynac-interface-app" doc:name="IncomingLogger"/>
+
+
+		<logger
+			message="Sent #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="dynac-interface-app" doc:name="log info" />
+        <flow-ref name="cdm-filter" doc:name="cdm-filter"/>
+
+		<outbound-endpoint ref="outbound_backbone_sync"
+			exchange-pattern="request-response" doc:name="to cdm" />
+        <choice doc:name="Choice">
+            <when expression="#[!(payload == null)]">
+                <flow-ref name="wirelog_outgoing" doc:name="wirelog_outgoing"/>
+                <logger message="Reply from App : #[payload]" level="DEBUG" category="dynac-interface-app" doc:name="Reply message logging"/>
+                <logger message="Received #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]" level="INFO" category="dynac-interface-app" doc:name="log info"/>
+                <flow-ref name="cdm-filter" doc:name="cdm-filter"/>
+            </when>
+            <otherwise>
+                <expression-component doc:name="NoResponseReceivedFault"><![CDATA[import org.tmdd._3.messages.ErrorReport;
+import org.tmdd._3.messages.OrganizationInformation;
+import org.tmdd._3.messages.ObjectFactory;
+
+		ErrorReport errorReport = new ErrorReport();
+		OrganizationInformation orgInformation = new OrganizationInformation();
+		orgInformation.setOrganizationId("${organization_information.organization_id}");
+		errorReport.setOrganizationInformation(orgInformation);
+		errorReport.setOrganizationRequesting(orgInformation);
+		errorReport.setErrorCode("unknown processing error");
+		errorReport.setErrorText("app might be down or no response received in time");
+	ObjectFactory fact = new ObjectFactory();
+payload = fact.createErrorReportMsg(errorReport);]]></expression-component>
+                <mulexml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="cdm" doc:name="marshal to MSGErrorReport xml"/>
+                <mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/util/prepare_soap_fault.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Copy_of_prepare soap fault"/>
+                <set-property propertyName="#['http.status']" value="500" doc:name="Copy_of_Property"/>
+                <flow-ref name="wirelog_outgoing" doc:name="wirelog_outgoing"/>
+            </otherwise>
+        </choice>
+
+
+
+		<message-filter throwOnUnaccepted="true" doc:name="Message">
+			<not-filter>
+				<payload-type-filter expectedType="org.mule.transport.NullPayload" />
+			</not-filter>
+		</message-filter>
+
+	</sub-flow>
+    <sub-flow name="outbound_cdm_backbone_oneway">
+        <flow-ref name="wirelog_incoming" doc:name="wirelog_incoming"/>
+
+
+		<logger
+			message="Sent #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="dynac-interface-app" doc:name="log info" />
+        <flow-ref name="cdm-filter" doc:name="cdm-filter"/>
+        <!-- flow-ref name="cdm-filter" doc:name="cdmSchemaFilter-flow"/ -->
+
+		<outbound-endpoint ref="outbound_backbone_async"
+			doc:name="to cdm" />
+	</sub-flow>
+    <flow name="ntcip_client" processingStrategy="synchronous">
+		<logger message="Sent #[xpath3('local-name(/*)')]" level="INFO"	category="dynac-interface-app" doc:name="log info" />
+        <logger message=" #[message.payloadAs(java.lang.String)]" level="DEBUG" category="dynac-interface-app" doc:name="Log full payload"/>
+		<flow-ref name="wirelog_outgoing" doc:name="wirelog_outgoing" />
+		<cxf:proxy-client payload="body" enableMuleSoapHeaders="false" doc:name="CXF" />
+
+		<until-successful maxRetries="${outbound.connetion.retry.amount}"
+			millisBetweenRetries="${outbound.connetion.retry.delay}" synchronous="true"
+			doc:name="Until Successful"
+			doc:description="Retry number of times as configured in property file before throw an error.">
+			<http:request config-ref="ntcip_outbound" path="${outbound.path}"
+				method="POST" responseTimeout="${keepalive_to_dynac.response_timeout_ms}"
+				doc:name="HTTP" />
+		</until-successful>
+	</flow>
+    <sub-flow name="moveMessageToErrorQueue">
+		<logger message="Moving message to error queue!!" level="ERROR"
+			category="dynac-interface-app" doc:name="Logger" />
+		<set-payload value="#[payload.replaceAll(&quot;&lt;&quot;,&quot;&lt;&quot;).replaceAll(&quot;&gt;&quot;,&quot;&gt;&quot;).replaceAll(&quot;&quot;,&quot;&quot;)]" doc:name="Set Payload"/>
+		<logger message="#[payload]" level="INFO" category="dynac-interface-app"
+			doc:name="Logger" />
+        <flow-ref name="handle_exception" doc:name="handle_exception"/>
+	</sub-flow>
+    <sub-flow name="log-indent-cdm-request-flow">
+		<logger message="#[payload]" level="DEBUG" category="dynac-interface-app"
+			doc:name="log payload" />
+		<logger
+			message="Received #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="dynac-interface-app" doc:name="log incoming request" />
+		<flow-ref name="indentationFlow" doc:name="indentationFlow" />
+		
+		<flow-ref name="existdb.request" doc:name="flow_write_to_existdb" />
+	</sub-flow>
+    <sub-flow name="log-indentation-flow">
+        <logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="Inncoming request details"/>
+
+		<logger message="#['Received ' + xpath3('local-name(/*)')]"
+			level="INFO" category="dynac-interface-app" doc:name="log incoming request name" />
+	</sub-flow>                     
+</mule>

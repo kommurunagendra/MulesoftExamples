@@ -1,0 +1,132 @@
+<tmdd:detectorStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+    <detector-status-item xsi:type="tmdd:DetectorStatusCharm">
+        <detector-station-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+            <organization-information>
+                <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>outstationId1</device-id>
+            <device-status>unknown</device-status>
+            <last-comm-time>
+                <date>19700101</date>
+                <time>000000</time>
+            </last-comm-time>
+            <device-type>detector-si</device-type>
+        </detector-station-status-header>
+        <detector-list>
+            <detector xsi:type="tmdd:DetectorStatusDetailsCharm">
+                <detector-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+                    <organization-information>
+                        <organization-id>RWS</organization-id>
+                    </organization-information>
+                    <device-id>detectorId2</device-id>
+                    <device-status>on</device-status>
+                    <last-comm-time>
+                        <date>20170823</date>
+                        <time>060134</time>
+                    </last-comm-time>
+                    <device-type>detector-si</device-type>
+                </detector-status-header>
+            </detector>
+            <detector xsi:type="tmdd:DetectorStatusDetailsCharm">
+                <detector-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+                    <organization-information>
+                        <organization-id>RWS</organization-id>
+                    </organization-information>
+                    <device-id>detectorId1</device-id>
+                    <device-status>on</device-status>
+                    <last-comm-time>
+                        <date>20170823</date>
+                        <time>060134</time>
+                    </last-comm-time>
+                    <device-type>detector-si</device-type>
+                </detector-status-header>
+            </detector>
+        </detector-list>
+        <local-overide>
+            <channel1>false</channel1>
+            <channel2>false</channel2>
+            <channel3>false</channel3>
+            <channel4>false</channel4>
+        </local-overide>
+        <statistics>
+            <statistics-updated>false</statistics-updated>
+            <count1>0</count1>
+            <count2>0</count2>
+            <count3>0</count3>
+        </statistics>
+        <device-mode>idle</device-mode>
+        <aux-power-available>false</aux-power-available>
+        <power-supply>main power</power-supply>
+        <cold-start>false</cold-start>
+        <fatal-error>false</fatal-error>
+        <maintenance-code>0</maintenance-code>
+        <aid-override>false</aid-override>
+        <dynamic-max-speed>0</dynamic-max-speed>
+    </detector-status-item>
+    <detector-status-item xsi:type="tmdd:DetectorStatusCharm">
+        <detector-station-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+            <organization-information>
+                <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>mtm/fep</device-id>
+            <device-status>unknown</device-status>
+            <last-comm-time>
+                <date>19700101</date>
+                <time>000000</time>
+            </last-comm-time>
+        </detector-station-status-header>
+        <detector-list xsi:nil="true"/>
+        <device-mode>normal</device-mode>
+    </detector-status-item>
+    <detector-status-item xsi:type="tmdd:DetectorStatusCharm">
+        <detector-station-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+            <organization-information>
+                <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>outstationId1</device-id>
+            <device-status>unknown</device-status>
+            <last-comm-time>
+                <date>19700101</date>
+                <time>000000</time>
+            </last-comm-time>
+            <device-type>detector-si</device-type>
+        </detector-station-status-header>
+        <detector-list>
+            <detector xsi:type="tmdd:DetectorStatusDetailsCharm">
+                <detector-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+                    <organization-information>
+                        <organization-id>RWS</organization-id>
+                    </organization-information>
+                    <device-id>detectorId1</device-id>
+                    <device-status>on</device-status>
+                    <last-comm-time>
+                        <date>20170823</date>
+                        <time>060134</time>
+                    </last-comm-time>
+                    <device-type>detector-si</device-type>
+                </detector-status-header>
+            </detector>
+        </detector-list>
+        <local-overide>
+            <channel1>false</channel1>
+            <channel2>false</channel2>
+            <channel3>false</channel3>
+            <channel4>false</channel4>
+        </local-overide>
+        <statistics>
+            <statistics-updated>false</statistics-updated>
+            <count1>0</count1>
+            <count2>0</count2>
+            <count3>0</count3>
+        </statistics>
+        <device-mode>idle</device-mode>
+        <aux-power-available>false</aux-power-available>
+        <power-supply>main power</power-supply>
+        <cold-start>false</cold-start>
+        <fatal-error>false</fatal-error>
+        <maintenance-code>0</maintenance-code>
+        <aid-override>false</aid-override>
+        <dynamic-max-speed>0</dynamic-max-speed>
+    </detector-status-item>
+</tmdd:detectorStatusMsg>

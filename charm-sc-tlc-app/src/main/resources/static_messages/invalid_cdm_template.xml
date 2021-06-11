@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tlc_error_xml>
+	<error_message>
+		Failed against validation
+	</error_message>
+	<xml_content>
+		#[flowVars.varRquestXml]
+	</xml_content>
+</tlc_error_xml>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <sub-flow name="charm-sc-tlc-controlFlow">
+        <mulexml:jaxb-xml-to-object-transformer jaxbContext-ref="tlc" doc:name="XML to JAXB Object"/>
+        <set-variable variableName="messageId" value="#[payload.getMeta().getMessageId()]" doc:name="MessageId"/>
+        <invoke object-ref="tlcControlRequestHandler" method="handle" methodArguments="#[payload]" methodArgumentTypes="com.cgi.charm.cdm.tlc.TlcControlRequest" name="TlcControlRequestHandler"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.size()&gt;0]">
+                <set-variable variableName="deviceInfoList" value="#[[]]" doc:name="Variable"/>
+
+                <flow-ref name="charm-sc-tlc-controlReplyFlow" doc:name="charm-sc-tlc-controlReplyFlow"/>
+            </when>
+            <otherwise>
+                <logger message="Empty Control Request" level="DEBUG" category="charm-sc-tlc-app" doc:name="Logger"/>
+                <invoke object-ref="tlcControlReplyHandlerEmptyDatastore" method="handle" methodArguments="#[flowVars.messageId]" methodArgumentTypes="com.cgi.charm.cdm.tlc.Uuid" name="InvokeControlReply"/>
+                <mulexml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="tlc" doc:name="JAXB Object to XML"/>
+                <flow-ref name="charm-sc-tlc-sync-outbound" doc:name="charm-sc-tlc-sync-outbound"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow name="charm-sc-tlc-controlReplyFlow">
+
+            <foreach doc:name="For Each">
+                <expression-component doc:name="Expression"><![CDATA[ import 
+ com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo;
+ import java.lang.Object;
+ TlcDeviceInfo tlcDeviceInfo=app.registry.get("tlcQueryServiceImpl")
+       .getTlcById(payload.getTlcId());
+  payload=tlcDeviceInfo;
+					]]></expression-component>
+                    <message-properties-transformer scope="invocation" doc:name="Port-Host">
+                        <add-message-property key="port" value="#[payload.getTlcInventory().getTlcInventoryAttr().getTlcCommunication().getPortnumberClient()]"/>
+                        <add-message-property key="host" value="#[payload.getTlcInventory().getTlcInventoryAttr().getTlcCommunication().getIpnrVri()]"/>
+                        <add-message-property key="deviceInfo" value="#[payload]"/>
+                <add-message-property key="port" value="#[payload.getPortnumberClient()]"/>
+                <add-message-property key="host" value="#[payload.getIpnrVri()]"/>
+                    </message-properties-transformer>
+                    <invoke object-ref="prepareCommand" method="prepareIveraCommands" methodArguments="#[payload]" methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo" name="InvokeCommands"/>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.deviceInfo.getCommState() == &quot;ONLINE&quot;]">
+                    <flow-ref name="calling-roadsideFlow" doc:name="calling-roadsideFlow"/>
+                </when>
+                <otherwise>
+                    <logger message="The device is not active" level="INFO" category="charm-sc-tlc-app" doc:name="Logger"/>
+                </otherwise>
+            </choice>
+
+            <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfoList.add(flowVars.deviceInfo);
+]]></expression-component>
+            </foreach>
+        <set-payload value="#[flowVars.deviceInfoList]" doc:name="Set Payload"/>
+        <expression-component doc:name="Expression"><![CDATA[
+         import
+          com.cgi.charm.sc.tlc.helper.TlcDeviceInfoWrapper; 
+          TlcDeviceInfoWrapper tlcWrapper = new TlcDeviceInfoWrapper();
+           tlcWrapper.setDeviceInfoList(payload);
+           tlcWrapper.setMessageId(flowVars.messageId);
+           payload=tlcWrapper;
+]]></expression-component>
+        <component  doc:name="Java">
+            <singleton-object class="com.cgi.charm.sc.tlc.handler.TlcControlReplyHandler"/>
+        </component>
+        <mulexml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="tlc" doc:name="JAXB Object to XML"/>
+        <flow-ref name="charm-sc-tlc-sync-outbound" doc:name="charm-sc-tlc-sync-outbound"/>
+    </sub-flow>
+    <sub-flow name="calling-roadsideFlow">
+        <expression-filter expression="#[payload.size()&gt;0]" doc:name="Expression"/>
+        <foreach doc:name="For Each">
+            <invoke object-ref="prepareCommand" method="getReadCommand" methodArguments="#[flowVars.deviceInfo],#[payload]" methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="InvokePrepareCmds"/>
+
+            <flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow"/>
+            <expression-filter expression="#[payload.contains(&quot;:A&quot;)]" doc:name="Expression"/>
+            <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setProcessed(true);]]></expression-component>
+        </foreach>
+    </sub-flow>
+</mule>

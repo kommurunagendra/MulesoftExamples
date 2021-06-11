@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" 
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    
+	<sub-flow name="nina-inventory-subscription">
+        <logger message="=== Nina inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message metadata:id="0c5353a1-1f5a-46ee-8f1c-75d636c2e85a" doc:name="Prepare organizationInformationSubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#organizationInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	organization-requesting: {
+		organization-id : p('organization_information.organization_id')
+	},
+	organization-information-type: 'nina information',
+	organization-id : 'DASB',	
+	
+	(
+	all_ninas : {} when payload.nina_inventory_subscription.subscription_config.*nina_spec != null
+	otherwise true
+	),
+	
+	(
+	center-id-list : {} when payload.nina_inventory_subscription.subscription_config.*nina_spec == null
+	otherwise center-id-list : {
+		(payload.nina_inventory_subscription.subscription_config.*nina_spec  map {		
+			center-id  : $.nina_id.id
+		})
+	}
+	),	
+	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'newSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.nina_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.nina_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+   		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+	
+	<sub-flow name="nina-inventory-publish">
+        <logger message="=== Nina inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare nina_inventory_publish  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+nina_inventory_publish @(xmlns: "http://nina.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.organizationInformationUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.organizationInformationUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.organizationInformationUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.organizationInformationUpdateMsg.organization-list.*organization-information-item map {
+				nina_inventory : {
+					action : $.inventory-action,
+					nina_id : {
+						id : $.organization-id
+						},
+					nina_inventory_attr : {
+						name : $.organization-name,
+						hostname : $.hostname,
+						port : $.alert-port,
+						nina_mode : $.organization-function,
+					    scan_enabled : $.scan-on-off
+						}
+				}
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+	<sub-flow name="nina-status-subscription">
+        <logger message="=== Nina status subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+          <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare nina_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+nina_status_subscription @(xmlns: "http://nina.cdm.charm.cgi.com", version:"1.0.0") : {	
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.organizationInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.organizationInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},		
+		
+	(((payload.organizationInformationSubscriptionMsg.center-id-list.*center-id map {
+								nina_spec : {
+									nina_id : {
+										id : $.center-id
+									}
+								}
+							}
+							 )
+					when payload.organizationInformationSubscriptionMsg.center-id-list.*center-id != null otherwise {
+				all_ninas : true 
+				
+					}
+			
+		)
+		when payload.organizationInformationSubscriptionMsg.c2cMsgAdmin.subscriptionAction.subscriptionAction-item != "cancelSubscription" otherwise {} 
+		)
+		
+		
+		
+		
+		
+		
+		
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="nina-status-publish">
+        <logger message="=== Nina status publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare centerActiveUpdateMsg Message" metadata:id="e4e9f087-ebfb-4ca6-bf8b-878b659748e4">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#centerActiveUpdateMsg : {
+	c2cMsgAdmin   : {
+		subscriptionID : payload.nina_status_publish.subscription_id.uuid
+	},
+	(payload.nina_status_publish.*nina_publish map {
+		center-active-update:  {
+			organization-information : {
+				organization-id : p('organization_information.organization_id')
+			},
+			center-id : $.nina_id.id,
+			center-name : 'center-name',
+			(last-comm-time : {	
+				date : $.nina_status_attr.time  as :date as :string {format : "yyyyMMdd"},
+				time : $.nina_status_attr.time  as :localdatetime  as :string {format : "HHmmss"}
+			}) when $.nina_status_attr != null,
+			(center-comm-status : 'operational') when $.nina_status_attr.comm_state == "online" and $.nina_status_attr != null,
+			(center-comm-status : 'offline') when $.nina_status_attr.comm_state == "offline" and $.nina_status_attr != null
+		}
+	}
+	when payload.nina_status_publish.*nina_publish != null otherwise {}
+	) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+
+	<sub-flow name="nina-info-request-inventory">
+        <logger message="=== Nina info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+		<flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare nina_info_request Inventory Message" metadata:id="b9e1fa7c-6077-46ed-b9bc-228242905307">
+            <dw:input-payload/>
+            <dw:input-variable mimeType="application/java" variableName="uuid"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+
+---
+nina_info_request @(xmlns: "http://nina.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: {
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	info_spec: {
+		inventory : true when payload.organizationInformationRequestMsg.organization-information-type == "organization information"
+		otherwise false,
+		status : true
+	},
+	
+	(
+	all_ninas : true when payload.organizationInformationRequestMsg.center-id-list == null
+	otherwise	
+	{(payload.organizationInformationRequestMsg.center-id-list.*center-id  map {		
+		nina_spec : {
+			nina_id : {
+				id : $.center-id
+			}			
+		} 
+	})}),
+	
+	all_subscriptions : false
+	
+	
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare organizationInformationMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8", skipNullOn="everywhere"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#organizationInformationMsg : {			
+			  		
+			 	(payload.nina_info_reply.*nina_publish map {		
+						organization-information-item @(xsi#type : 'tmdd:OrganizationInformationCharm'):  {			
+						organization-id : $.nina_id.id,
+						organization-name : $.nina_inventory_attr.name,
+						organization-function : $.nina_inventory_attr.nina_mode,
+						alert-port : $.nina_inventory_attr.port,   
+						organization-information-type : "nina information"
+						}        		           		                 							
+					} when payload.nina_info_reply.*nina_publish != null otherwise {
+						"":{organization-information-item @(xsi#type : 'tmdd:OrganizationInformationCharm'):  {
+						organization-id : p('organization_information.organization_id'),
+						organization-information-type : "nina information"               		           		                 							
+				}} 
+					}) 
+		
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+
+	<sub-flow name="nina-info-request-status">
+        <logger message="=== Nina info request status outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+		<flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare nina_info_request Status Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+nina_info_request @(xmlns: "http://nina.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	info_spec: {
+		inventory : false,
+		status : true
+	},
+	
+	(
+	all_ninas : true when payload.centerActiveVerificationRequestMsg.organization-requesting.center-contact-list == null
+	otherwise	
+	{(payload.centerActiveVerificationRequestMsg.organization-requesting.center-contact-list.*center-contact-details  map {		
+		nina_spec : {
+			nina_id : {
+				id : $.center-id
+			}			
+		} 
+	})}),
+	
+	all_subscriptions : false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare organizationInformationMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#centerActiveVerificationResponseMsg @(xsi#type : 'tmdd:CenterActiveInformation'): {	
+	organization-information : {
+		organization-id : p('organization_information.organization_id'),
+		
+		( "" : {center-contact-list : {
+			(payload.nina_info_reply.*nina_publish map {
+				center-contact-details : {
+					center-id : $.nina_id.id,
+					center-name : "Center Name"
+				}
+			})	
+		}} when payload.nina_info_reply.nina_publish != null otherwise {})		
+	}  ,
+	center-id : "Center Id",
+	center-name : "Center Name",
+	( "" : { last-comm-time : {			
+		date : payload.nina_info_reply.nina_publish.nina_status_attr.time  as :date as :string {format : "yyyyMMdd"},
+		time : payload.nina_info_reply.nina_publish.nina_status_attr.time  as :localdatetime  as :string {format : "HHmmss"}
+	} } when payload.nina_info_reply.nina_publish != null otherwise {}),						
+	(center-comm-status : 'operational' when payload.nina_info_reply.nina_publish.nina_status_attr.comm_state == "online" otherwise {}),
+	(center-comm-status : 'offline' when payload.nina_info_reply.nina_publish.nina_status_attr.comm_state == "offline" otherwise {})
+				
+				
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+</mule>

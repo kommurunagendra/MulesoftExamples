@@ -1,0 +1,20 @@
+<tmdd:deviceInformationRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<organization-information>
+		<organization-id>RWS</organization-id>
+	</organization-information>
+	<organization-requesting>
+		<organization-id>RWS</organization-id>
+	</organization-requesting>
+	<device-type>traveltime</device-type>
+	<device-information-type>device status</device-information-type>
+	<device-filter>
+		<device-id-list>
+			<device-id>traveltimeId1</device-id>
+			<device-id>traveltimeId2</device-id>
+		</device-id-list>
+	</device-filter>
+</tmdd:deviceInformationRequestMsg>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.7.3"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:test="http://www.mulesoft.org/schema/mule/test"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd">
+<!-- **************************************** TLC OUTBOUND CDM ******************************************** -->
+
+	<flow name="tlc-cdm-mock">
+		<inbound-endpoint doc:name="CDM messages" ref="async_outbound_cdm" />
+		<object-to-string-transformer />
+		<choice>
+			<when expression="#[payload.contains('tlc_inventory_subscription')]">
+			<flow-ref name="tlc_inventory_subscription"></flow-ref>
+			</when>
+			<otherwise>
+			<flow-ref name="tlc_status_publish"></flow-ref>
+			</otherwise>
+		</choice>
+	</flow>
+	
+	<!-- **************************************** TLC INVENTORY SUBSCRIPTION ******************************************** -->
+	
+	<flow name="tlc_inventory_subscription">
+		<test:component />
+	</flow>
+	
+	<flow name="tlc_status_publish">
+		<test:component />
+	</flow>
+</mule>

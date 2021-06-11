@@ -1,0 +1,21 @@
+<tmdd:anyTypeStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <tmdd-object-list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <tmdd-object xsi:type="tmdd:OTMC">
+      <status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+        <organization-information>
+          <organization-id>RWS</organization-id>
+        </organization-information>
+        <device-id>555</device-id>
+        <device-status>on</device-status>
+        <event-id>12345</event-id>
+        <last-comm-time>
+          <date>20060504</date>
+          <time>181351</time>
+        </last-comm-time>
+        <device-type>otmc-outbound</device-type>
+        <device-notes>non event</device-notes>
+      </status-header>
+      <message-state>REJECTED</message-state>
+    </tmdd-object>
+  </tmdd-object-list>
+</tmdd:anyTypeStatusMsg>

@@ -1,0 +1,43 @@
+<classpath>
+  <classpathentry kind="src" path="mappings" excluding="**/*.java"/>
+  <classpathentry kind="src" path="src/main/api" excluding="**/*.java"/>
+  <classpathentry kind="src" path="src/main/app" excluding="**/*.java"/>
+  <classpathentry kind="src" path="src/main/java"/>
+  <classpathentry kind="src" path="src/main/resources" excluding="**/*.java"/>
+  <classpathentry kind="src" path="src/test/java" output="target/test-classes"/>
+  <classpathentry kind="src" path="src/test/resources" output="target/test-classes" excluding="**/*.java"/>
+  <classpathentry kind="output" path="target/classes"/>
+  <classpathentry kind="con" path="MULE_RUNTIME"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/activemq/activemq-broker/5.14.1/activemq-broker-5.14.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/activemq/activemq-client/5.14.1/activemq-client-5.14.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/activemq/activemq-openwire-legacy/5.14.1/activemq-openwire-legacy-5.14.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/aspectj/aspectjweaver/1.8.9/aspectjweaver-1.8.9.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/assertj/assertj-core/3.2.0/assertj-core-3.2.0.jar">
+    <attributes>
+      <attribute value="test" name="org.mule.tooling.scope"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/com/cgi/charm/cdm/charm-cdm/30.0.0/charm-cdm-30.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/cgi/charm/common/charm-common/30.0.5/charm-common-30.0.5.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/cgi/charm/info/charm-info/16.0.1/charm-info-16.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/cgi/charm/ntcip/charm-ntcip-schema/30.0.1/charm-ntcip-schema-30.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/geronimo/specs/geronimo-j2ee-management_1.1_spec/1.0.1/geronimo-j2ee-management_1.1_spec-1.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/fusesource/hawtbuf/hawtbuf/1.11/hawtbuf-1.11.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/fasterxml/jackson/core/jackson-annotations/2.9.0/jackson-annotations-2.9.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/fasterxml/jackson/core/jackson-core/2.9.0/jackson-core-2.9.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/fasterxml/jackson/core/jackson-databind/2.9.0/jackson-databind-2.9.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/fasterxml/jackson/module/jackson-module-parameter-names/2.9.0/jackson-module-parameter-names-2.9.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/jvnet/jaxb2_commons/jaxb2-basics-runtime/0.9.4/jaxb2-basics-runtime-0.9.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/mule/modules/mule-module-apikit-soap/1.0.0/mule-module-apikit-soap-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/mule/modules/mule-module-apikit-soap-common/1.0.0/mule-module-apikit-soap-common-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/mule/modules/mule-module-apikit-soap-metadata/1.0.0/mule-module-apikit-soap-metadata-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-simple/1.6.1/slf4j-simple-1.6.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/springframework/spring-aspects/4.3.4.RELEASE/spring-aspects-4.3.4.RELEASE.jar"/>
+  <classpathentry kind="var" path="M2_REPO/wsdl4j/wsdl4j/1.6.2/wsdl4j-1.6.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/xmlunit/xmlunit-core/2.2.1/xmlunit-core-2.2.1.jar">
+    <attributes>
+      <attribute value="test" name="org.mule.tooling.scope"/>
+    </attributes>
+  </classpathentry>
+</classpath>

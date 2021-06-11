@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+
+	<description>
+	</description>
+	
+	<sub-flow name="hardshoulder-inventory-subscription">
+		<logger message="=== Hardshoulder inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare trafficNetworkInformationSubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#trafficNetworkInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},	
+	organization-requesting: {
+		organization-id : p('organization_information.organization_id')
+	},
+	network-information-type: 'hard shoulder inventory',
+	
+	c2cMsgAdmin: {
+		informationalText : 'hard shoulder inventory subscription',
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.hardshoulder_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName:  payload.hardshoulder_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>	
+	</sub-flow>
+	
+	<sub-flow name="hardshoulder-inventory-publish">
+		<logger message="=== Hardshoulder inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		  <mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToHardshoulderInventoryPublishCDM.xsl" doc:name="transform to CDM inventory publish" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+		
+ 		<parse-template location="static_messages/c2cMessageReceipt_ok.xml" doc:name="static c2c response" name="c2c_response"/> 
+			 
+	</sub-flow>
+
+	<sub-flow name="hardshoulder-status-subscription">
+		<logger message="=== Hardshoulder status subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+
+        <dw:transform-message doc:name="Prepare trafficNetworkInformationSubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#trafficNetworkInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	organization-requesting: {
+		organization-id : p('organization_information.organization_id')
+	},
+	network-information-type: 'hard shoulder status',
+	
+	(roadway-network-id-list : {
+		(payload.hardshoulder_status_subscription.subscription_config.*hardshoulder_spec  map {		
+			roadway-network-id  : $.hardshoulder_id.id
+		})
+	} )when payload.hardshoulder_status_subscription.subscription_config.*hardshoulder_spec != null,
+	
+	
+	
+	c2cMsgAdmin: {
+		informationalText : 'hard shoulder status subscription',
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.hardshoulder_status_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.hardshoulder_status_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+
+	</sub-flow>
+
+	<sub-flow name="hardshoulder-status-publish">
+		<logger message="=== Hardshoulder status publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToHardshoulderStatusPublishCDM.xsl" doc:name="transform to NTCIP status update" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	
+
+	<sub-flow name="hardshoulder-info-request-status">
+		<logger message="=== Hardshoulder info request status incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+	<set-variable
+				value="#[xpath3('/tmdd:linkStatusRequestMsg/organization-requesting/organization-id')]"
+				variableName="organizationid" doc:name="Organization Id" />
+		
+	
+		<mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToHardshoulderStatusRequestCDM.xsl" doc:name="transform to CDM hardshoulder info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		
+		<mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToHardshoulderStatusResponseNTCIP.xsl" doc:name="transform to NTCIP status response">
+		<mulexml:context-property key="organization_id"
+				value="#[flowVars.organizationid]" />
+		</mulexml:xslt-transformer>
+	</sub-flow>
+	
+	
+	<sub-flow name="hardshoulder-info-request-inventory">
+		<logger message="=== Hardshoulder info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+	<set-variable
+				value="#[xpath3('/tmdd:linkStatusRequestMsg/organization-requesting/organization-id')]"
+				variableName="organizationid" doc:name="Organization Id" />
+	
+		<mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToHardshoulderInfoRequestCDM.xsl" doc:name="transform to CDM hardshoulder info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+
+		<mulexml:xslt-transformer xsl-file="xslt/hardshoulder/transformToLinkInfoInventoryResponseNTCIP.xsl" doc:name="transform to NTCIP Info response">
+			<mulexml:context-property key="organization_id"
+				value="${organization_information.organization_id}" />
+		</mulexml:xslt-transformer>
+
+	</sub-flow>
+</mule>

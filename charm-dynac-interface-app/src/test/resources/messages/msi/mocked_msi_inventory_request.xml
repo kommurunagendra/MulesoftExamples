@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<msi_info_request version="1.0.0" xmlns="http://msi.cdm.charm.cgi.com">
+	<meta>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000011</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+	</meta>
+	<info_spec>
+		<inventory>true</inventory>
+		<status>false</status>
+		<library>false</library>
+	</info_spec>
+	<all_msis>true</all_msis>
+	<all_subscriptions>false</all_subscriptions>
+</msi_info_request>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="1d08c4aa-7830-40a3-aa82-85a0be5f6020" >
+		<file:connection workingDir="D:\mule4-nov2018\mule4-lab-docs-nov2018\" />
+	</file:config>
+	<flow name="01-using-filemoduleFlow" doc:id="fc8415d4-55be-459b-9dfb-ddfb6aff1b59" >
+		<file:listener doc:name="On New or Updated File" doc:id="22cdb4da-55df-4344-9ec7-ace80de25318" config-ref="File_Config" moveToDirectory="output" renameTo="#[attributes.fileName ++ '.backup']" directory="input">
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="77808c9a-ab0d-4fdb-9921-b18ca682af1e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="64da7466-7ac8-4cde-b120-5a70eabfcaf4" >
+			<logger level="INFO" doc:name="Logger" doc:id="fddbadab-72cd-4824-a250-3ed56c74642e" message="#[payload]" />
+		</foreach>
+	</flow>
+</mule>

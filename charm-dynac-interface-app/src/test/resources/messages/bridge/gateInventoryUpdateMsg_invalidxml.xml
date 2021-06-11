@@ -1,0 +1,47 @@
+<tmdd:gateInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>for update</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+		<subscriptionName>subscription for bridge-app</subscriptionName>
+		<subscriptionFrequency>1</subscriptionFrequency>
+		<subscriptionCount>1</subscriptionCount>
+	</c2cMsgAdmin>
+
+	<gate-inventory-item1>
+		<device-inventory-header>
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>grandbridge1</device-id>
+			<device-type>bridge</device-type>
+			<device-location>
+				<latitude>2</latitude>
+				<longitude>33</longitude>
+			</device-location>
+			<device-name>Grand Bridge</device-name>
+			<device-description>Grand Bridge over the canal</device-description>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>333</scan-interval>
+			<inventory-action>add</inventory-action>
+		</device-inventory-header>
+	</gate-inventory-item1>
+
+	<gate-inventory-item>
+		<device-inventory-header>
+			<organization-information>
+				<organization-id>PZH</organization-id>
+			</organization-information>
+			<device-id>smallbridge1</device-id>
+			<device-type>bridge</device-type>
+			<device-location>
+				<latitude>55</latitude>
+				<longitude>553</longitude>
+			</device-location>
+			<device-name>Small Bridge</device-name>
+			<device-description>Small bridge over the canal</device-description>
+			<scan-on-off>false</scan-on-off>
+			<scan-interval>334</scan-interval>
+			<inventory-action>remove</inventory-action>
+		</device-inventory-header>
+	</gate-inventory-item>
+</tmdd:gateInventoryUpdateMsg>

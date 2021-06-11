@@ -1,0 +1,27 @@
+<tmdd:organizationInformationSubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <authentication>
+    <user-id>dummy</user-id>
+    <password>test</password>
+  </authentication>
+  <organization-requesting>
+    <organization-id>RWS</organization-id>
+  </organization-requesting>
+  <organization-information-type>otmc-outbound information</organization-information-type>
+  <organization-id>DASB</organization-id>
+  <center-id-list>
+    <center-id>id0</center-id>
+    <center-id>id1</center-id>
+  </center-id-list>
+  <c2cMsgAdmin>
+    <returnAddress>http://localhost:41082/</returnAddress>
+    <subscriptionAction>
+      <subscriptionAction-item>newSubscription</subscriptionAction-item>
+    </subscriptionAction>
+    <subscriptionType>
+      <subscriptionType-item>onChange</subscriptionType-item>
+    </subscriptionType>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+    <subscriptionName>subscription_name0</subscriptionName>
+    <subscriptionFrequency>1</subscriptionFrequency>
+  </c2cMsgAdmin>
+</tmdd:organizationInformationSubscriptionMsg>

@@ -1,0 +1,829 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+    <sub-flow name="detector-cat-inventory-subscription">
+		<logger message="=== Detector-cat inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToInventorySubscriptionNTCIP.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Prepare Inventory Subscription" returnClass="java.lang.String">
+           			<mulexml:context-property key="return_address"
+				value="${dynac_interface.return_address}" />
+			<mulexml:context-property key="userId"
+				value="${user_id}" />
+			<mulexml:context-property key="password"
+				value="${password}" />
+			<mulexml:context-property key="organization_id"
+				value="${organization_information.organization_id}" />
+            <mulexml:context-property key="device_type" value="${devicetype.detectorcat}"/>
+
+        </mulexml:xslt-transformer>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+	 
+	 <sub-flow name="detector-cat-inventory-subscription-NTCIP-To-CDM">
+		 <logger message="=== Detector-cat inventory subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		 <flow-ref name="transformToXML" doc:name="transformToXML"/>
+		 <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare detector-cat-inventory-subscription Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+detector_cat_inventory_subscription @(xmlns: "http://detector.cat.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type: 'inventory'
+		},
+		
+		all_feps : true,
+		all_outstations : true,	
+		 
+		(
+			all_detectors : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								detector_spec : {
+									detector_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		),
+		
+		(owner :  payload.deviceInformationSubscriptionMsg.organization-information.organization-function when payload.deviceInformationSubscriptionMsg.organization-information.organization-function != null otherwise {})	
+		
+		
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+		 <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	 
+	<sub-flow name="detector-cat-inventory-publish">
+		<logger message="=== Detector-cat inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToInventoryPublishCDM.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Prepare Inventory Publish" returnClass="java.lang.String">
+            <mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+            <mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+        </mulexml:xslt-transformer>
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+    </sub-flow>
+	 
+	<sub-flow name="detector-cat-inventory-publish-CDM-To-NTCIP">
+		<logger message="=== Detector-cat inventory publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorInventoryUpdateMsg  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+---
+tmdd#detectorInventoryUpdateMsg : {	
+	
+	c2cMsgAdmin: {
+		(informationalText:  'FULLSYNC' when payload.detector_cat_inventory_publish.inventory_config.full_sync == 'true'
+		otherwise {}
+		),
+		subscriptionID : payload.detector_cat_inventory_publish.subscription_id.uuid
+		},			
+		
+		((payload.detector_cat_inventory_publish.inventory_config.*outstation_inventory map {
+			 detector-inventory-item @(xsi#type : 'tmdd:DetectorInventoryNDW') : {
+			 	detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+			 		
+			 		device-id : $.outstation_id.id,
+			 		
+			 		device-location : {
+			 			latitude : $.outstation_location_attr.position_wgs84.latitude,
+			 			longitude : $.outstation_location_attr.position_wgs84.longitude
+			 		},
+			 		
+			 		device-name : $.outstation_inventory_attr.name,
+			 		
+			 		(device-description : $.outstation_inventory_attr.description when $.outstation_inventory_attr.description != null otherwise {}),
+			 					 		
+			 		scan-on-off : $.outstation_inventory_attr.scan_enabled,
+			 		
+			 		scan-interval : $.outstation_inventory_attr.scan_interval,
+			 		
+			 		inventory-action : $.action,			 	
+			 			
+			 		parent-device-id : $.outstation_inventory_attr.outstation_address.fep_id.id,
+			 					 				 		
+			 		station-line-number : $.outstation_inventory_attr.outstation_address.os_line_number,
+			 		
+			 		station-line-position : $.outstation_inventory_attr.outstation_address.os_line_position,
+			 					 		
+			 		position-bps-code : $.outstation_location_attr.position_bps,
+			 		
+			 		(data-owner : $.outstation_inventory_attr.owner when $.outstation_inventory_attr.owner != null otherwise {})
+			 	},
+			 	detector-list : {
+			 		detector  @(xsi#type : 'tmdd:DetectorInventoryDetailsCharm'): {
+			 			detector-inventory-header  @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 				organization-information : {
+			 					organization-id : p('organization_information.organization_id')
+			 				},
+			 				
+			 				device-id : $.outstation_id.id,
+			 				
+			 				device-name : $.outstation_inventory_attr.name
+			 			},
+			 			detector-type : "unknown"
+			 		}
+			 	},
+			 	outstation-configuration : {
+			 		os-version : $.outstation_inventory_attr.os_version,
+               		detector-stations : $.outstation_inventory_attr.detectorstations,
+               		detectors : $.outstation_inventory_attr.detectors,
+               		detectors-speed-flow : $.outstation_inventory_attr.detectors_sf,
+               		speed-flow-enabled : $.outstation_inventory_attr.sf_enabled,
+               		msis : $.outstation_inventory_attr.msis,
+               		base-aid : $.outstation_inventory_attr.base_aid
+			 	}
+			 }
+		})  when payload.detector_cat_inventory_publish.inventory_config.*outstation_inventory != null otherwise {}),
+		
+		
+		
+						
+		((payload.detector_cat_inventory_publish.inventory_config.*detector_inventory map {
+			 detector-inventory-item @(xsi#type : 'tmdd:DetectorInventoryNDW') : {
+			 	detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+			 		
+			 		device-id : $.detector_id.id,
+			 		device-location : {
+			 			latitude : $.detector_location_attr.position_wgs84.latitude,
+			 			longitude : $.detector_location_attr.position_wgs84.longitude
+			 		},			 		
+			 		device-name : $.measure_site_table.id,
+			 		
+			 		(device-description : $.detector_inventory_attr.description when $.detector_inventory_attr.description != null otherwise {}),
+                     		
+                     		scan-on-off : $.detector_inventory_attr.scan_enabled,
+                     		
+                     		scan-interval : $.detector_inventory_attr.scan_interval,
+                     	
+                     		inventory-action : $.action,
+                     		
+                     		(parent-device-id : $.detector_inventory_attr.detector_address.outstation_id.id when $.detector_inventory_attr.detector_address.outstation_id.id != null otherwise {} ),
+                     		
+                     		station-line-number : $.detector_inventory_attr.detector_address.detector_station_nr,
+                     		
+                     		station-line-position : $.detector_inventory_attr.detector_address.detector_nr,			 							 				
+			 				
+			 				(position-bps-code : $.detector_location_attr.position_bps when $.detector_location_attr.position_bps != null otherwise {}),
+			 				
+			 			    (data-owner : $.detector_inventory_attr.owner when $.detector_inventory_attr.owner != null otherwise {})
+			 	
+			 	},
+			 	detector-list : {
+			 		detector  @(xsi#type : 'tmdd:DetectorInventoryDetailsCharm'): {
+			 			detector-inventory-header  @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 				organization-information : {
+			 					organization-id : p('organization_information.organization_id')
+			 				},
+			 				
+			 				device-id : $.detector_id.id,
+			 				
+			 				device-name : $.detector_inventory_attr.name
+			 				
+				 			},
+			 					 			
+                  		detector-type : $.measure_site_table.measurement_equipment_type_used when $.measure_site_table.measurement_equipment_type_used !=null otherwise "unknown",
+                  		
+						measure-site-table : {
+							id : $.measure_site_table.id,
+							version : $.measure_site_table.version,
+							site-record-id : $.measure_site_table.measure_site_record.id,
+							site-record-version : $.measure_site_table.measure_site_record.version,
+							site-record-version-time : toDateAndTime($.measure_site_table.measure_site_record_version_time),
+							computation-method : $.measure_site_table.computation_method,
+							(measurement-site-name : $.measure_site_table.measurement_site_name) when $.measure_site_table.measurement_site_name != null,
+							measurement-site-number-of-lanes : $.measure_site_table.measurement_site_number_of_lanes,
+							measurement-side :  $.measure_site_table.measurement_side,
+							measurement-specific-characteristics-list : {
+								($.measure_site_table.*measurement_specific_characteristics map {
+									measurement-specific-characteristic : {
+										measure-type : $.measure_value_type,
+										accuracy : $.measurement_specific.accuracy,
+										period : $.measurement_specific.period,
+										specific-lane : $.measurement_specific.lane,
+										(vehicle-characteristics-list : {
+											($.*vehicle_characteristics map {
+												vehicle_characteristic : {
+													vc-code : $.vc_code,
+													comparison : $.comparison,
+													length : $.length
+												}
+											})
+										}) when $.*vehicle_characteristics != null and $.vehicle_no_characteristics == null,
+										index : $.index
+									}
+								})
+							}
+						}
+					}
+				},
+				carriageway : $.measure_site_table.measure_site_location.position_extension.carriageway,
+				(measurement-equipment-ref : $.measure_site_table.measurement_equipment_reference) when $.measure_site_table.measurement_equipment_reference != null 	
+			 }
+		})  when payload.detector_cat_inventory_publish.inventory_config.*detector_inventory != null otherwise {}) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+    </sub-flow>
+
+    <sub-flow name="detector-cat-info-request-status">
+		<logger message="=== Detector-cat info request status incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToInfoRequestStatusCDM.xsl" doc:name="Prepare Info Request Status" returnClass="java.lang.String" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<logger message="=== Detector-cat info reply status outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorStatusMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+
+---
+tmdd#detectorStatusMsg : {		
+	(payload.detector_cat_info_reply.*detector_publish map {	
+		detector-status-item @(xsi#type : 'tmdd:DetectorStatusCharm'): {
+			detector-station-status-header : {				
+				organization-information : {
+					organization-id : p('organization_information.organization_id')
+				},					
+				(device-id : $.outstation_id.id when $.outstation_id.id != null otherwise { device-id : 0}),
+				(device-status : 'on' when $.detector_status_attr.comm_state == "ok" otherwise {}),				
+				(device-status : 'off' when $.detector_status_attr.comm_state == "nok" otherwise {}),	
+				(device-status : 'marginal' when $.detector_status_attr.comm_state == "degraded" otherwise {}),	
+				(device-status : 'unknown' when $.detector_status_attr.comm_state == "unreliable" otherwise {}),
+				(device-status : 'unknown'  when $.detector_status_attr.comm_state == null otherwise {}),
+								
+				( "": {last-comm-time : toDateAndTime($.outstation_status_attr.last_status_update) } when $.outstation_status_attr.last_status_update != null otherwise {last-comm-time :currentDateTime})
+			},			
+			detector-list : {
+				detector : {
+					detector-status-header : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						(device-id : $.detector_id.id when $.detector_id.id != null otherwise { device-id : 0}),
+						
+						(device-status : 'on' when $.detector_status_attr.detector_state == "ok" otherwise {}),				
+						(device-status : 'off' when $.detector_status_attr.detector_state == "nok" otherwise {}),	
+						(device-status : 'marginal' when $.detector_status_attr.detector_state == "degraded" otherwise {}),	
+						(device-status : 'unknown' when $.detector_status_attr.detector_state == "unreliable" otherwise {}),
+						(device-status : 'unknown'  when $.detector_status_attr.detector_state == null otherwise {}),
+						
+						( "": {last-comm-time : toDateAndTime($.detector_status_attr.last_status_update) } when $.detector_status_attr.last_status_update != null otherwise {last-comm-time :currentDateTime})
+					}
+				}				
+			},
+			("": {traffic-flow : {
+					traffic-flow-number : $.outstation_status_attr.traffic_flow.traffic_flow_number,
+					aid-active : $.outstation_status_attr.traffic_flow.aid_active,
+					aid-recommendation : $.outstation_status_attr.traffic_flow.aid_recommendation
+				}} when $.outstation_status_attr.traffic_flow != null otherwise {}),
+				
+				("" : {local-overide : {
+					channel1 : $.outstation_status_attr.local_override.channel1,
+					channel2 : $.outstation_status_attr.local_override.channel2,
+					channel3 : $.outstation_status_attr.local_override.channel3,
+					channel4 : $.outstation_status_attr.local_override.channel4
+				}} when $.outstation_status_attr.local_override != null otherwise {}),
+				
+				("" : {statistics : {
+					statistics-updated : $.outstation_statistics_attr.statistics_updated,
+					count1 : $.outstation_statistics_attr.f1_count,
+					count2 : $.outstation_statistics_attr.f2_count,
+					count3 : $.outstation_statistics_attr.f3_count
+				}} when $.outstation_statistics_attr != null otherwise {}),
+				
+				(device-mode : $.outstation_status_attr.outstation_mode when $.outstation_status_attr.outstation_mode != null otherwise {}),
+				
+				(aux-power-available : $.outstation_status_attr.aux_power_available when $.outstation_status_attr.aux_power_available != null otherwise {}),
+				
+				(power-supply : 'main power'  when $.outstation_status_attr.power_supply == 'main_power' otherwise {}),
+			 	(power-supply : 'backup power' when $.outstation_status_attr.power_supply == 'backup_power' otherwise {}),
+			 	
+				(cold-start : $.outstation_status_attr.report_cold_start when $.outstation_status_attr.report_cold_start != null otherwise {}),
+				(fatal-error : $.outstation_status_attr.fatal_error when $.outstation_status_attr.fatal_error != null otherwise {}),
+				(maintenance-code : $.outstation_status_attr.maintenance_code when $.outstation_status_attr.maintenance_code != null otherwise {}),
+				(aid-override : $.outstation_status_attr.aid_override when $.outstation_status_attr.aid_override != null otherwise {}),
+				(dynamic-max-speed : $.outstation_status_attr.dynamic_max_speed when $.outstation_status_attr.dynamic_max_speed != null otherwise {}),
+			 	(measure-number : $.outstation_status_attr.measure_number when $.outstation_status_attr.measure_number != null otherwise {})			
+		} 
+	  } when payload.detector_cat_info_reply.detector_publish != null otherwise {
+			"":{detector-status-item @(xsi#type : 'tmdd:DetectorStatusCharm'):  {
+					detector-station-status-header : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : 0,
+						device-status : "unknown"								
+					},
+						detector-list : {}
+						                 		           		                 							
+				}} 
+					}
+	) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+	
+	<sub-flow name="detector-cat-info-request-inventory">
+		<logger message="=== Detector-cat info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToInfoRequestInventoryCDM.xsl" doc:name="Prepare Info Request Inventory" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<logger message="=== Detector-cat info reply inventory outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorInventoryMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+---
+tmdd#detectorInventoryMsg : {		
+	(payload.detector_cat_info_reply.*detector_publish map {	
+		
+		("":{ detector-inventory-item @(xsi#type : 'tmdd:DetectorInventoryNDW'): {
+			detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {				
+				organization-information : {
+					organization-id : p('organization_information.organization_id')
+				},				
+				device-id : $.outstation_id.id when $.outstation_id.id != null otherwise {},				
+				(device-location : {
+					latitude : $.outstation_location_attr.position_wgs84.latitude,
+					longitude : $.outstation_location_attr.position_wgs84.longitude
+				}) when $.outstation_location_attr != null, 			
+				device-name : $.outstation_inventory_attr.name when $.outstation_inventory_attr.name != null otherwise {},								
+				device-description : $.outstation_inventory_attr.description when $.outstation_inventory_attr.description != null otherwise {},				
+				device-type : "detector-cat",				
+				scan-on-off : $.outstation_inventory_attr.scan_enabled when $.outstation_inventory_attr.scan_enabled != null otherwise {},
+				scan-interval : $.outstation_inventory_attr.scan_interval when $.outstation_inventory_attr.scan_interval != null otherwise {},				
+				parent-device-id : $.outstation_inventory_attr.outstation_address.fep_id.id when $.outstation_inventory_attr != null otherwise {},
+				station-line-number : $.outstation_inventory_attr.outstation_address.os_line_number when $.outstation_inventory_attr != null otherwise {},
+				station-line-position : $.outstation_inventory_attr.outstation_address.os_line_position when $.outstation_inventory_attr != null otherwise {}
+			},			
+			detector-list : "",
+			(outstation-configuration : {
+				os-version : $.outstation_inventory_attr.os_version,
+				detector-stations : $.outstation_inventory_attr.detectorstations,
+				detectors : $.outstation_inventory_attr.detectors,
+				detectors-speed-flow : $.outstation_inventory_attr.detectors_sf,
+				speed-flow-enabled : $.outstation_inventory_attr.sf_enabled,
+				msis : $.outstation_inventory_attr.msis,
+				base-aid : $.outstation_inventory_attr.base_aid,
+				msis-arg : $.outstation_inventory_attr.msis_arg,
+				road-code : $.outstation_inventory_attr.outstation_reference.road_code,
+				km-reference : $.outstation_inventory_attr.outstation_reference.km_reference
+			} ) when $.outstation_inventory_attr != null
+		} when payload.detector_cat_info_reply.detector_publish.outstation_id != null otherwise {} } when payload.detector_cat_info_reply.detector_publish.outstation_id != null otherwise {}), 
+		
+		
+		("":{ detector-inventory-item @(xsi#type : 'tmdd:DetectorInventoryNDW'): {
+			detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {				
+				organization-information : {
+					organization-id : p('organization_information.organization_id')
+				},				
+				(device-id : $.measure_site_table.measure_site_record.id when $.measure_site_table != null otherwise "dummyDeviceId"),				 			
+				(device-name : $.measure_site_table.id when $.measure_site_table != null otherwise "dummyDeviceName"),				
+				(device-description : $.measure_site_table.measurement_site_name when $.measure_site_table.measurement_site_name != null otherwise {}),
+				("" : {last-update-time : toDateAndTime($.measure_site_table.measure_site_record_version_time) } when $.measure_site_table.measure_site_record_version_time != null otherwise {}),
+				device-type : "detector-cat"
+			} ,
+			
+			detector-list : {
+				detector @(xsi#type : "tmdd:DetectorInventoryDetailsCharm") : {
+					detector-inventory-header @(xsi#type : "tmdd:DeviceInventoryHeaderCharm") : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						(device-id : $.detector_id.id when $.detector_id != null otherwise {}),
+						(device-location : {
+							latitude : $.outstation_location_attr.position_wgs84.latitude,
+							longitude : $.outstation_location_attr.position_wgs84.longitude
+						}) when $.outstation_location_attr != null,
+						(device-name : $.detector_inventory_attr.name when $.detector_inventory_attr != null otherwise {}),
+						(device-description : $.measure_site_table.measurement_site_name when $.measure_site_table.measurement_site_name != null otherwise {}),
+						device-type : "detector-cat",
+						(scan-on-off : $.detector_inventory_attr.scan_enabled when $.detector_inventory_attr != null otherwise {}),
+						(scan-interval : $.detector_inventory_attr.scan_interval when $.detector_inventory_attr != null otherwise {}),
+						(hostname :  $.detector_inventory_attr.address when $.detector_inventory_attr != null otherwise {}),
+						(port :  $.detector_inventory_attr.port when $.detector_inventory_attr != null otherwise {}),
+						(parent-device-id : $.detector_inventory_attr.detector_address.outstation_id.id when $.detector_inventory_attr.detector_address.outstation_id.id != null otherwise {}),
+						(station-line-number : $.detector_inventory_attr.detector_address.detector_station_nr when $.detector_inventory_attr.detector_address.detector_station_nr != null otherwise {}),
+						(station-line-position : $.detector_inventory_attr.detector_address.detector_nr when $.detector_inventory_attr.detector_address.detector_nr != null otherwise {}),
+						(position-bps-code : $.detector_location_attr.position_bps when $.detector_location_attr.position_bps != null otherwise {})
+					},
+					(detector-type : $.measure_site_table.measurement_equipment_type_used when $.measure_site_table.measurement_equipment_type_used != null otherwise "unknown"),
+					
+					measure-site-table : {
+						id : $.measure_site_table.id,
+						version : $.measure_site_table.version,
+						site-record-id : $.measure_site_table.measure_site_record.id,
+						site-record-version : $.measure_site_table.measure_site_record.version,
+						site-record-version-time : toDateAndTime($.measure_site_table.measure_site_record_version_time),
+						computation-method : $.measure_site_table.computation_method,
+						(measurement-site-name : $.measure_site_table.measurement_site_name) when $.measure_site_table.measurement_site_name != null,
+						measurement-site-number-of-lanes : $.measure_site_table.measurement_site_number_of_lanes,
+						measurement-side :  $.measure_site_table.measurement_side,
+						measurement-specific-characteristics-list : {
+							($.measure_site_table.*measurement_specific_characteristics map {
+								measurement-specific-characteristic : {
+									measure-type : $.measure_value_type,
+									accuracy : $.measurement_specific.accuracy,
+									period : $.measurement_specific.period,
+									specific-lane : $.measurement_specific.lane,
+									(vehicle-characteristics-list : {
+										($.*vehicle_characteristics map {
+											vehicle_characteristic : {
+												vc-code : $.vc_code,
+												comparison : $.comparison,
+												length : $.length
+											}
+										})
+									}) when $.*vehicle_characteristics != null and $.vehicle_no_characteristics == null,
+									index : $.index
+								}
+							})
+						}
+					}
+				}
+			},
+			(carriageway : $.measure_site_table.measure_site_location.position_extension.carriageway when $.measure_site_table.measure_site_location.position_extension.carriageway != null otherwise {}),
+			(measurement-equipment-ref : $.measure_site_table.measurement_equipment_reference) when $.measure_site_table.measurement_equipment_reference != null
+		} when payload.detector_cat_info_reply.detector_publish.detector_id != null otherwise {} } when payload.detector_cat_info_reply.detector_publish.detector_id != null otherwise {}) 
+		
+	  } when payload.detector_cat_info_reply.detector_publish != null otherwise {
+			"":{detector-inventory-item @(xsi#type : 'tmdd:DetectorInventoryNDW'):  {
+					detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : 0,
+						device-name : "dummy"								
+					},
+						detector-list : {
+							detector @(xsi#type : "tmdd:DetectorInventoryDetailsCharm") : {
+								detector-inventory-header @(xsi#type : "tmdd:DeviceInventoryHeaderCharm") : {
+									organization-information : {
+										organization-id : p('organization_information.organization_id')
+										},
+									device-id : 0,
+									device-name : "dummy"
+									},
+									detector-type : "unknown"
+								}
+						}
+						                 		           		                 							
+				}} 
+					}
+	) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>	
+	
+	<sub-flow name="detector-cat-info-request-data">
+		<logger message="=== Detector-cat info request data incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToInfoRequestDataCDM.xsl" doc:name="Prepare Info Request Data" returnClass="java.lang.String" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorDataMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#detectorDataMsg : {		
+	("" : {detector-data-item : {
+		organization-information : {
+			organization-id : p('organization_information.organization_id')
+			},
+			detector-list : {
+			(payload.detector_cat_info_reply.*detector_publish map {
+				detector-data-detail @(xsi#type : 'tmdd:DetectorDataDetailCharm'): {
+					(station-id : $.outstation_id.id when $.outstation_id.id != null otherwise {}),
+					(detector-id : $.detector_id.id when $.detector_id.id != null otherwise {}),
+					( "": {detection-time-stamp : toDateAndTime($.detector_status_attr.last_status_update) } when $.detector_status_attr.last_status_update != null otherwise {detection-time-stamp :currentDateTime}),
+					
+					(vehicle-count : $.detector_status_attr.intensity.count  when $.detector_status_attr.intensity.count != null
+					otherwise (99999 when $.detector_status_attr.intensity.unknown == true otherwise ( vehicle-count : 0))),
+					
+					vehicle-occupancy : 0,
+					
+					( "": {start-time : toDateAndTime($.detector_traffic_report_attr.examination_start_time) } when $.detector_traffic_report_attr.examination_start_time != null otherwise {start-time :currentDateTime}),
+					
+					
+					(vehicle-speed : $.detector_status_attr.speed.kmh  when $.detector_status_attr.speed.kmh != null
+					otherwise (0 when $.detector_status_attr.speed.no_traffic != null
+					otherwise (255 when $.detector_status_attr.speed.unknown != null otherwise ( vehicle-speed : 0)))),
+					
+					(vehicles-reliable : $.detector_traffic_report_attr.time_vehicles_reliable when $.detector_traffic_report_attr.time_vehicles_reliable != null otherwise {}),
+                  	(vehicle-passages : $.detector_traffic_report_attr.time_vehicle_passages when $.detector_traffic_report_attr.time_vehicle_passages != null otherwise {}),
+                  	(vehicles-reliable-incomplete : $.detector_traffic_report_attr.number_vehicles_reliable_incomplete when $.detector_traffic_report_attr.number_vehicles_reliable_incomplete != null otherwise {}),
+                  	(vehicles-unreliable : $.detector_traffic_report_attr.number_vehicles_unreliable when $.detector_traffic_report_attr.number_vehicles_unreliable != null otherwise {}),
+                  	(detector-unreliable : $.detector_traffic_report_attr.detector_unreliable when $.detector_traffic_report_attr.detector_unreliable != null otherwise {}),
+                  	(point-cover-time : $.detector_traffic_report_attr.point_cover_time when $.detector_traffic_report_attr.point_cover_time != null otherwise {}),
+                  	(congestion-designation : $.detector_traffic_report_attr.congestion_designation when $.detector_traffic_report_attr.congestion_designation != null otherwise {}),
+                  	(vehicle-category : $.detector_traffic_report_attr.number_vehicle_category when $.detector_traffic_report_attr.number_vehicle_category != null otherwise {}),
+                  	
+                  	(category-attr-list : {
+								(
+									$.detector_traffic_report_attr.*vehicle_category_attr map {
+										vehicle-category-attr : {
+											code : $.vc_code,
+											number : $.vc_number_v,
+											sum-rates : $.vc_sum_rates_v,
+											sum-square : $.vc_sum_square_v
+										}
+									}
+								)
+							}
+					) when $.detector_traffic_report_attr.vehicle_category_attr != null
+					
+				}
+			})
+			}
+		}}  when payload.detector_cat_info_reply.detector_publish != null otherwise {
+			detector-data-item : {
+				organization-information : {
+					organization-id : p('organization_information.organization_id')
+				},
+				detector-list : {
+					detector-data-detail @(xsi#type : 'tmdd:DetectorDataDetailCharm'): {
+						detector-id : 0,
+						detection-time-stamp : currentDateTime,
+						vehicle-count : 0,
+						vehicle-occupancy : 0
+					}
+				}}
+			})
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+	
+	<sub-flow name="detector-cat-status-subscription">
+		<logger message="=== Detector-cat status subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToStatusSubscriptionCDM.xsl" doc:name="Prepare Status Subscription" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="detector-cat-data-subscription">
+		<mulexml:xslt-transformer xsl-file="xslt/detector_cat/transformToDataSubscriptionCDM.xsl" doc:name="Prepare Data Subscription" returnClass="java.lang.String" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="detector-cat-status-publish">
+		<logger message="=== Detector-cat status publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		 <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message  doc:name="Prepare detectorStatusUpdateMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+---
+tmdd#detectorStatusUpdateMsg : {	
+	
+	c2cMsgAdmin: {		
+		subscriptionID : payload.detector_cat_status_publish.subscription_id.uuid
+		},			
+		
+		detector-status-item : {
+				detector-list : {		
+					((payload.detector_cat_status_publish.*detector_publish map {	
+			 			(detector  @(xsi#type : 'tmdd:DetectorStatusDetailsRSW') : {
+			 				detector-status-header : {
+			 					organization-information : {
+			 						organization-id : p('organization_information.organization_id')
+			 					},	 		
+			 		
+			 				(device-id : $.detector_id.id when $.detector_id.id != null otherwise {}),			 		
+			 		
+			 				(device-status : 'on' when $.detector_status_attr.detector_state == "ok" otherwise {}),				
+							(device-status : 'off' when $.detector_status_attr.detector_state == "nok" otherwise {}),	
+							(device-status : 'marginal' when $.detector_status_attr.detector_state == "degraded" otherwise {}),	
+							(device-status : 'unknown' when $.detector_status_attr.detector_state == "unreliable" otherwise {}),	
+						
+							last-comm-time : toDateAndTime($.detector_status_attr.last_status_update)					
+							},
+							(connection-type : 'yes' when $.detector_status_attr.connection_type == 'urgent' otherwise {}),
+							(connection-type : 'no' when $.detector_status_attr.connection_type == 'basic' otherwise {})
+			 			}	)  when $.detector_id.id != null 
+				})  when payload.detector_cat_status_publish.*detector_publish != null otherwise {})
+				}			
+			 }	
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+	
+	<sub-flow name="detector-cat-data-publish">
+		<logger message="=== Detector-cat data publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+         <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message  doc:name="Prepare detectorDataUpdateMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#detectorDataUpdateMsg : {		
+	c2cMsgAdmin: {		
+		subscriptionID : payload.detector_cat_data_publish.subscription_id.uuid
+		},			
+		
+		detector-data-item : {
+			organization-information : {
+			 						organization-id : p('organization_information.organization_id')
+			 					},
+				detector-list : {		
+					((payload.detector_cat_data_publish.*detector_publish map {	
+			 			(detector-data-detail  @(xsi#type : 'tmdd:DetectorDataDetailRSW') : {			 				
+			 				(station-id : $.outstation_id.id when $.outstation_id.id != null otherwise {}),
+			 				(detector-id : $.detector_id.id when $.detector_id.id != null otherwise (detector-id : 0)),			 		
+			 							
+			 				( "": {detection-time-stamp : toDateAndTime($.detector_status_attr.last_status_update) } when $.detector_status_attr.last_status_update != null otherwise {detection-time-stamp :currentDateTime}),	
+			 											
+							(vehicle-count : $.detector_status_attr.intensity.count  when $.detector_status_attr.intensity.count != null
+							otherwise ($.detector_status_attr.intensity.unknown when $.detector_status_attr.intensity.unknown != null 
+								otherwise (vehicle-count : 0)
+							)),
+							
+							vehicle-occupancy : 0,
+					
+							("": {start-time :  toDateAndTime($.detector_traffic_report_attr.examination_start_time) } when $.detector_traffic_report_attr.examination_start_time != null otherwise {}),
+							
+							(vehicle-speed : $.detector_status_attr.speed.kmh  when $.detector_status_attr.speed.kmh != null
+							otherwise ($.detector_status_attr.speed.no_traffic when $.detector_status_attr.speed.no_traffic != null 
+							otherwise ($.detector_status_attr.speed.unknown when $.detector_status_attr.speed.unknown != null 
+							otherwise {}
+							))),
+							
+							(vehicles-reliable : $.detector_traffic_report_attr.time_vehicles_reliable when $.detector_traffic_report_attr.time_vehicles_reliable != null otherwise {}),
+							
+							(vehicle-passages : $.detector_traffic_report_attr.time_vehicle_passages when $.detector_traffic_report_attr.time_vehicle_passages != null otherwise {}),
+							
+							(vehicles-reliable-incomplete : $.detector_traffic_report_attr.number_vehicles_reliable_incomplete when $.detector_traffic_report_attr.number_vehicles_reliable_incomplete != null otherwise {}),
+							
+							(vehicles-unreliable : $.detector_traffic_report_attr.number_vehicles_unreliable when $.detector_traffic_report_attr.number_vehicles_unreliable != null otherwise {}),
+							
+							(detector-unreliable : $.detector_traffic_report_attr.detector_unreliable when $.detector_traffic_report_attr.detector_unreliable != null otherwise {}),
+							
+							(point-cover-time : $.detector_traffic_report_attr.point_cover_time when $.detector_traffic_report_attr.point_cover_time != null otherwise {}),
+							
+							(congestion-designation : $.detector_traffic_report_attr.congestion_designation when $.detector_traffic_report_attr.congestion_designation != null otherwise {}),
+							
+							(vehicle-category : $.detector_traffic_report_attr.number_vehicle_category when $.detector_traffic_report_attr.number_vehicle_category != null otherwise {}),
+							
+							( "" : { category-attr-list : {
+								($.detector_traffic_report_attr.*vehicle_category_attr map {
+									vehicle-category-attr : {
+										code : $.vc_code,
+										number : $.vc_number_v,
+										sum-rates : $.vc_sum_rates_v,
+										sum-square : $.vc_sum_square_v
+									}
+								})
+							} } when $.detector_traffic_report_attr.*vehicle_category_attr != null otherwise {}),
+							
+							(urgent-data : {
+								(event-type-not-urgent : "cold start" when ($.detector_not_urgent_mention_attr.event_type_not_urgent == "performed cold start MTM roadside system") 
+									otherwise "off via operator" when ($.detector_not_urgent_mention_attr.event_type_not_urgent == "detector switched off in connection with operator commands")
+									otherwise "off via images" when ($.detector_not_urgent_mention_attr.event_type_not_urgent == "detector switched off  in connection with images")
+									otherwise {}
+								),    
+							    (event-not-urgent-time : $.detector_not_urgent_mention_attr.event_not_urgent when $.detector_not_urgent_mention_attr.event_not_urgent != null otherwise {}),
+							    
+							    (event-type-urgent : "ghost rider" when $.detector_urgent_mention_attr.event_type_urgent == "ghost rider(=car driving against traffic)" otherwise {}),
+								(event-urgent-time : $.detector_urgent_mention_attr.event_urgent when $.detector_urgent_mention_attr.event_urgent != null otherwise {})
+							}) when $.detector_not_urgent_mention_attr != null or $.detector_urgent_mention_attr != null							
+							
+							
+			 			}	) when $.detector_id.id != null
+				})  when payload.detector_cat_data_publish.*detector_publish != null  otherwise {})
+				}			
+			 }	
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+</mule>

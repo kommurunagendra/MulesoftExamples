@@ -1,0 +1,36 @@
+<tmdd:genericDeviceStatusRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <organization-information>
+            <organization-id>RWS</organization-id>
+         </organization-information>
+         <device-type>TDI</device-type>
+         <device-information-type>device status</device-information-type>
+         <device-filter xsi:type="tmdd:DeviceInformationRequestFilterCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-id-list>
+               <device-id>tlcId1</device-id>
+               <device-id>tlcId2</device-id>
+            </device-id-list>
+            <object-id-list>
+			<generic-object>
+				<object-name>objectName1</object-name>
+				<display-name>displayName1</display-name>
+				<generic-element-list>
+					<generic-element>
+						<element-name>elementName1</element-name>
+						<element-value>elementValue1</element-value>
+					</generic-element>
+				</generic-element-list>
+			</generic-object>
+			<generic-object>
+				<object-name>objectName1</object-name>
+				<display-name>displayName1</display-name>
+				<generic-element-list>
+					<generic-element>
+						<element-name>elementName1</element-name>
+						<element-value>elementValue1</element-value>
+					</generic-element>
+				</generic-element-list>
+			</generic-object>
+            </object-id-list>
+         </device-filter>
+         <realtime-status>true</realtime-status>
+      </tmdd:genericDeviceStatusRequestMsg>

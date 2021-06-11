@@ -1,0 +1,61 @@
+<tmdd:dMSStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <c2cMsgAdmin> 
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID> 
+  </c2cMsgAdmin>  
+  <dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSDeviceStatusCharm">  
+    <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm"> 
+      <organization-information> 
+        <organization-id>RWS</organization-id> 
+      </organization-information>  
+      <device-id>msi_id_1</device-id>  
+      <device-status>on</device-status>  
+      <device-comm-status>failed</device-comm-status>  
+      <last-comm-time> 
+        <date>20011111</date>  
+        <time>111111</time> 
+      </last-comm-time>  
+      <device-type>msi</device-type> 
+    </device-status-header>  
+    <current-message>image_mnemonic_1</current-message>  
+    <msi-error> 
+      <class>system</class>  
+      <subclass>library</subclass>  
+      <code>1000</code>  
+      <description>library is missing</description> 
+    </msi-error>  
+    <msi-error> 
+      <class>system</class>  
+      <subclass>library</subclass>  
+      <code>1000</code>  
+      <description>library is missing</description> 
+    </msi-error> 
+  </dms-status-item>  
+  <dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSDeviceStatusCharm">  
+    <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm"> 
+      <organization-information> 
+        <organization-id>RWS</organization-id> 
+      </organization-information>  
+      <device-id>msi_id_2</device-id>  
+      <device-status>unavailable</device-status>  
+      <device-comm-status>unknown</device-comm-status>  
+      <last-comm-time> 
+        <date>20021212</date>  
+        <time>121212</time> 
+      </last-comm-time>  
+      <device-type>msi</device-type> 
+    </device-status-header>  
+    <current-message>image_mnemonic_2</current-message>  
+    <msi-error> 
+      <class>system</class>  
+      <subclass>library</subclass>  
+      <code>1000</code>  
+      <description>library is missing</description> 
+    </msi-error>  
+    <msi-error> 
+      <class>system</class>  
+      <subclass>library</subclass>  
+      <code>1000</code>  
+      <description>library is missing</description> 
+    </msi-error> 
+  </dms-status-item> 
+</tmdd:dMSStatusUpdateMsg>

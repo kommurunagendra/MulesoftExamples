@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="b084521b-b922-4fcd-930e-61192f6385b7" />
+	<flow name="demo-invokefileconnectorFlow" doc:id="5716306d-fab2-43f4-a3fa-23afc48e0f0c" >
+		<file:listener doc:name="On New or Updated File" doc:id="0cf1a5a3-13d7-4704-b88e-83e38898ee93" config-ref="File_Config" timeBetweenSizeCheck="5" timeBetweenSizeCheckUnit="SECONDS" moveToDirectory="/Users/nagendrareddyk/Downloads/Demo/Output" directory="/Users/nagendrareddyk/Downloads/Demo/Input" autoDelete="true">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="d44a5ed7-a1d2-41e2-82f6-a520918b1bdb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="0e091a5d-7435-4c1f-a814-87d4961cac46" message="#[payload]" />
+		<foreach doc:name="For Each" doc:id="eae85086-74c1-4037-86a1-dd6ed19b9ad2" >
+			<logger level="INFO" doc:name="Logger" doc:id="ec85e374-9760-4709-b722-bacebfae729e" message="#[payload]"/>
+			<set-variable value="#[payload.policyID]" doc:name="Set Variable" doc:id="9e522d3f-7411-4fda-a4f5-bae808533601" variableName="insurancefilename"/>
+			<ee:transform doc:name="Transform Message" doc:id="28720392-24c4-4c3a-bf4e-619f7dfc6459" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<file:write doc:name="Write" doc:id="e6e33f96-adb4-4828-be5c-1386ea01e254" config-ref="File_Config" path="#[vars.insurancefilename]"/>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="7457deb3-6f45-447b-9741-5aff2337f566" />
+	</flow>
+</mule>

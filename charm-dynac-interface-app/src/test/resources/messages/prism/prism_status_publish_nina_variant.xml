@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prism_status_publish xmlns="http://prism.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+	</meta>
+	<subscription_id>
+		<uuid>00000000-0000-0000-0000-000000000000</uuid>
+	</subscription_id>
+	<prism_publish>
+		<prism_id>
+			<id>prism_id_1</id>
+		</prism_id>
+		<prism_status_attr>
+			<last_status_update>2006-06-06T18:18:18Z</last_status_update>
+			<prism_state_nr>1</prism_state_nr>
+			<prism_state_mnemonic>prism_state_mnemonic_1</prism_state_mnemonic>
+			<operating_mode>downgraded</operating_mode>
+			<prism_test>not OK</prism_test>
+		</prism_status_attr>
+	</prism_publish>
+	<prism_publish>
+		<prism_id>
+			<id>prism_id_2</id>
+		</prism_id>
+		<prism_status_attr>
+			<last_status_update>2007-07-07T17:17:17Z</last_status_update>
+			<prism_state_nr>2</prism_state_nr>
+			<prism_state_mnemonic>prism_state_mnemonic_2</prism_state_mnemonic>
+			<operating_mode>downgraded</operating_mode>
+			<prism_test>not OK</prism_test>
+		</prism_status_attr>
+	</prism_publish>
+</prism_status_publish>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE hibernate-mapping PUBLIC  
+          "-//Hibernate/Hibernate Mapping DTD 3.0//EN"  
+          "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="com.cgi.charm.sc.tlc.persistence.model">
+	<class name="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo"
+		table="tlc_device_info">
+		<id name="tlcId" column="tlc_id" />
+
+		<!-- inventory_attr -->
+		<property name="name" column="name" />
+		<property name="description" column="description" />
+		<property name="scanEnabled" column="scan_Enabled" />
+		<property name="scanInterval" column="scan_Interval" />
+
+
+		<!-- tlc_generic_attr -->
+		<property name="tlcType" column="tlc_Type" />
+		<property name="intersectionNumber" column="intersection_Number" />
+		<property name="intersectionDescription" column="intersection_Description" />
+		<property name="dateTime" column="date_Time" />
+		<property name="iveraVersion" column="ivera_Version" />
+		<property name="applicationId" column="application_Id" />
+		<property name="owner" column="owner"/>
+		<!-- tlc_communication -->
+		<property name="phonenrCentral" column="phonenr_Central" />
+		<property name="ipnrCentral" column="ipnr_Central" />
+		<property name="portnr" column="portnr" />
+		<property name="portnumberClient" column="portnumberClient" />
+		<property name="sequenceNumber" column="sequenceNumber" />
+		<property name="login" column="login" />
+		<property name="processed" column="processed" />
+		<property name="portnumberServerAsb" column="portnumberServerAsb" />
+
+		<property name="triggerevents" column="triggerevents" />
+		<property name="ipnrVri" column="ipnr_Vri" />
+		<property name="pinCode" column="pin_code"></property>
+		
+		<!-- device-status -->
+		<property name="deviceDown" column="deviceDown" />
+		<property name="commState" column="commState"></property>
+		<!-- tlc_location_Attr -->
+		<property name="positionBps" column="positionBps" />
+		<property name="latitude" column="latitude" />
+		<property name="longitude" column="longitude" />
+		<!-- status_info -->
+		<property name="currentStatusAkt" column="current_Status_Akt" />
+		<property name="currentStatusBd" column="current_Status_Bd" />
+		<property name="currentStatusCen" column="currentStatus_Cen" />
+		<property name="currentStatusAppl" column="current_Status_Appl" />
+		<property name="currentStatusKlok" column="current_Status_Klok" />
+		<property name="currentStatusProcess" column="current_Status_Process" />
+		<property name="currentStatusBewaker" column="current_Status_Bewaker" />
+		<!-- error_status -->
+		<property name="detection" column="detection" />
+		<property name="lamps" column="lamps" />
+		<property name="application" column="application" />
+		<property name="publicTransportation" column="public_Transportation" />
+		<!-- otmc device status parameters-->
+		<property name="availability" column="availability" />
+		<property name="deviceState" column="device_state" />
+		<property name="deployedByList" column="deployed_by">
+			<type name="com.cgi.charm.common.persistence.JSONListType">
+				<param name="element">com.cgi.charm.cdm.tlc.DeployedBy</param>
+				<param name="type">LIST</param>
+			</type>
+		</property>
+		<!--otmc device status parameters-->
+		<property name="availabilityExplanation" column="availability_explanation"/>
+		<property name="stateSourceDescription" column="state_source_description"/>
+		<property name="stateExplanation" column="state_explanation"/>
+		<property name="encodedParameters" column="encoded_parameters"/>
+		<!--end otmc device status parameters-->
+		<!-- tlc_control_attr -->
+		<property name="controlTimeStamp" column="control_Timestamp" />
+		<!-- supported_objects -->
+		<property name="bb0" column="bb0" type="text" length="2147483647"/>
+		<property name="bb1" column="bb1" type="text" length="2147483647"/>
+		<!-- ivera_object -->
+		<property name="iveraObject" column="ivera_Object">
+			<type name="com.cgi.charm.common.persistence.JSONListType">
+				<param name="element">com.cgi.charm.cdm.tlc.IveraObject</param>
+				<param name="type">LIST</param>
+			</type>
+		</property>
+	</class>
+</hibernate-mapping>

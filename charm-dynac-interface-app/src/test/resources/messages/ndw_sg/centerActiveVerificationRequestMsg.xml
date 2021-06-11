@@ -1,0 +1,24 @@
+<tmdd:centerActiveVerificationRequestMsg
+	xsi:type="tmdd:CenterActiveVerificationRequestCharm" xmlns:tmdd="http://www.tmdd.org/3/messages"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<authentication>
+		<user-id>dasb</user-id>
+		<password>dasb</password>
+	</authentication>
+	<organization-requesting xsi:type="tmdd:OrganizationInformationCharm"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<organization-id>Dynac</organization-id>
+		<organization-function>outbound</organization-function>
+		<center-contact-list>
+			<center-contact-details>
+				<center-id>ndw1</center-id>
+			</center-contact-details>
+			<center-contact-details>
+				<center-id>ndw2</center-id>
+			</center-contact-details>
+		</center-contact-list>
+		<organization-information-type>ndw sg information</organization-information-type>
+	</organization-requesting>
+	<user-id>dasb</user-id>
+	<password>dasb</password>
+</tmdd:centerActiveVerificationRequestMsg>

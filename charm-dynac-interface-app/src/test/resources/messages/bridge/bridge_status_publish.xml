@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bridge_status_publish xmlns="http://bridge.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000010</uuid>
+    </message_id>
+    <message_create_date>2017-12-01T09:42:22Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00000000-0000-0000-0000-000000000010</uuid>
+  </subscription_id>
+  <bridge_publish>
+    <bridge_id>
+      <id>grandbridge1</id>
+    </bridge_id>
+    <bridge_inventory_attr>
+      <name>name</name>
+      <scan_enabled>false</scan_enabled>
+      <scan_interval>0</scan_interval>
+      <owner>dynac</owner>
+    </bridge_inventory_attr>
+    <bridge_status_attr>
+      <timestamp>2015-09-17T08:48:11Z</timestamp>
+      <status>open</status>
+      <source>BrugOpen</source>
+    </bridge_status_attr>
+  </bridge_publish>
+  <bridge_publish>
+    <bridge_id>
+      <id>grandbridge1</id>
+    </bridge_id>
+    <bridge_inventory_attr>
+      <name>name</name>
+      <scan_enabled>false</scan_enabled>
+      <scan_interval>0</scan_interval>
+      <owner>ndw</owner>
+    </bridge_inventory_attr>
+    <bridge_status_attr>
+      <timestamp>2015-09-17T08:48:11Z</timestamp>
+      <status>closed</status>
+      <source>BrugOpen</source>
+    </bridge_status_attr>
+  </bridge_publish>
+</bridge_status_publish>

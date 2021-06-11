@@ -1,0 +1,33 @@
+<ns2:anyTypeInventoryMsg xmlns:ns2="http://www.tmdd.org/3/messages">
+	<tmdd-object-list>
+		<tmdd-object xsi:type="ns2:OTMC"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<inventory-header xsi:type="ns2:DeviceInventoryHeaderCharm">
+				<organization-information>
+					<organization-id>RWS</organization-id>
+				</organization-information>
+				<device-id>123</device-id>
+				<device-location>
+					<latitude>1.0</latitude>
+					<longitude>2.0</longitude>
+				</device-location>
+				<device-name>device_Name_1</device-name>
+				<last-update-time>
+					<date>20060504</date>
+					<time>181351</time>
+				</last-update-time>
+				<link-direction>1</link-direction>
+				<data-owner>otmc</data-owner>
+				<otmc-info>
+					<object-type>specific service</object-type>
+					<cdm-type>drip</cdm-type>
+					<encoded-parameters>F0FF</encoded-parameters>
+				</otmc-info>
+			</inventory-header>
+			<otmc-authorization-list>
+				<list-item>3</list-item>
+			</otmc-authorization-list>
+			<owner>Dynac</owner>
+		</tmdd-object>
+	</tmdd-object-list>
+</ns2:anyTypeInventoryMsg>

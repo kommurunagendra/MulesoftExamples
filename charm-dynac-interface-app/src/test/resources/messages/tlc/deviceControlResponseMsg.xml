@@ -1,0 +1,11 @@
+<tmdd:deviceControlResponseMsg xsi:type="tmdd:DeviceControlResponseCharm"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<organization-information>
+		<organization-id>RWS</organization-id>
+	</organization-information>
+	<device-id>id1</device-id>
+	<request-id>id1</request-id>
+	<request-status>requested changes completed</request-status>
+	<device-type>TDI</device-type>
+	<comments>comments</comments>
+</tmdd:deviceControlResponseMsg>

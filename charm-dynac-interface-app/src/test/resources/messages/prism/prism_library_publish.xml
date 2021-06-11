@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prism_inventory_publish
+    xmlns="http://prism.cdm.charm.cgi.com" version="1.0.0">
+    <meta>
+        <message_id>
+            <uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+        </message_id>
+        <message_create_date>2015-10-22T08:48:11Z</message_create_date>
+    </meta>
+    <subscription_id>
+        <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </subscription_id>
+    <inventory_config>
+        <full_sync>true</full_sync>
+        <inventory_id>
+            <uuid>00000000-0000-0000-0000-000000000000</uuid>
+        </inventory_id>
+        <prism_library>
+            <action>add</action>
+            <prism_type_id>
+                <id>id_1</id>
+            </prism_type_id>
+            <prism_type_description>prism_type_description_1</prism_type_description>
+            <prism_state>
+                <prism_state_nr>1</prism_state_nr>
+                <prism_state_mnemonic>prism_state_mnemonic_1</prism_state_mnemonic>
+            </prism_state>
+            <prism_state>
+                <prism_state_nr>2</prism_state_nr>
+                <prism_state_mnemonic>prism_state_mnemonic_2</prism_state_mnemonic>
+            </prism_state>
+        </prism_library>
+        <prism_library>
+            <action>add</action>
+            <prism_type_id>
+                <id>id_2</id>
+            </prism_type_id>
+            <prism_type_description>prism_type_description_1</prism_type_description>
+            <prism_state>
+                <prism_state_nr>3</prism_state_nr>
+                <prism_state_mnemonic>prism_state_mnemonic_3</prism_state_mnemonic>
+            </prism_state>
+        </prism_library>
+    </inventory_config>
+</prism_inventory_publish>

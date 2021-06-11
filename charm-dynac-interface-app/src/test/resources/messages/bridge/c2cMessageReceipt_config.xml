@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c2c:c2cMessageReceipt xmlns:c2c="http://www.ntcip.org/c2c-message-administration">
+    <informationalText>processed</informationalText>
+</c2c:c2cMessageReceipt>

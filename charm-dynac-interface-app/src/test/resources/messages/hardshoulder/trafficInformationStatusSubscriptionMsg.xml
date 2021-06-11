@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><tmdd:trafficNetworkInformationSubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <authentication>
+    <user-id>dummy</user-id>
+    <password>test</password>
+  </authentication>
+  <organization-information>
+    <organization-id>RWS</organization-id>
+  </organization-information>
+  <organization-requesting>
+    <organization-id>baseline</organization-id>
+  </organization-requesting>
+  <network-information-type>hard shoulder status</network-information-type>
+  <c2cMsgAdmin>
+    <informationalText>hard shoulder status subscription</informationalText>
+    <returnAddress>http://localhost:41082/</returnAddress>
+    <subscriptionAction>
+      <subscriptionAction-item>replaceSubscription</subscriptionAction-item>
+    </subscriptionAction>
+    <subscriptionType>
+      <subscriptionType-item>onChange</subscriptionType-item>
+    </subscriptionType>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+    <subscriptionName>subscription_name</subscriptionName>
+    <subscriptionFrequency>1</subscriptionFrequency>
+  </c2cMsgAdmin>
+</tmdd:trafficNetworkInformationSubscriptionMsg>

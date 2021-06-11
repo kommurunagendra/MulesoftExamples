@@ -1,0 +1,45 @@
+<otmc_services_status_publish xmlns="http://services.otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>21277c05-a86d-4a83-9952-dde219d88829</uuid>
+    </message_id>
+    <message_create_date>2018-02-08T03:18:56Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00000000-0000-0000-0000-000000000000</uuid>
+  </subscription_id>
+  <otmc_services_publish>
+    <otmc_services_id>
+      <id>id0</id>
+    </otmc_services_id>
+    <otmc_services_status_attr>
+      <timestamp>2006-05-04T18:13:51Z</timestamp>
+      <availability>AVAILABLE</availability>
+      <service_state>ACTIVE</service_state>
+      <deployed_by>
+        <system_id>11</system_id>
+        <service_ref>
+          <otmc_object_id>12</otmc_object_id>
+          <otmc_object_type>TRAFFIC_LIGHT_CONTROLLER</otmc_object_type>
+        </service_ref>
+      </deployed_by>
+      <parameters>
+        <availability_explanation>this service was activated by a specific otmc</availability_explanation>
+        <state_source_description>description</state_source_description>
+        <state_explanation>explanation</state_explanation>
+        <encoded_parameters>0FB8</encoded_parameters>
+      </parameters>
+    </otmc_services_status_attr>
+    <otmc_services_response>
+      <otmc_id>
+        <id>otmc_amsterdam</id>
+      </otmc_id>
+      <request_id>352</request_id>
+      <service_ref>
+        <otmc_object_id>dummy</otmc_object_id>
+        <otmc_object_type>VIDEO_CAMERA</otmc_object_type>
+      </service_ref>
+      <request_state>REJECTED</request_state>
+    </otmc_services_response>
+  </otmc_services_publish>
+</otmc_services_status_publish>

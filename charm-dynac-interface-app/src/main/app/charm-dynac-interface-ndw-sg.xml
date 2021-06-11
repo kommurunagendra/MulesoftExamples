@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" 
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+<sub-flow name="ndw-sg-inventory-subscription">
+    <logger message="=== NDW-SG inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare organizationInformationSubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#organizationInformationSubscriptionMsg: {
+	organization-requesting: {
+		organization-id :  p('organization_information.organization_id')
+	},
+	organization-information-type: 'ndw sg information',
+	organization-id : p('organization_information.organization_id'),	
+	
+	(
+	all_ndws : {} when payload.ndw_sg_inventory_subscription.subscription_config.*ndw_spec != null
+	otherwise true
+	),
+	
+	(
+	center-id-list : {} when payload.ndw_sg_inventory_subscription.subscription_config.*ndw_spec == null
+	otherwise center-id-list : {
+		(payload.ndw_sg_inventory_subscription.subscription_config.*ndw_spec  map {		
+			center-id  : $.ndw_id.id
+		})
+	}
+	),	
+	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'newSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.ndw_sg_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.ndw_sg_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+   		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+	
+		<sub-flow name="ndw-sg-inventory-publish">
+            <logger message="=== NDW-SG inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare ndw_sg_inventory_publish Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+ndw_sg_inventory_publish @(xmlns: "http://sg.ndw.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.organizationInformationUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.organizationInformationUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.organizationInformationUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.organizationInformationUpdateMsg.organization-list.*organization-information-item map {
+				ndw_inventory : {
+					action : $.inventory-action,
+					ndw_id : {
+						id : $.organization-id
+						},
+					ndw_inventory_attr : {
+						name : $.organization-name,
+						(description : $.description) when $.description != null,	
+						ndw_mode : $.organization-function,
+						scan_enabled : $.scan-on-off
+					}
+				}
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="ndw-sg-status-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare ndw_sg_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+ndw_sg_status_subscription @(xmlns: "http://sg.ndw.cdm.charm.cgi.com", version: "1.0.0") : {
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.organizationInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		subscription_attr : {
+			subscription_name : payload.organizationInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		(
+			all_ndws : {
+				(payload.organizationInformationSubscriptionMsg.center-id-list.*center-id map {
+								ndw_spec : {
+									ndw_id : {
+										id : $.center-id
+									}
+								}
+							})
+			} when payload.organizationInformationSubscriptionMsg.center-id-list.*center-id != null
+			  otherwise true
+		)
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+    </sub-flow>
+    <sub-flow name="ndw-sg-status-publish">
+        <logger message="=== NDW-SG status publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare centerActiveUpdateMsg Message" metadata:id="e4e9f087-ebfb-4ca6-bf8b-878b659748e4">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#centerActiveUpdateMsg : {
+	c2cMsgAdmin   : {
+		subscriptionID : payload.ndw_sg_status_publish.subscription_id.uuid
+	},
+	(payload.ndw_sg_status_publish.*ndw_publish map {
+		center-active-update:  {
+			organization-information : {
+				organization-id : p('organization_information.organization_id')
+			},
+			center-id : $.ndw_id.id,
+			center-name : 'center-name',
+			(last-comm-time : {	
+				date : $.ndw_status_attr.time  as :date as :string {format : "yyyyMMdd"},
+				time : $.ndw_status_attr.time  as :localdatetime  as :string {format : "HHmmss"}
+			}) when $.ndw_status_attr != null,
+			(center-comm-status : 'operational') when $.ndw_status_attr.comm_state == "online" and $.ndw_status_attr != null,
+			(center-comm-status : 'offline') when $.ndw_status_attr.comm_state == "offline" and $.ndw_status_attr != null
+		}
+	}
+	when payload.ndw_sg_status_publish.*ndw_publish != null otherwise {}
+	) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+    
+    <sub-flow name="ndw-sg-info-request-inventory">
+        <logger message="=== NDW-SG info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare ndw_sg_info_request Inventory Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+ndw_sg_info_request @(xmlns: "http://sg.ndw.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	info_spec: {
+		inventory : true,
+		status : false
+	},
+	(
+	all_ndws : true when payload.organizationInformationRequestMsg.center-id-list == null
+	otherwise	
+	{(payload.organizationInformationRequestMsg.center-id-list.*center-id  map {		
+		ndw_spec : {
+			ndw_id : {
+				id : $.center-id
+			}			
+		} 
+	})}),
+	all_subscriptions : false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare organizationInformationMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8", skipNullOn="everywhere"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#organizationInformationMsg : {
+	(payload.ndw_sg_info_reply.*ndw_publish map {
+			organization-information-item @(xsi#type : 'tmdd:OrganizationInformationCharm'):  {	
+				organization-id : $.ndw_id.id,
+				organization-name : $.ndw_inventory_attr.name,
+				organization-function : $.ndw_inventory_attr.ndw_mode,
+				scan-on-off : $.ndw_inventory_attr.scan_enabled,
+				(description : $.ndw_inventory_attr.description) when $.ndw_inventory_attr.description != null,
+				organization-information-type : "ndw sg information"
+		}
+	}
+	when payload.ndw_sg_info_reply.*ndw_publish != null otherwise {
+		"":{organization-information-item @(xsi#type : 'tmdd:OrganizationInformationCharm'):  {
+				organization-id : p('organization_information.organization_id')                 		           		                 							
+			}} 
+		}
+	)
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+    </sub-flow>
+    <sub-flow name="ndw-sg-info-request-status">
+        <logger message="=== NDW-SG info request status incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare ndw_sg_info_request Status Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+ndw_sg_info_request @(xmlns: "http://sg.ndw.cdm.charm.cgi.com", version: "1.0.0") :{
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	info_spec: {
+		inventory : false,
+		status : true
+	},
+	(
+	all_ndws : true when payload.centerActiveVerificationRequestMsg.organization-requesting.center-contact-list == null
+	otherwise	
+	{(payload.centerActiveVerificationRequestMsg.organization-requesting.center-contact-list.*center-contact-details  map {		
+		ndw_spec : {
+			ndw_id : {
+				id : $.center-id
+			}			
+		} 
+	})}),
+	all_subscriptions : false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare centerActiveVerificationResponseMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#centerActiveVerificationResponseMsg @(xsi#type : 'tmdd:CenterActiveInformation'): {	
+	organization-information : {
+		organization-id : p('organization_information.organization_id'),
+		
+		( "" : {center-contact-list : {
+			(payload.ndw_sg_info_reply.*ndw_publish map {
+				center-contact-details : {
+					center-id : $.ndw_id.id,
+					center-name : "Center Name"
+				}
+			})	
+		}} when payload.ndw_sg_info_reply.ndw_publish != null otherwise {})		
+	}  ,
+	center-id : "Center Id",
+	center-name : "Center Name",
+	( "" : { last-comm-time : {			
+		date : payload.ndw_sg_info_reply.ndw_publish.ndw_status_attr.time  as :date as :string {format : "yyyyMMdd"},
+		time : payload.ndw_sg_info_reply.ndw_publish.ndw_status_attr.time  as :localdatetime  as :string {format : "HHmmss"}
+	} } when payload.ndw_sg_info_reply.ndw_publish.ndw_status_attr.time != null otherwise {
+	
+	}),						
+	(center-comm-status : 'operational' when payload.ndw_sg_info_reply.ndw_publish.ndw_status_attr.comm_state == "online" otherwise {}),
+	(center-comm-status : 'offline' when payload.ndw_sg_info_reply.ndw_publish.ndw_status_attr.comm_state == "offline" 
+	 otherwise {})
+				
+				
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+    </sub-flow>
+	</mule>

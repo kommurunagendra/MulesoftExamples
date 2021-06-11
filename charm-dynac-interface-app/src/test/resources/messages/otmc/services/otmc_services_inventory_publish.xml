@@ -1,0 +1,35 @@
+<otmc_services_inventory_publish xmlns="http://services.otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>a29310c3-1259-4ff1-b1de-62f61b8e0d86</uuid>
+    </message_id>
+    <message_create_date>2018-02-08T02:27:35Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00000000-0000-0000-0000-000000000001</uuid>
+  </subscription_id>
+  <inventory_config>
+    <full_sync>false</full_sync>
+    <inventory_id>
+      <uuid>00000000-0000-0000-0000-000000000001</uuid>
+    </inventory_id>
+    <otmc_services_inventory>
+      <otmc_services_id>
+        <id>id1</id>
+      </otmc_services_id>
+      <action>add</action>
+      <otmc_services_inventory_attr>
+        <otmc_object_id>id1</otmc_object_id>
+        <otmc_object_type>ROTARY_PANEL</otmc_object_type>
+        <timestamp>2006-05-04T18:13:51Z</timestamp>
+        <location_for_display>
+          <latitude>1.0</latitude>
+          <longitude>1.1</longitude>
+        </location_for_display>
+        <direction>1</direction>
+        <encoded_parameters>F0FF</encoded_parameters>
+        <owner>otmc</owner>
+      </otmc_services_inventory_attr>
+    </otmc_services_inventory>
+  </inventory_config>
+</otmc_services_inventory_publish>

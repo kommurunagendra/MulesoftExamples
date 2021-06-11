@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bermdrip_info_request xmlns="http://bermdrip.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2015-10-22T08:48:11Z</message_create_date>
+	</meta>
+	<info_spec>
+		<inventory>false</inventory>
+		<status>true</status>
+	</info_spec>
+	<bermdrip_spec>
+		<bermdrip_id>
+			<id>B-A20-2,244</id>
+		</bermdrip_id>
+	</bermdrip_spec>
+	<all_subscriptions>false</all_subscriptions>
+</bermdrip_info_request>

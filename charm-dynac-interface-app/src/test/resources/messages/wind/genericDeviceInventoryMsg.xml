@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns2:genericDeviceInventoryMsg xmlns:ns2="http://www.tmdd.org/3/messages"
+>
+	<dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="ns2:DMSInventoryCharm">
+		<device-inventory-header xsi:type="ns2:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>deviceId1</device-id>
+			<device-location>
+				<latitude>0.0</latitude>
+				<longitude>0.0</longitude>
+			</device-location>
+			<device-name>name</device-name>
+			<device-description>description</device-description>
+			<device-type>wind sensor</device-type>
+			<scan-on-off>true</scan-on-off>
+			<hostname>address</hostname>
+			<port>0</port>
+		</device-inventory-header>
+		<position-bps>position_bps</position-bps>
+	</dms-inventory-item>
+</ns2:genericDeviceInventoryMsg>

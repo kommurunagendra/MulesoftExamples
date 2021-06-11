@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="dw-basicsFlow" doc:id="6dc74ce8-aa0f-4861-bf0f-25e031fa54eb" >
+		<ee:transform doc:name="Transform Message" doc:id="a8c24142-4041-4232-b9ad-1a1cd2826c16" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+
+var simpleArray = [ 1, true, "a"]
+
+var objectArray =
+  [
+    {"one": "1","two": 2 },
+    {"three": 3, "four": 4,"five": {"child-five": "file"}}
+  ]
+
+var o1EvalObjectArray1 =
+( //evaluate the array of objects to key/value pairs
+objectArray
+) 
+
+var o2ObjectFromObjectArray1 =
+{ 
+  ( //evaluate the array of objects to key/value pairs
+    objectArray
+  ) 
+}
+
+
+var o3ObjectFromObjectArray2 =
+{
+
+      ({"one": "1","two": 2 }),
+      ({"three": 3, "four": 4,"five": {"child-five": "file"}})
+}
+
+fun emitdata(a)=
+	x: if(a>3) a
+	else 333
+	
+	
+
+
+
+---
+ 
+[1,2,3,4,5,6] map  	{
+	(emitdata($))
+}
+	
+	
+	
+	
+
+
+/*
+result: {
+	objectArray: objectArray,
+	//o1Fails : { (simpleArray) },
+	o1EvalObjectArray1 : o1EvalObjectArray1,
+	o1bConstructObjectFromObjectArray: { (o1EvalObjectArray1)},
+	//o1cConstructObjectFromObjectArray: { o1EvalObjectArray1 },
+	//o2ObjectFromObjectArray1 : o2ObjectFromObjectArray1,
+	//o3ObjectFromObjectArray2: o3ObjectFromObjectArray2,
+
+	//evalObjectFromObjectArray1 : {( o2ObjectFromObjectArray1 )},
+
+	flatteno1EvalObjectArray : flattenObjectArray (objectArray),
+	
+	flatteno1EvalObjectArrayTwice: 
+	  flattenObjectArray(
+		flattenObjectArray (objectArray)
+	  )
+	  //,
+	  
+	 // The { } object constructor can also be implemented using the reduce operator
+	 // This acts just like {(objectArray)}
+	//reduceObjectArray1: objectArray reduce ($$ ++ $)
+//,
+    // This is the same result, but using named parameters with the reduce operator:
+    //reduceObjectArray2: objectArray reduce (value, agg) -> (agg ++ value),
+
+// This acts just like {( {( objectArray )} )}
+// reduceTwice: 
+    //(objectArray reduce ($$ ++ $)) 
+    //reduce (value, agg={}) -> (agg ++ value)
+ 
+	
+	}
+	
+	
+	 */
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,26 @@
+<otmc_services_control_request xmlns="http://services.otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>e39ffd53-20bc-40c8-8887-8bfff5f1c151</uuid>
+    </message_id>
+    <message_create_date>2018-02-08T05:22:25Z</message_create_date>
+  </meta>
+  <otmc_services_control>
+    <otmc_services_id>
+      <id>device-id</id>
+    </otmc_services_id>
+    <otmc_services_control_attr>
+      <otmc_id>
+        <id>device-id</id>
+      </otmc_id>
+      <timestamp>2006-05-04T18:13:51Z</timestamp>
+      <otmc_object_type>PARKING_FACILITY</otmc_object_type>
+      <reason>reason</reason>
+      <request_id>request-id</request_id>
+      <service_start_request>
+        <duration>1</duration>
+        <encoded_parameters>0FB9</encoded_parameters>
+      </service_start_request>
+    </otmc_services_control_attr>
+  </otmc_services_control>
+</otmc_services_control_request>

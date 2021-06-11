@@ -1,0 +1,15 @@
+<tmdd:deviceInformationRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+		<operator-id>operator-id</operator-id>
+	</authentication>
+	<organization-information>
+		<organization-id>organization-id</organization-id>
+	</organization-information>
+	<organization-requesting>
+		<organization-id>organization-id</organization-id>
+	</organization-requesting>
+	<device-type>detector-si</device-type>
+	<device-information-type>device status</device-information-type>
+</tmdd:deviceInformationRequestMsg>

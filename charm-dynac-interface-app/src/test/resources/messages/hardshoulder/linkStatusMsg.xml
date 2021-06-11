@@ -1,0 +1,39 @@
+<tmdd:linkStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <link-status-item>
+            <organization-information>
+               <organization-id>RWS</organization-id>
+            </organization-information>
+            <link-list>
+               <link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                  <network-id>hardshoulder1</network-id>
+                  <link-id>hardshoulder1</link-id>
+                  <link-status>partly open</link-status>
+                  <last-update-time>
+                     <date>20151022</date>
+                     <time>084811000</time>
+                  </last-update-time>
+                  <traffic-network-type>hard shoulder status</traffic-network-type>
+               </link>
+               <link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                  <network-id>segment1</network-id>
+                  <link-id>segment1</link-id>
+                  <link-status>open</link-status>
+                  <last-update-time>
+                     <date>20060504</date>
+                     <time>181351000</time>
+                  </last-update-time>
+                  <traffic-network-type>hard shoulder status</traffic-network-type>
+               </link>
+               <link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                  <network-id>segment2</network-id>
+                  <link-id>segment2</link-id>
+                  <link-status>closed</link-status>
+                  <last-update-time>
+                     <date>20060504</date>
+                     <time>181351000</time>
+                  </last-update-time>
+                  <traffic-network-type>hard shoulder status</traffic-network-type>
+               </link>
+            </link-list>
+         </link-status-item>
+      </tmdd:linkStatusMsg>

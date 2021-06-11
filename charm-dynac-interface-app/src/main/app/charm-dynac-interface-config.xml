@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+
+	<description>
+	</description>
+
+	<spring:beans>
+		<context:component-scan base-package="com.cgi.charm.dynac" />
+
+		<spring:bean id="classpathResourceResolver" name="classpathResourceResolver"
+			class="com.cgi.charm.dynac.ClasspathResourceResolver" />
+
+		<spring:bean id="schemaErrorHanlder"
+			class="com.cgi.charm.common.filter.CharmSchemaErrorHandler" />
+	</spring:beans>
+
+	<context:property-placeholder
+		location="classpath:charm-dynac-interface-app.properties, classpath:charm-dynac-interface-app.override.properties"
+		ignore-resource-not-found="true" />
+
+	<configuration defaultResponseTimeout="${default.response.timeout}"
+		doc:name="Configuration">
+	</configuration>
+
+	<mulexml:namespace-manager>
+		<mulexml:namespace prefix="soap" uri="http://schemas.xmlsoap.org/soap/envelope/" />
+		<mulexml:namespace prefix="tmdd" uri="http://www.tmdd.org/3/messages" />
+		<mulexml:namespace prefix="brg" uri="http://bridge.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="drp" uri="http://drip.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="bdrp" uri="http://bermdrip.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="hardshoulder" uri="http://hardshoulder.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="prism" uri="http://prism.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="msi" uri="http://msi.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="detector" uri="http://detector.si.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="tlc" uri="http://tlc.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="wind" uri="http://wind.cdm.charm.cgi.com" />
+		<mulexml:namespace prefix="weather" uri="http://weather.cdm.charm.cgi.com" />	
+		<mulexml:namespace prefix="detector-cat" uri="http://detector.cat.cdm.charm.cgi.com" />	
+		<mulexml:namespace prefix="route" uri="http://rs.cdm.charm.cgi.com" />	
+		<mulexml:namespace prefix="nina" uri="http://nina.cdm.charm.cgi.com" />	
+		<mulexml:namespace prefix="traveltime" uri="http://traveltime.cdm.charm.cgi.com"/>	
+		<mulexml:namespace prefix="ndwAvg" uri="http://avg.ndw.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="ndwSg" uri="http://sg.ndw.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="otmc" uri="http://otmc.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="otmcOutbound" uri="http://outbound.otmc.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="otmcServices" uri="http://services.otmc.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="parkingFacility" uri="http://parkingfacility.cdm.charm.cgi.com"/>
+		<mulexml:namespace prefix="situation" uri="http://situation.cdm.charm.cgi.com"/>
+	</mulexml:namespace-manager>
+
+	<jms:activemq-connector name="localbroker" specification="1.1" brokerURL="${broker.host.full_url}" username="${broker.host.username}" password="${broker.host.password}" validateConnections="true" doc:name="Active MQ">
+   		<reconnect-forever blocking="true"/>
+	</jms:activemq-connector>
+
+	<jms:endpoint name="outbound_exception" connector-ref="localbroker"
+		queue="${outbound.exception.queue}" doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="inbound_cdm" connector-ref="localbroker"
+		queue="${inbound.queue}" doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+	
+	<jms:endpoint name="outbound_cdm" connector-ref="localbroker"
+		queue="${outbound.queue}" doc:name="JMS">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+	
+	<jms:endpoint name="outbound_backbone_sync" connector-ref="localbroker"
+		queue="${outbound.backbone.sync.queue}" doc:name="JMS SYNC">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="outbound_backbone_async"
+		connector-ref="localbroker" queue="${outbound.backbone.async.queue}"
+		doc:name="JMS ASYNC">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<mulexml:jaxb-context name="cdm"
+		packageNames="com.cgi.charm.cdm.bridge:com.cgi.charm.cdm.drip:com.cgi.charm.cdm.bermdrip:com.cgi.charm.cdm.si.detector:com.cgi.charm.cdm.cat.detector:com.cgi.charm.dynac.multi:org.tmdd._3.messages"
+		doc:name="JAXB Context" />
+
+	<http:listener-config name="ntcip_inbound" host="${inbound.host}"
+		port="${inbound.port}" doc:name="ntcip_inbound" />
+	<http:request-config name="ntcip_outbound" host="${outbound.host}"
+		port="${outbound.port}" doc:name="HTTP Request Configuration" />
+
+	<quartz:connector name="QuartzConnector" doc:name="QuartzConnector" />
+	
+	<custom-filter name="cdmSchemaFilter"
+		class="com.cgi.charm.common.filter.CharmSchemaFilter">
+		<spring:property name="schemaLocations"
+			value="${cdm.xsd.path}" />
+		<spring:property name="returnResult" value="false" />
+		<spring:property name="errorHandler" ref="schemaErrorHanlder" />
+	</custom-filter>
+	
+	<custom-filter name="ntcipSchemaFilter"
+		class="com.cgi.charm.common.filter.CharmSchemaFilter">
+		<spring:property name="resourceResolver" ref="classpathResourceResolver" />
+		<spring:property name="schemaLocations"
+			value="TMDD.xsd" />
+		<spring:property name="returnResult" value="false" />
+		<spring:property name="errorHandler" ref="schemaErrorHanlder" />
+	</custom-filter>
+	
+	<sub-flow name="cdm-filter">
+		<message-filter throwOnUnaccepted="true"
+			doc:name="Schema validation">
+			<filter ref="cdmSchemaFilter" />
+		</message-filter>
+	</sub-flow>
+</mule>

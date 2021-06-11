@@ -1,0 +1,18 @@
+<tmdd:gateStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<gate-status-item>
+     <device-status-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceStatusHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>grandbridge1</device-id>
+      <device-status>on</device-status>
+      <last-comm-time>
+        <date>20150917</date>
+        <time>135547117</time>
+      </last-comm-time>
+      <device-type>bridge</device-type>
+    </device-status-header>    
+    <gate-status>gate closed</gate-status>
+  </gate-status-item>
+</tmdd:gateStatusMsg>
+

@@ -1,0 +1,67 @@
+<tmdd:linkInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID>
+	</c2cMsgAdmin>
+	<link-inventory-list>
+		<link-inventory-item>
+			<organization-information>
+				<organization-id>organization-id</organization-id>
+			</organization-information>
+			<link-list>
+				<link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+					<network-id>network-001</network-id>
+					<link-id>link-001</link-id>
+					<link-name>route</link-name>
+					<link-type>collector</link-type>
+					<link-begin-node-id>node-001</link-begin-node-id>
+					<link-begin-node-location>
+						<latitude>11.011</latitude>
+						<longitude>22.022</longitude>
+						<horizontalDatum>wgs-84</horizontalDatum>
+					</link-begin-node-location>
+					<link-end-node-id>node-002</link-end-node-id>
+					<link-end-node-location>
+						<latitude>11.011</latitude>
+						<longitude>22.022</longitude>
+						<horizontalDatum>wgs-84</horizontalDatum>
+					</link-end-node-location>
+					<link-length>00</link-length>
+					<inventory-action>remove</inventory-action>
+					<link-description>bermdrip route description</link-description>
+					<detector-id-list>
+						<device-id>route-001</device-id>
+						<device-id>route-002</device-id>
+					</detector-id-list>
+					<network-info-type>route inventory</network-info-type>
+				</link>
+				<link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+					<network-id>network-100</network-id>
+					<link-id>link-100</link-id>
+					<link-name>route</link-name>
+					<link-type>collector</link-type>
+					<link-begin-node-id>node-100</link-begin-node-id>
+					<link-begin-node-location>
+						<latitude>11.0011</latitude>
+						<longitude>22.0022</longitude>
+						<horizontalDatum>wgs-84</horizontalDatum>
+					</link-begin-node-location>
+					<link-end-node-id>node-200</link-end-node-id>
+					<link-end-node-location>
+						<latitude>11.0011</latitude>
+						<longitude>22.0022</longitude>
+						<horizontalDatum>wgs-84</horizontalDatum>
+					</link-end-node-location>
+					<link-length>100</link-length>
+					<inventory-action>add</inventory-action>
+					<link-description>drip route description</link-description>
+					<detector-id-list>
+						<device-id>route-100</device-id>
+						<device-id>route-200</device-id>
+					</detector-id-list>
+					<network-info-type>route inventory</network-info-type>
+				</link>
+			</link-list>
+		</link-inventory-item>
+	</link-inventory-list>
+</tmdd:linkInventoryUpdateMsg>

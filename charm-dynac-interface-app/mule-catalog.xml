@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Use this catalog file to setup schema validation for Mule 3.7 applications in your xml editor -->
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <system systemId="http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd" uri="http://www.mulesoft.org/schema/mule/xml/3.7/mule-xml.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd" uri="http://www.mulesoft.org/schema/mule/xml/3.7/mule-xml.xsd"/>
+
+    <system systemId="http://www.mulesoft.org/schema/mule/core/current/mule.xsd" uri="http://www.mulesoft.org/schema/mule/core/3.7/mule.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/core/current/mule.xsd" uri="http://www.mulesoft.org/schema/mule/core/3.7/mule.xsd"/>
+
+    <system systemId="http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd" uri="http://www.mulesoft.org/schema/mule/jms/3.7/mule-jms.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd" uri="http://www.mulesoft.org/schema/mule/jms/3.7/mule-jms.xsd"/>
+
+    <system systemId="http://www.springframework.org/schema/beans/spring-beans-current.xsd" uri="http://www.springframework.org/schema/beans/spring-beans-4.1.xsd"/>
+    <uri name="http://www.springframework.org/schema/beans/spring-beans-current.xsd" uri="http://www.springframework.org/schema/beans/spring-beans-4.1.xsd"/>
+
+    <system systemId="http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd" uri="http://www.mulesoft.org/schema/mule/cxf/3.7/mule-cxf.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd" uri="http://www.mulesoft.org/schema/mule/cxf/3.7/mule-cxf.xsd"/>
+
+    <system systemId="http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd" uri="http://www.mulesoft.org/schema/mule/http/3.7/mule-http.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd" uri="http://www.mulesoft.org/schema/mule/http/3.7/mule-http.xsd"/>
+
+    <system systemId="http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd" uri="http://www.mulesoft.org/schema/mule/ee/tracking/3.7/mule-tracking-ee.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd" uri="http://www.mulesoft.org/schema/mule/ee/tracking/3.7/mule-tracking-ee.xsd"/>
+    
+    <system systemId="http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd" uri="http://www.mulesoft.org/schema/mule/quartz/3.7/mule-quartz.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd" uri="http://www.mulesoft.org/schema/mule/quartz/3.7/mule-quartz.xsd"/>
+    
+    <system systemId="http://www.mulesoft.org/schema/mule/httpn/current/mule-httpn.xsd" uri="http://www.mulesoft.org/schema/mule/httpn/3.7/mule-httpn.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/httpn/current/mule-httpn.xsd" uri="http://www.mulesoft.org/schema/mule/httpn/3.7/mule-httpn.xsd"/>
+    
+    <system systemId="http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd" uri="http://www.mulesoft.org/schema/mule/tls/3.7/mule-tls.xsd"/>
+    <uri name="http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd" uri="http://www.mulesoft.org/schema/mule/tls/3.7/mule-tls.xsd"/>
+</catalog>

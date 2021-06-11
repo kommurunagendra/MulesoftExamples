@@ -1,0 +1,23 @@
+<tmdd:organizationInformationSubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <organization-requesting>
+            <organization-id>RWS</organization-id>
+         </organization-requesting>
+         <organization-information-type>ndw avg information</organization-information-type>
+         <organization-id>RWS</organization-id>
+         <center-id-list>
+            <center-id>NdwId1</center-id>
+            <center-id>NdwId2</center-id>
+         </center-id-list>
+         <c2cMsgAdmin>
+            <returnAddress>http://localhost:41082/</returnAddress>
+            <subscriptionAction>
+               <subscriptionAction-item>newSubscription</subscriptionAction-item>
+            </subscriptionAction>
+            <subscriptionType>
+               <subscriptionType-item>onChange</subscriptionType-item>
+            </subscriptionType>
+            <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+            <subscriptionName>subscription_name</subscriptionName>
+            <subscriptionFrequency>1</subscriptionFrequency>
+         </c2cMsgAdmin>
+      </tmdd:organizationInformationSubscriptionMsg>

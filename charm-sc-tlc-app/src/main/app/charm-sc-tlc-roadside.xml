@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<flow name="charm-sc-tlc-central-listener-flow">
+		<tcp:inbound-endpoint exchange-pattern="one-way"
+			host="0.0.0.0" port="${tlc.center.port}" responseTimeout="10000"
+			doc:name="TCP" connector-ref="tlcReceiverConnector" />
+        <set-variable variableName="triggercode" value="#[payload]" doc:name="Variable"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.triggercode  != empty]">
+                <vm:outbound-endpoint exchange-pattern="one-way" path="processInboundRequests" connector-ref="tlcVmConnector" doc:name="VM"/>
+            </when>
+            <otherwise>
+                <logger level="DEBUG" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+	</flow>
+
+	<sub-flow name="charm-sc-tlc-roadsideFlow">
+
+        
+		<object-to-byte-array-transformer
+			doc:name="Object to Byte Array" />
+        <expression-component doc:name="Expression"><![CDATA[ if(!flowVars.deviceInfo.equals("null")){
+flowVars.deviceInfo.setDeviceDown(true);
+flowVars.deviceInfo.setCommState("OFFLINE");
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+}]]></expression-component>
+		<outbound-endpoint ref="tcpendpoint" doc:name="Generic" />
+        <expression-filter expression="#[payload != null]" doc:name="Expression"/>
+		<byte-array-to-string-transformer
+			returnClass="java.lang.String" doc:name="Byte Array to String" />
+		<expression-component doc:name="Expression"><![CDATA[         import java.lang.String;
+         import java.lang.Integer;
+        
+        if(payload.contains("#") && !flowVars.deviceInfo.equals("null")){
+        flowVars.deviceInfo.setCommState("ONLINE");
+        String sequenceNumber=payload.split("#")[0];
+		flowVars.deviceInfo.setSequenceNumber(Integer.parseInt(sequenceNumber.substring(sequenceNumber.indexOf("@")+1).trim()));
+        app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+        }
+        payload=payload;]]></expression-component>
+	</sub-flow>
+</mule>

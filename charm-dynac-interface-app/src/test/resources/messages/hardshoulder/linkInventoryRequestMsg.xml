@@ -1,0 +1,11 @@
+     	<tmdd:linkInventoryRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <!--Optional:-->
+         <authentication>
+            <user-id>dummy</user-id>
+            <password>test</password>
+         </authentication>
+         <organization-requesting>
+            <organization-id>RWS</organization-id>       
+         </organization-requesting>
+         <network-information-type>hard shoulder inventory</network-information-type>
+      </tmdd:linkInventoryRequestMsg>

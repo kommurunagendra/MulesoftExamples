@@ -1,0 +1,17 @@
+<tmdd:organizationInformationRequestMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<organization-requesting>
+		<organization-id>RWS</organization-id>
+		<organization-function>inbound</organization-function>
+	</organization-requesting>
+	<organization-information-type>ndw sg information</organization-information-type>
+	<organization-id>RWS</organization-id>
+	<center-id-list>
+		<center-id>NdwId-01</center-id>
+		<center-id>NdwId-02</center-id>
+	</center-id-list>
+</tmdd:organizationInformationRequestMsg>

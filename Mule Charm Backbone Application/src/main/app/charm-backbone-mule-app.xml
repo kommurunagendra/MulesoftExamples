@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+	<queued-asynchronous-processing-strategy
+		name="QUEUED_STRATEGY" maxThreads="10000" maxQueueSize="30000"
+		poolExhaustedAction="WAIT" doc:name="Queued Asynchronous Processing Strategy">
+		<default-persistent-queue-store />
+	</queued-asynchronous-processing-strategy>
+	<configuration defaultProcessingStrategy="synchronous"
+		doc:name="Configuration">
+		<default-receiver-threading-profile
+			maxThreadsActive="10000" />
+	</configuration>
+
+	<flow name="backbone-async" processingStrategy="QUEUED_STRATEGY">
+		<inbound-endpoint ref="backbone-app-async-inbound"
+			doc:name="ASYNC-inbound endpoint" />
+
+		<set-variable variableName="receivedMsg" value="#[payload]"
+			doc:name="Setting receivedMsg" />
+
+		<flow-ref name="schema-validation-filter-flow" doc:name="Flow Reference" />
+
+		<flow-ref name="backbone-wirelog-incoming" doc:name="backbone-wirelog-incoming" />
+
+		<set-variable value="#[xpath3('local-name(/*)')]"
+			variableName="messageType" doc:name="Setting messageType" />
+		<set-variable value="#[xpath3('//*/*:meta/*:message_id/*:uuid/text()')]"
+			variableName="messageId" doc:name="Setting messageId"></set-variable>
+
+		<logger level="INFO"
+			message="Message Id(#[flowVars.messageId]): Recevied #[flowVars.messageType] from async queue"
+			category="com.cgi.charm.backbone.async" doc:name="Logger" />
+
+		<set-variable value="one-way" variableName="mep"
+			doc:name="Setting mep Variable" />
+		<set-variable variableName="receivedMsg" value="#[payload]"
+			doc:name="Setting receivedMsg" />
+		<set-variable variableName="dest" value="destination"
+			doc:name="Extract destination from Dynamic Routing if it exists" />
+
+		<set-variable variableName="MULE_REPLYTO_STOP" value="true"
+			doc:name="MULE_REPLYTO_STOP" />
+
+		<flow-ref name="decide-static-or-dynamic-routing" doc:name="decide-static-or-dynamic-routing" />
+
+		<remove-variable variableName="receivedMsg" doc:name="Remove receivedMsg" />
+		<exception-strategy ref="common_backbone_exception_handling_strategy"
+			doc:name="Reference Exception Strategy" />
+	</flow>
+
+	<flow name="decide-static-or-dynamic-routing" processingStrategy="synchronous">
+		<logger level="INFO"
+			message="Message Id(#[flowVars.messageId]): Deciding whether to use Dynamic/Static routing"
+			category="com.cgi.charm.backbone" doc:name="Logger" />
+
+		<set-variable value="#[xpath3('//*/*:property[contains(.,$dest)]/*:value')]"
+			variableName="dynamicRouting" doc:name="Variable"></set-variable>
+		<choice doc:name="Choice">
+			<when
+				expression="#[groovy:flowVars.dynamicRouting == null || flowVars.dynamicRouting.equals('')]">
+				<logger level="INFO"
+					message="Message Id(#[flowVars.messageId]): Using Static Routing......."
+					category="com.cgi.charm.backbone" doc:name="Logger" />
+				<flow-ref name="static-routing-flow" doc:name="static-routing-flow" />
+				<flow-ref name="log-sent-message" doc:name="log-sent-message" />
+				<remove-variable variableName="receivedMsg"
+					doc:name="Setting receivedMsg" />
+                <flow-ref name="log-received-response-message" doc:name="Flow Reference"/>
+			</when>
+			<otherwise>
+				<enricher target="#[flowVars.brokerQueueCombinations]"
+					doc:name="Message Enricher">
+					<ee:cache cachingStrategy-ref="Routing_Caching_Strategy"
+						doc:name="Cache">
+						<set-payload value="#[dw('p(flowVars.dynamicRouting)').split(',')]"
+							doc:name="Set Payload" />
+					</ee:cache>
+				</enricher>
+				<set-variable value="#[flowVars.brokerQueueCombinations.length - 1]"
+					variableName="noOfBrokerQueueCombinations" doc:name="Variable" />
+
+
+				<foreach collection="#[groovy:1..flowVars.noOfBrokerQueueCombinations]"
+					doc:name="For Each">
+
+					<set-variable variableName="broker"
+						value="#[flowVars.brokerQueueCombinations[0].trim()]" doc:name="Setting broker" />
+					<set-variable value="#[flowVars.brokerQueueCombinations[payload].trim()]"
+						variableName="queuePath" doc:name="Setting queuePath" />
+					<set-payload value="#[flowVars.receivedMsg]" doc:name="Set Payload" />
+					<logger level="INFO"
+						message="Message Id(#[flowVars.messageId]): Using Dynamic Routing......."
+						category="com.cgi.charm.backbone" doc:name="Logger" />
+					<flow-ref name="backbone-wirelog-outgoing" doc:name="backbone-wirelog-outgoing" />
+					<flow-ref name="log-sending-message" doc:name="Flow Reference" />
+					<flow-ref name="outbound-#[flowVars.broker]-queues"
+						doc:name=" Dynamically determine and Call Outbound broker Queues" />
+					<flow-ref name="log-sent-message" doc:name="Flow Reference" />
+					<choice doc:name="Choice">
+						<when expression="#[flowVars.mep == 'request-response']">
+							<flow-ref name="log-received-response-message" doc:name="log-received-response-message" />
+							<expression-component doc:name="Expression"><![CDATA[flowVars.listOfResponses.add(payload)]]></expression-component>
+						</when>
+						<otherwise>
+							<logger level="TRACE" message="No need to wait for response"
+								doc:name="Logger" />
+						</otherwise>
+					</choice>
+				</foreach>
+				<remove-variable variableName="receivedMsg"
+					doc:name="Setting receivedMsg" />
+			</otherwise>
+		</choice>
+
+		<exception-strategy ref="Generic_Choice_strategy"
+			doc:name="Reference Exception Strategy" />
+	</flow>
+
+	<flow name="backbone-sync" processingStrategy="synchronous">
+		<inbound-endpoint ref="backbone-app-sync-inbound"
+			doc:name="SYNC-inbound endpoint" exchange-pattern="request-response" />
+
+		<set-variable variableName="receivedMsg" value="#[payload]"
+			doc:name="Setting receivedMsg" />
+
+		<flow-ref name="schema-validation-filter-flow" doc:name="Flow Reference" />
+
+		<flow-ref name="backbone-wirelog-incoming" doc:name="backbone-wirelog-incoming" />
+
+		<set-variable value="request-response" variableName="mep"
+			doc:name="Setting mep Variable" />
+		<set-variable variableName="receivedMsg" value="#[payload]"
+			doc:name="Variable" />
+		<set-variable variableName="dest" value="destination"
+			doc:name="Extract request type from payload" />
+		<set-variable variableName="inboundQueueEP" value="one-way"
+			doc:name="Setting inboundQueueEP Variable" />
+		<set-variable value="#[xpath3('//*/*:meta/*:message_id/*:uuid/text()')]"
+			variableName="messageId" doc:name="Setting messageId"></set-variable>
+		<set-variable value="#[xpath3('local-name(/*)')]"
+			variableName="messageType" doc:name="Setting messageType" />
+
+		<logger level="INFO"
+			message="Message Id(#[flowVars.messageId]): Recevied #[flowVars.messageType] from sync queue"
+			category="com.cgi.charm.backbone.sync" doc:name="Logger" />
+
+		<set-variable value="#[xpath3('//*/*:property[contains(.,$dest)]/*:value')]"
+			variableName="dynamicRouting" doc:name="Variable"></set-variable>
+		<set-variable value="#[new java.util.ArrayList()]"
+			variableName="listOfResponses" doc:name="Variable" />
+		<flow-ref name="decide-static-or-dynamic-routing" doc:name="decide-static-or-dynamic-routing" />
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.listOfResponses.size() > 0]">
+				<splitter expression="#[flowVars.listOfResponses]"
+					doc:name="Splitter" />
+			</when>
+			<otherwise>
+				<logger message="Destination application might be down.."
+					level="TRACE" doc:name="Logger" />
+			</otherwise>
+		</choice>
+		<remove-variable variableName="receivedMsg" doc:name="Remove receivedMsg" />
+		<exception-strategy ref="common_backbone_exception_handling_strategy"
+			doc:name="Reference Exception Strategy" />
+	</flow>
+
+	<sub-flow name="log-received-response-message">
+		<choice doc:name="Choice">
+			<when expression="#[payload != null]">
+				<set-variable
+					value="#[xpath3('//*/*:meta_reply/*:message_id/*:uuid/text()')]"
+					variableName="replyMessageId" doc:name="Setting messageId"></set-variable>
+				<set-variable value="#[xpath3('local-name(/*)')]"
+					variableName="messageType" doc:name="Setting messageType" />
+
+				<logger level="INFO"
+					message="Message Id(#[flowVars.messageId]): Received #[flowVars.messageType] as reply from #[flowVars.queuePath] with message id (#[flowVars.replyMessageId])"
+					category="com.cgi.charm.backbone.sync" doc:name="Logger" />
+				<logger level="TRACE" message="Received Payload : #[payload]"
+					doc:name="Logger" />
+			</when>
+			<otherwise>
+				<logger level="WARN"
+					message="Message Id(#[flowVars.messageId]): Destination appliation seems to be down since we didn't receive a reply from queue (#[flowVars.queuePath])"
+					doc:name="Logger" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="outbound-broker1-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker1"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<set-property propertyName="queuePath" value="#[flowVars.queuePath]"
+					doc:name="Property" />
+				<vm:outbound-endpoint path="vm.sync.outbound"
+					exchange-pattern="request-response" doc:name="VM" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<flow name="vm-sync-outbound" processingStrategy="synchronous">
+		<vm:inbound-endpoint path="vm.sync.outbound"
+			exchange-pattern="request-response" doc:name="VM" />
+		<jms:outbound-endpoint connector-ref="broker1"
+			doc:name="JMS" queue="#[message.inboundProperties['queuePath']]"
+			exchange-pattern="request-response" responseTimeout="${broker1.responsetimeout}" />
+	</flow>
+
+	<sub-flow name="outbound-broker2-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker2"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<jms:outbound-endpoint connector-ref="broker2"
+					doc:name="JMS" queue="#[flowVars.queuePath]" exchange-pattern="request-response"
+					responseTimeout="${broker2.responsetimeout}" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="outbound-broker3-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker3"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<jms:outbound-endpoint connector-ref="broker3"
+					doc:name="JMS" queue="#[flowVars.queuePath]" exchange-pattern="request-response"
+					responseTimeout="${broker3.responsetimeout}" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="outbound-broker4-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker4"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<jms:outbound-endpoint connector-ref="broker4"
+					doc:name="JMS" queue="#[flowVars.queuePath]" exchange-pattern="request-response"
+					responseTimeout="${broker4.responsetimeout}" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="outbound-broker5-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker5"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<jms:outbound-endpoint connector-ref="broker5"
+					doc:name="JMS" queue="#[flowVars.queuePath]" exchange-pattern="request-response"
+					responseTimeout="${broker5.responsetimeout}" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="outbound-broker6-queues">
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.mep=='one-way']">
+				<jms:outbound-endpoint connector-ref="broker6"
+					doc:name="JMS" queue="#[flowVars.queuePath]" />
+			</when>
+			<when expression="#[flowVars.mep=='request-response']">
+				<jms:outbound-endpoint connector-ref="broker6"
+					doc:name="JMS" queue="#[flowVars.queuePath]" exchange-pattern="request-response"
+					responseTimeout="${broker6.responsetimeout}" />
+			</when>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="log-sending-message">
+		<logger level="INFO"
+			message="Message Id(#[flowVars.messageId]): Sending #[flowVars.messageType] to queue (#[flowVars.queuePath])"
+			category="com.cgi.charm.backbone" doc:name="Logger" />
+	</sub-flow>
+
+	<sub-flow name="log-sent-message">
+		<logger level="INFO"
+			message="Message Id(#[flowVars.messageId]): Sent #[flowVars.messageType] to queue (#[flowVars.queuePath])"
+			category="com.cgi.charm.backbone" doc:name="Logger" />
+	</sub-flow>
+
+	<sub-flow name="schema-validation-filter-flow">
+		<set-variable variableName="schemaValidationEnabled"
+			value="${schemaValidationEnabled}" doc:name="Variable" />
+		<logger
+			message="Schema validation in properties file : #[flowVars.schemaValidationEnabled]"
+			level="DEBUG" category="com.cgi.charm.backbone" doc:name="Logger" />
+		<choice doc:name="Choice">
+			<when expression="#[flowVars.schemaValidationEnabled]">
+				<message-filter throwOnUnaccepted="true" doc:name="Message filter">
+					<filter ref="customSchemaFilter" />
+				</message-filter>
+			</when>
+			<otherwise>
+				<logger
+					message="Schema validation is turned off in properties file. Skipping validation."
+					level="DEBUG" category="backbone-app" doc:name="Logger" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

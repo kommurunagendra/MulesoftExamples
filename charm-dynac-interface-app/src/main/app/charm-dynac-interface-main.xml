@@ -1,0 +1,1111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mule-xml="http://www.mulesoft.org/schema/mule/xml"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+	<spring:beans>
+		<spring:bean id="faultInterceptor" name="faultInterceptorBean"
+			class="com.cgi.charm.dynac.CustomSoapFaultInterceptor" />
+	</spring:beans>
+	<expression-filter expression="#[payload.centerId==varCenterActiveRequest.centerId]"
+		name="verify" doc:name="Expression" />
+		
+	<!-- ************************************************************************************************* -->
+	<!-- **************************************** CDM ASYNC INBOUND ************************************** -->
+	<!-- ************************************************************************************************* -->
+    <flow name="charm-ntcip-interface-cdm-async-inbound" processingStrategy="synchronous">
+        <inbound-endpoint ref="inbound_cdm" doc:name="jms inbound_cdm"/>
+        <logger message="Incoming from Inbound cdm" level="INFO" category="dynac-interface-app" doc:name="log payload" />
+        <set-variable variableName="receivedMsg" value="#[payload]" doc:name="persist input"/>
+        <flow-ref name="cdm-filter" doc:name="cdm-filter"/>
+        <flow-ref name="log-indent-cdm-request-flow" doc:name="log-indent-cdm-request-flow"/>
+        <choice doc:name="determine CDM message">
+        
+    <!-- bridge routing -->
+            <when expression="#[xpath3('boolean(/brg:bridge_status_publish)')]">
+                <flow-ref name="bridge-status-publish" doc:name="bridge_status_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/brg:bridge_inventory_subscription)')]">
+                <flow-ref name="bridge-inventory-subscription" doc:name="bridge_inventory_subscription"/>
+            </when>
+             <when expression="#[xpath3('boolean(/brg:bridge_inventory_publish)')]">
+                <flow-ref name="bridge-inventory-publish-cdmToNtcip" doc:name="bridge-inventory-publish-cdmToNtcip"/>
+            </when>
+            <when expression="#[xpath3('boolean(/brg:bridge_status_subscription)')]">
+                <flow-ref name="bridge-status-subscription-cdmToNtcip" doc:name="bridge-status-subscription-cdmToNtcip"/>
+            </when>
+            
+ 	<!-- drip routing -->
+            <when expression="#[xpath3('boolean(/drp:drip_status_publish)')]">
+                <flow-ref name="drip-status-publish" doc:name="drip_status_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/drp:drip_inventory_subscription)')]">
+                <flow-ref name="drip-inventory-subscription" doc:name="drip_inventory_subscription"/>
+            </when>
+            
+     <!-- bermdrip routing -->
+            <when expression="#[xpath3('boolean(/bdrp:bermdrip_status_publish)')]">
+                <flow-ref name="bermdrip-status-publish" doc:name="bermdrip_status_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/bdrp:bermdrip_inventory_subscription)')]">
+                <flow-ref name="bermdrip-inventory-subscription" doc:name="bermdrip_inventory_subscription"/>
+            </when>
+            
+ 	<!-- prism routing -->
+            <when expression="#[xpath3('boolean(/prism:prism_inventory_subscription)')]">
+                <flow-ref name="prism-inventory-subscription" doc:name="prism-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/prism:prism_status_publish)')]">
+                <flow-ref name="prism-status-publish" doc:name="prism-status-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/prism:prism_inventory_publish)')]">
+                <flow-ref name="prism-inventory-publish_nina_variant" doc:name="prism-inventory-publish_nina_variant"/>
+            </when>
+            
+	<!-- msi routing -->        
+            <when expression="#[xpath3('boolean(/msi:msi_inventory_subscription)')]">
+                <flow-ref name="msi-inventory-subscription" doc:name="msi-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/msi:msi_status_publish)')]">
+                <flow-ref name="msi-status-publish" doc:name="msi-status-publish"/>
+            </when> 
+             <when expression="#[xpath3('boolean(/msi:msi_inventory_publish)')]">
+                <flow-ref name="msi-inventory-publish-variant" doc:name="msi-inventory-publish-variant"/>
+            </when>      
+                    
+   		<!-- Detector routing -->
+   			<when expression="#[xpath3('boolean(/detector:detector_si_inventory_publish)')]">
+                <flow-ref name="detector-inventory-publish-nina-variant" doc:name="detector-inventory-publish-nina-variant"/>
+            </when>
+            <when expression="#[xpath3('boolean(/detector:detector_si_inventory_subscription)')]">
+                <flow-ref name="detector-inventory-subscription" doc:name="detector-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/detector:detector_si_status_publish)')]">
+                <flow-ref name="detector-status-publish" doc:name="detector-status-publish"/>
+            </when>
+             <when expression="#[xpath3('boolean(/detector:detector_si_data_publish)')]">
+                <flow-ref name="detector-data-publish" doc:name="detector-data-publish"/>
+            </when>
+            
+       <!-- Hardshoulder routing -->
+            <when expression="#[xpath3('boolean(/hardshoulder:hardshoulder_inventory_subscription)')]">
+                <flow-ref name="hardshoulder-inventory-subscription" doc:name="hardshoulder-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/hardshoulder:hardshoulder_status_subscription)')]">
+                <flow-ref name="hardshoulder-status-subscription" doc:name="hardshoulder-status-subscription"/>
+            </when>
+            
+       <!-- TLC routing -->
+             <when expression="#[xpath3('boolean(/tlc:tlc_inventory_subscription)')]">
+                <flow-ref name="tlc-inventory-subscription" doc:name="tlc-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tlc:tlc_status_publish)')]">
+                <flow-ref name="tlc-status-publish" doc:name="tlc-status-publish"/>
+            </when>
+            
+       <!-- Wind routing -->
+             <when expression="#[xpath3('boolean(/wind:wind_inventory_subscription)')]">
+                <flow-ref name="wind-inventory-subscription" doc:name="wind-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/wind:wind_status_publish)')]">
+                <flow-ref name="wind-status-publish" doc:name="wind-status-publish"/>
+            </when>
+            
+       <!-- Weather routing -->
+             <when expression="#[xpath3('boolean(/weather:weather_inventory_subscription)')]">
+                <flow-ref name="weather-inventory-subscription" doc:name="weather-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/weather:weather_status_publish)')]">
+                <flow-ref name="weather-status-publish" doc:name="weather-status-publish"/>
+            </when>
+            
+       <!-- Detector-cat routing -->
+            <when expression="#[xpath3('boolean(/detector-cat:detector_cat_inventory_publish)')]">
+                <flow-ref name="detector-cat-inventory-publish-CDM-To-NTCIP" doc:name="detector-cat-inventory-publish-CDM-To-NTCIP"/>
+            </when>
+             <when expression="#[xpath3('boolean(/detector-cat:detector_cat_inventory_subscription)')]">
+                <flow-ref name="detector-cat-inventory-subscription" doc:name="detector-cat-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/detector-cat:detector_cat_status_publish)')]">
+                <flow-ref name="detector-cat-status-publish" doc:name="detector-cat-status-publish"/>
+            </when>
+             <when expression="#[xpath3('boolean(/detector-cat:detector_cat_data_publish)')]">
+                <flow-ref name="detector-cat-data-publish" doc:name="detector-cat-data-publish"/>
+            </when>
+               
+       <!-- Route Server routing -->
+            <when expression="#[xpath3('boolean(/route:route_inventory_subscription)')]">
+                <flow-ref name="route-inventory-subscription" doc:name="route-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/route:route_status_publish)')]">
+                <flow-ref name="route-status-publish" doc:name="route-status-publish"/>
+            </when>
+               
+       <!-- Nina  routing -->
+            <when expression="#[xpath3('boolean(/nina:nina_inventory_subscription)')]">
+                <flow-ref name="nina-inventory-subscription" doc:name="nina-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/nina:nina_status_publish)')]">
+                <flow-ref name="nina-status-publish" doc:name="nina-status-publish"/>
+            </when>
+            
+       <!-- Traveltime  routing --> 
+            <when expression="#[xpath3('boolean(/traveltime:traveltime_inventory_subscription)')]">
+                <flow-ref name="traveltime-inventory-subscription" doc:name="traveltime-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/traveltime:traveltime_inventory_publish)')]">
+                <flow-ref name="traveltime-inventory-publish" doc:name="traveltime-inventory-publish"/>
+            </when> 
+            <when expression="#[xpath3('boolean(/traveltime:traveltime_status_publish)')]">
+                <flow-ref name="traveltime-status-publish" doc:name="traveltime-status-publish"/>
+            </when>
+            
+       <!-- NDW-AVG  routing --> 
+            <when expression="#[xpath3('boolean(/ndwAvg:ndw_avg_inventory_subscription)')]">
+                <flow-ref name="ndw-avg-inventory-subscription" doc:name="ndw-avg-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/ndwAvg:ndw_avg_status_publish)')]">
+            	<flow-ref name="ndw-avg-status-publish" doc:name="ndw-avg-status-publish"/>
+            </when>
+            
+            
+          <!-- NDW-SG  routing -->
+            <when expression="#[xpath3('boolean(/ndwSg:ndw_sg_inventory_subscription)')]">
+                <flow-ref name="ndw-sg-inventory-subscription" doc:name="ndw-sg-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/ndwSg:ndw_sg_status_publish)')]">
+            	<flow-ref name="ndw-sg-status-publish" doc:name="ndw-sg-status-publish"/>
+            </when>
+         
+			<!-- otmc interface inbound app routing -->
+			
+			<when expression="#[xpath3('boolean(/otmc:otmc_organisation_subscription)')]">
+				<flow-ref name="otmc-inbound-organization-subscription"	doc:name="otmc-organization-subscription" />
+			</when>
+			
+			<when expression="#[xpath3('boolean(/otmc:otmc_inventory_publish)')]">
+				<flow-ref name="otmc-inbound-inventory-publish" doc:name="otmc-inbound-inventory-publish" />
+			</when>
+			
+			<when expression="#[xpath3('boolean(/otmc:otmc_status_publish)')]">
+				<flow-ref name="otmc-inbound-status-publish" doc:name="otmc-inbound-status-publish" />
+			</when>
+			
+			<!-- otmc interface outbound app routing -->
+			
+			<when expression="#[xpath3('boolean(/otmcOutbound:otmc_outbound_organisation_subscription)')]">
+				<flow-ref name="otmc-outbound-organization-subscription" doc:name="otmc-outbound-organization-subscription" />
+			</when>
+			
+			<when expression="#[xpath3('boolean(/otmcOutbound:otmc_outbound_inventory_subscription)')]">
+				<flow-ref name="otmc-outbound-inventory-subscription" doc:name="otmc-outbound-inventory-subscription" />
+			</when>
+			
+			<when expression="#[xpath3('boolean(/otmcOutbound:otmc_outbound_inventory_publish)')]">
+				<flow-ref name="otmc-outbound-inventory-publish" doc:name="otmc-outbound-inventory-publish" />
+			</when>
+			
+			<when expression="#[xpath3('boolean(/otmcOutbound:otmc_outbound_status_publish)')]">
+				<flow-ref name="otmc-outbound-status-publish" doc:name="otmc-outbound-status-publish" />
+			</when>
+			
+            <!-- otmc services  routing --> 
+            <when expression="#[xpath3('boolean(/otmcServices:otmc_services_inventory_subscription)')]">
+                <flow-ref name="otmc_services_inventory_subscription" doc:name="otmc_services_inventory_subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/otmcServices:otmc_services_status_subscription)')]">
+                <flow-ref name="otmc-services-status-subscription" doc:name="otmc-services-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/otmcServices:otmc_services_status_publish)')]">
+                <flow-ref name="otmc-services-status-publish" doc:name="otmc-services-status-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/otmcServices:otmc_services_control_request)')]">
+                <flow-ref name="otmc-services-control-request" doc:name="otmc-services-control-request"/>
+            </when>
+
+             <!-- parking facility  routing -->
+            <when expression="#[xpath3('boolean(/parkingFacility:parking_facility_inventory_subscription)')]">
+                <flow-ref name="parking_facility_inventory_subscription" doc:name="parking-facility-inventory-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/parkingFacility:parking_facility_status_publish)')]">
+                <flow-ref name="parking-facility-status-publish" doc:name="parking-facility-status-publish"/>
+            </when>
+            
+            <!-- situation app routing -->
+            <when expression="#[xpath3('boolean(/situation:situation_status_subscription)')]">
+            	<flow-ref name="situation-status-subscription" doc:name="situation-status-subscription"/>
+            </when>
+            
+              <otherwise>
+                <logger message="Incoming unknown cdm message!" level="ERROR" category="dynac-interface-app" doc:name="log error"/>
+                <logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="debug log"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="MULE_REPLYTO_STOP" value="true" doc:name="disable reply"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy when="exception.causedBy(org.mule.api.routing.RoutingException)" doc:name="Destination not reachble  Exception Strategy" logException="false" >
+                
+            	<static-component>
+					<return-data file="static_messages/invalid_xml.xml" />
+				</static-component>
+				<mulexml:xslt-transformer returnClass="java.lang.String"
+					encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl"
+					outputEncoding="UTF-8" maxIdleTransformers="2"
+					maxActiveTransformers="5" doc:name="XSLT">
+					<mulexml:context-property key="xmlContent"
+						value="#[flowVars.receivedMsg]" />
+					<mule-xml:context-property key="errorReason" value="Connection to Dynac is down"/>
+				</mulexml:xslt-transformer>
+                <async doc:name="Async">
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </async>
+            </catch-exception-strategy>
+            <catch-exception-strategy when="exception.causedBy(org.mule.api.routing.filter.FilterUnacceptedException)" doc:name="CDM validation failed Exception Strategy" logException="false">
+                <static-component>  
+                    <return-data file="static_messages/invalid_xml.xml"/> 
+                </static-component>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl" outputEncoding="UTF-8" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Error xml transformer">
+                    <mule-xml:context-property key="xmlContent" value="#[flowVars.receivedMsg]"/>
+                    <mule-xml:context-property key="errorReason" value="Validation failed agaist received cdm message"/>
+                </mule-xml:xslt-transformer>
+                <async doc:name="Async">
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </async>
+            </catch-exception-strategy>
+            <rollback-exception-strategy maxRedeliveryAttempts="0" doc:name="Rollback Exception Strategy" logException="false">
+                <on-redelivery-attempts-exceeded>
+                    <logger message="Delivery cdm message to ntcip interface failed!" level="ERROR" category="dynac-interface-app" doc:name="Logger"/>
+                    <mule-xml:xslt-transformer returnClass="java.lang.String" encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl" outputEncoding="UTF-8" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">
+                        <mule-xml:context-property key="xmlContent" value="#[flowVars.receivedMsg]"/>
+                    </mule-xml:xslt-transformer>
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </on-redelivery-attempts-exceeded>
+            </rollback-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+
+	<!-- ************************************************************************************************* -->
+	<!-- **************************************** NTCIP Webservice INBOUND ****************************************** -->
+	<!-- ************************************************************************************************* -->
+    <flow name="charm-ntcip-interface-ntcip-inbound" processingStrategy="synchronous">
+        <http:listener config-ref="ntcip_inbound" path="/" doc:name="ntcip inbound"/>
+        <cxf:proxy-service port="tmddOCSoapHttpServicePort" namespace="http://www.tmdd.org/3/dialogs" service="TmddOwnerCenterService" payload="body" wsdlLocation="classpath:/TMDD.wsdl" enableMuleSoapHeaders="false" metadata:id="533a80dc-8f06-42c6-9646-a461196dfd72" doc:name="TmddOwnerCenterService">
+            <cxf:outFaultInterceptors>
+                <spring:ref bean="faultInterceptorBean"/>
+            </cxf:outFaultInterceptors>
+        </cxf:proxy-service>
+        <logger message="=== NTCIP message incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <auto-transformer returnClass="java.lang.String"></auto-transformer>
+        <flow-ref name="log-indentation-flow" doc:name="log-indentation-flow"/>
+        <set-variable variableName="originalPayload" value="#[payload]" doc:name="originalPayload"/>
+
+        <choice doc:name="Choice">
+            <when expression="${validate.deviceType}">
+                <set-variable variableName="deviceType" value="#[xpath3('//*:device-type/.')]" doc:name="deviceType"/>
+                 <!-- <set-variable variableName="organizationInformationType" value="#[xpath3('//*:organization-information-type/.')]" doc:name="deviceType"/> -->
+                <logger message="Incoming Device Type : #[flowVars.deviceType]" level="DEBUG" category="dynac-interface-app" doc:name="Logger"/>
+                <set-variable variableName="validDeviceTypes" value="#[{'${devicetype.bridge}', '${devicetype.drip}','${devicetype.bermdrip}','${devicetype.msi}','${devicetype.prism}','${devicetype.detectorSi}','${devicetype.detectorcat}','${devicetype.weather}','${devicetype.wind}','${devicetype.nina}','${devicetype.tlc}','${devicetype.otmc.outbound.information}','${devicetype.otmc.outbound}','${devicetype.hardshoulder}','${devicetype.traveltime}','${devicetype.ndwAvg}','${devicetype.ndwSg}','${devicetype.otmc.services},'${devicetype.parkingFacility}'}]" doc:name="Valid Device Types from Global Property"/>
+                <message-filter onUnaccepted="invalidDeviceTypeFlow" throwOnUnaccepted="true" doc:name="Filter based on device type">
+                    <expression-filter expression="#[flowVars.validDeviceTypes contains flowVars.deviceType]"/>
+                </message-filter>
+            </when>
+            <otherwise>
+                <logger message="Device Type Validation for incoming request is disabled." level="DEBUG" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+
+        <choice doc:name="Choice">
+            <when expression="${validate.request}">
+               <message-filter throwOnUnaccepted="true" onUnaccepted="tmdd_validation_failed" doc:name="validate incoming request">
+                    <filter ref="ntcipSchemaFilter"/>
+                </message-filter>
+            </when>
+            <otherwise>
+                <logger message="Schema Validation for incoming request is disabled. Skipping Validation." level="WARN" category="dynac-interface-app" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <flow-ref name="existdb.request" doc:name="existdb.request"/>
+		
+        <choice doc:name="determine messagetype">
+       	  <!--  Bridge (Gate) -->  
+   	  		<when expression="#[xpath3('boolean(/tmdd:gateStatusUpdateMsg/gate-status-item/device-status-header[device-type = \'${devicetype.bridge}\'])')]">
+                <flow-ref name="bridge-status-publish-NTCIP-To-CDM" doc:name="bridge-status-publish-NTCIP-To-CDM"/>
+            </when>
+   	  		<when expression="#[xpath3('boolean(/tmdd:gateInventorySubscriptionMsg[device-type = \'${devicetype.bridge}\'])')]">
+                <flow-ref name="bridge-inventory-subscription-NTCIP-To-CDM" doc:name="bridge-inventory-subscription-NTCIP-To-CDM"/>
+            </when>     
+            <when expression="#[xpath3('boolean(/tmdd:gateInventoryUpdateMsg)')]">
+                <flow-ref name="bridge-inventory-publish" doc:name="bridge_inventory_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:gateControlRequestMsg)')]">
+                <flow-ref name="bridge-control-request" doc:name="bridge_control_request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.bridge}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="bridge-status-subscription" doc:name="bridge-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:gateInventoryRequestMsg[device-type = \'${devicetype.bridge}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="bridge-info-request-inventory" doc:name="bridge_info_request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:gateStatusRequestMsg[device-type = \'${devicetype.bridge}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="bridge-info-request-status" doc:name="bridge_info_request-status"/>
+            </when>
+            
+  	  <!--  Drip (Text DMS) -->
+            <when expression="#[xpath3('boolean(/tmdd:dMSControlRequestMsg/device-control-request-header[device-type = \'${devicetype.drip}\'])')]">
+                <flow-ref name="drip-control-request" doc:name="drip_control_request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.drip}\'])')]">
+                <flow-ref name="drip-inventory-publish" doc:name="drip_inventory_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryRequestMsg[device-type = \'${devicetype.drip}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="drip-info-request-inventory" doc:name="drip_info_request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSStatusRequestMsg[device-type = \'${devicetype.drip}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="drip-info-request-status" doc:name="drip_info_request-status"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.drip}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="drip-status-subscription" doc:name="drip_status_subscription"/>
+            </when>
+            
+  	  <!--  Bermdrip (Graphical DMS) -->
+            <when expression="#[xpath3('boolean(/tmdd:dMSControlRequestMsg/device-control-request-header[device-type = \'${devicetype.bermdrip}\'])')]">
+                <flow-ref name="bermdrip-control-request" doc:name="bermdrip_control_request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.bermdrip}\'])')]">
+                <flow-ref name="bermdrip-inventory-publish" doc:name="bermdrip_inventory_publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryRequestMsg[device-type = \'${devicetype.bermdrip}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="bermdrip-info-request-inventory" doc:name="bermdrip_info_request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSStatusRequestMsg[device-type = \'${devicetype.bermdrip}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="bermdrip-info-request-status" doc:name="bermdrip_info_request-status"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.bermdrip}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="bermdrip-status-subscription" doc:name="bermdrip_status_subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:centerActiveVerificationRequestMsg)')]">
+                <set-variable variableName="verificationRequestNina" value="#[xpath3('boolean(/tmdd:centerActiveVerificationRequestMsg/organization-requesting[organization-information-type = \'${devicetype.nina}\'])')]" doc:name="Variable"/>
+                <set-variable variableName="verificationRequestNdwAvg" value="#[xpath3('boolean(/tmdd:centerActiveVerificationRequestMsg/organization-requesting[organization-information-type = \'${devicetype.ndwAvg}\'])')]" doc:name="Variable"/>
+                <set-variable variableName="verificationRequestNdwSg" value="#[xpath3('boolean(/tmdd:centerActiveVerificationRequestMsg/organization-requesting[organization-information-type = \'${devicetype.ndwSg}\'])')]" doc:name="Variable"/>
+              
+                <choice doc:name="Choice">
+                    <when expression="#[flowVars.verificationRequestNina]">
+                        <flow-ref name="nina-info-request-status" doc:name="nina-info-request-status"/>
+                    </when>
+                    <when expression="#[flowVars.verificationRequestNdwAvg]">
+                		<flow-ref name="ndw-avg-info-request-status" doc:name="ndw-avg-info-request-status"/>
+            		</when>
+            		<when expression="#[flowVars.verificationRequestNdwSg]">
+                		<flow-ref name="ndw-sg-info-request-status" doc:name="ndw-sg-info-request-status"/>
+            		</when>
+                    <otherwise>
+                        <flow-ref name="dynac-interface-keepalive-response-dynac" doc:name="dynac-interface-keepalive-response-dynac"/>
+                    </otherwise>
+                </choice>
+            </when>
+            
+       <!--  Hardshoulder (linkUpdate) -->
+            <when expression="#[xpath3('/tmdd:linkInventoryUpdateMsg/link-inventory-list/link-inventory-item/link-list/link/network-info-type = \'${devicetype.hardshoulder}\'')]">
+                <flow-ref name="hardshoulder-inventory-publish" doc:name="hardshoulder-inventory-publish"/>
+            </when>
+             <when expression="#[xpath3('/tmdd:linkStatusUpdateMsg/link-status-list/link-status-item/link-list/link/traffic-network-type = \'hard shoulder status\'')]">
+                <flow-ref name="hardshoulder-status-publish" doc:name="hardshoulder-status-publish"/>
+            </when>
+              <when expression="#[xpath3('boolean(/tmdd:linkInventoryRequestMsg[network-information-type = \'hard shoulder inventory\'])')]">
+                <flow-ref name="hardshoulder-info-request-inventory" doc:name="hardshoulder-info-request-inventory"/>
+            </when>             
+            <when expression="#[xpath3('boolean(/tmdd:linkStatusRequestMsg[network-information-type = \'hard shoulder status\'])')]">
+                <flow-ref name="hardshoulder-info-request-status" doc:name="hardshoulder-info-request-status"/>
+            </when>           
+            
+      <!--  Prism (mtm/prism) -->  
+   			<when expression="#[xpath3('boolean(/tmdd:dMSInventorySubscriptionMsg[device-type = \'${devicetype.prism}\'])')]">
+                <flow-ref name="prism-inventory-subscription-NTCIP-To-CDM" doc:name="prism-inventory-subscription-NTCIP-To-CDM"/>
+            </when>       
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.prism}\'])')]">
+                <flow-ref name="prism-inventory-publish" doc:name="prism-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSMessageInventoryUpdateMsg/dms-message-inventory-item[device-type = \'${devicetype.prism}\'])')]">
+                <flow-ref name="prism-library-publish" doc:name="prism-library-publish"/>
+            </when>             
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.prism}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="prism-status-subscription" doc:name="prism-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryRequestMsg[device-type = \'${devicetype.prism}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="prism-info-request-inventory" doc:name="prism-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSControlRequestMsg/device-control-request-header[device-type = \'${devicetype.prism}\'])')]">
+                <flow-ref name="prism-control-request" doc:name="prism-control-request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSStatusRequestMsg[device-type = \'${devicetype.prism}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="prism-info-request-status" doc:name="prism-info-request-status"/>
+            </when>
+            
+      <!--  Msi routing -->
+  			<when expression="#[xpath3('boolean(/tmdd:dMSInventorySubscriptionMsg[device-type = \'${devicetype.msi}\'])')]">
+                <flow-ref name="msi-inventory-subscription-NTCIP-To-CDM" doc:name="msi-inventory-subscription-NTCIP-To-CDM"/>
+            </when>  
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.msi}\'])')]">
+                <flow-ref name="msi-inventory-publish" doc:name="msi-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSMessageInventoryUpdateMsg/dms-message-inventory-item[device-type = \'${devicetype.msi}\'])')]">
+                <flow-ref name="msi-image-publish" doc:name="msi-image-publish"/>
+            </when>           
+             <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.msi}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="msi-status-subscription" doc:name="msi-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSInventoryRequestMsg[device-type = \'${devicetype.msi}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="msi-info-request-inventory" doc:name="msi-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSControlRequestMsg/device-control-request-header[device-type = \'${devicetype.msi}\'])')]">
+                <flow-ref name="msi-control-request" doc:name="msi-control-request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:dMSStatusRequestMsg[device-type = \'${devicetype.msi}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="msi-info-request-status" doc:name="msi-info-request-status"/>
+            </when>
+            
+  	  <!--  Detector-si routing -->
+  			<when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="detector-inventory-subscription-NTCIP-To-CDM" doc:name="detector-inventory-subscription-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('/tmdd:detectorInventoryUpdateMsg/detector-inventory-item/detector-station-inventory-header/device-type = \'${devicetype.detectorSi}\'')]">
+                <flow-ref name="detector-inventory-publish" doc:name="detector-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="detector-status-subscription" doc:name="detector-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:detectorInventoryRequestMsg[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="detector-info-request-inventory" doc:name="detector-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:detectorControlRequestMsg)')]">
+                <flow-ref name="detector-control-request" doc:name="detector-control-request"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationRequestMsg[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="detector-info-request-status" doc:name="detector-info-request-status"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:detectorDataRequestMsg/device-information-request-header[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device data\'])')]">
+                <flow-ref name="detector-info-request-data" doc:name="detector-info-request-data"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorSi}\' and device-information-type = \'device data\'])')]">
+                <flow-ref name="detector-data-subscription" doc:name="detector-data-subscription"/>
+            </when>
+
+  	   <!-- Tlc routing -->
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.tlc}\' or device-type = \'VRI\'])')]">
+                <flow-ref name="tlc-inventory-publish" doc:name="tlc-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[(device-type = \'${devicetype.tlc}\' or device-type = \'VRI\') and device-information-type = \'device status\'])')]">
+                <flow-ref name="tlc-status-subscription" doc:name="tlc-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceInventoryRequestMsg[(device-type = \'${devicetype.tlc}\' or device-type = \'VRI\') and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="tlc-info-request-inventory" doc:name="tlc-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceStatusRequestMsg[(device-type = \'${devicetype.tlc}\' or device-type = \'VRI\') and device-information-type = \'device status\'])')]">
+                <flow-ref name="tlc-info-request-status" doc:name="tlc-info-request-status"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceControlRequestMsg/device-control-request-header[device-type = \'${devicetype.tlc}\' or device-type = \'VRI\'])')]">
+                <flow-ref name="tlc-control-request" doc:name="tlc-control-request"/>
+            </when>
+            
+ 	   <!-- Wind(WPS) routing -->
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceInventoryUpdateMsg/dms-inventory-item/device-inventory-header[device-type = \'${devicetype.wind}\'])')]">
+                <flow-ref name="wind-inventory-publish" doc:name="wind-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[(device-type = \'${devicetype.wind}\') and device-information-type = \'device status\'])')]">
+                <flow-ref name="wind-status-subscription" doc:name="wind-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceInventoryRequestMsg[(device-type = \'${devicetype.wind}\') and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="wind-info-request-inventory" doc:name="wind-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:genericDeviceStatusRequestMsg[(device-type = \'${devicetype.wind}\') and device-information-type = \'device status\'])')]">
+                <flow-ref name="wind-info-request-status" doc:name="wind-info-request-status"/>
+            </when>
+            
+   	   <!-- Weather routing -->
+            <when expression="#[xpath3('boolean(/tmdd:eSSInventoryUpdateMsg/ess-inventory-item/device-inventory-header[device-type = \'${devicetype.weather}\'])')]">
+                <flow-ref name="weather-inventory-publish" doc:name="weather-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[(device-type = \'${devicetype.weather}\') and device-information-type = \'device status\'])')]">
+                <flow-ref name="weather-status-subscription" doc:name="weather-status-subscription"/>
+            </when>
+            
+      <!--  Detector-cat routing -->
+      		<when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="detector-cat-inventory-subscription-NTCIP-To-CDM" doc:name="detector-cat-inventory-subscription-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('/tmdd:detectorInventoryUpdateMsg/detector-inventory-item/detector-station-inventory-header/device-type = \'${devicetype.detectorcat}\'')]">
+                <flow-ref name="detector-cat-inventory-publish" doc:name="detector-cat-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="detector-cat-status-subscription" doc:name="detector-cat-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:detectorInventoryRequestMsg[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="detector-cat-info-request-inventory" doc:name="detector-cat-info-request-inventory"/>
+            </when>            
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationRequestMsg[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="detector-cat-info-request-status" doc:name="detector-cat-info-request-status"/>
+            </when>            
+            <when expression="#[xpath3('boolean(/tmdd:detectorDataRequestMsg/device-information-request-header[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device data\'])')]">
+                <flow-ref name="detector-cat-info-request-data" doc:name="detector-cat-info-request-data"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.detectorcat}\' and device-information-type = \'device data\'])')]">
+                <flow-ref name="detector-cat-data-subscription" doc:name="detector-cat-data-subscription"/>
+            </when>
+
+	  <!--  Route Server routing -->
+			<when expression="#[xpath3('/tmdd:linkInventoryUpdateMsg/link-inventory-list/link-inventory-item/link-list/link/network-info-type = \'route inventory\'')]">
+                <flow-ref name="route-inventory-publish" doc:name="route-inventory-publish"/>
+            </when>
+			 <when expression="#[xpath3('boolean(/tmdd:trafficNetworkInformationSubscriptionMsg[network-information-type = \'route status\'])')]">
+                <flow-ref name="route-status-subscription" doc:name="route-status-subscription"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:linkInventoryRequestMsg[network-information-type = \'route inventory\'])')]">
+                <flow-ref name="route-info-request-inventory" doc:name="route-info-request-inventory"/>
+            </when>             
+            <when expression="#[xpath3('boolean(/tmdd:linkStatusRequestMsg[network-information-type = \'route status\'])')]">
+                <flow-ref name="route-info-request-status" doc:name="route-info-request-status"/>
+            </when>  
+            
+      <!--  Nina routing -->  
+            <when expression="#[xpath3('boolean(/tmdd:organizationInformationUpdateMsg/organization-list/organization-information-item[organization-information-type = \'${devicetype.nina}\'])')]">
+                <flow-ref name="nina-inventory-publish" doc:name="nina-inventory-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:organizationInformationSubscriptionMsg[organization-information-type = \'${devicetype.nina}\'])')]">
+                <flow-ref name="nina-status-subscription" doc:name="nina-status-subscription"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:organizationInformationRequestMsg[organization-information-type = \'${devicetype.nina}\'])')]">
+                <flow-ref name="nina-info-request-inventory" doc:name="nina-info-request-inventory"/>
+            </when>
+            
+       <!--  NDW-AVG routing -->
+       		 <when expression="#[xpath3('boolean(/tmdd:organizationInformationUpdateMsg/organization-list/organization-information-item[organization-information-type = \'${devicetype.ndwAvg}\'])')]">
+                <flow-ref name="ndw-avg-inventory-publish" doc:name="ndw-avg-inventory-publish"/>
+            </when>
+       		<when expression="#[xpath3('boolean(/tmdd:organizationInformationSubscriptionMsg[organization-information-type = \'${devicetype.ndwAvg}\'])')]">
+                <flow-ref name="ndw-avg-status-subscription" doc:name="ndw-avg-status-subscription"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:organizationInformationRequestMsg[organization-information-type = \'${devicetype.ndwAvg}\'])')]">
+                <flow-ref name="ndw-avg-info-request-inventory" doc:name="ndw-avg-info-request-inventory"/>
+            </when>
+            
+      <!--  NDW-SG routing -->
+       		<when expression="#[xpath3('boolean(/tmdd:organizationInformationUpdateMsg/organization-list/organization-information-item[organization-information-type = \'${devicetype.ndwSg}\'])')]">
+                <flow-ref name="ndw-sg-inventory-publish" doc:name="ndw-sg-inventory-publish"/>
+            </when> 
+            <when expression="#[xpath3('boolean(/tmdd:organizationInformationSubscriptionMsg[organization-information-type = \'${devicetype.ndwSg}\'])')]">
+                <flow-ref name="ndw-sg-status-subscription" doc:name="ndw-sg-status-subscription"/>
+            </when>  
+             <when expression="#[xpath3('boolean(/tmdd:organizationInformationRequestMsg[organization-information-type = \'${devicetype.ndwSg}\'])')]">
+                <flow-ref name="ndw-sg-info-request-inventory" doc:name="ndw-sg-info-request-inventory"/>
+            </when>
+            
+      <!--  TravelTime routing -->
+  			<when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.traveltime}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="traveltime-inventory-subscription-NTCIP-To-CDM" doc:name="traveltime-inventory-subscription-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('/tmdd:detectorInventoryUpdateMsg/detector-inventory-item/detector-station-inventory-header/device-type = \'${devicetype.traveltime}\'')]">
+                <flow-ref name="traveltime-inventory-publish-NTCIP-To-CDM" doc:name="traveltime-inventory-publish-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.traveltime}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="traveltime-status-subscription" doc:name="traveltime-status-subscription"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:detectorInventoryRequestMsg[device-type = \'${devicetype.traveltime}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="traveltime-info-request-inventory" doc:name="traveltime-info-request-inventory"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:deviceInformationRequestMsg[device-type = \'${devicetype.traveltime}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="traveltime-info-request-status" doc:name="traveltime-info-request-status"/>
+            </when>
+            
+      <!--  otmc-interface-outbound routing -->
+  			<when expression="#[xpath3('boolean(/tmdd:organizationInformationUpdateMsg/organization-list/organization-information-item[organization-information-type = \'${devicetype.otmc.outbound.information}\'])')]">
+                <flow-ref name="otmc-outbound-organization-publish" doc:name="otmc-outbound-organization-publish"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.otmc.outbound}\' and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="otmc-outbound-inventory-subscription-NTCIP-To-CDM" doc:name="otmc-outbound-inventory-subscription-NTCIP-To-CDM"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryUpdateMsg/tmdd-object-list/tmdd-object/inventory-header[device-type = \'${devicetype.otmc.outbound}\'])')]">
+                <flow-ref name="otmc-outbound-inventory-publish-NTCIP-To-CDM" doc:name="otmc-outbound-inventory-publish-NTCIP-To-CDM"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:organizationInformationSubscriptionMsg[organization-information-type = \'${devicetype.otmc.outbound.info}\' ])')]">
+				<flow-ref name="otmc-outbound-status-subscription" doc:name="otmc-outbound-status-subscription"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryRequestMsg[device-type = \'${devicetype.otmc.outbound}\'and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="otmc-outbound-info-request-inventory" doc:name="otmc-outbound-info-request-inventory"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusRequestMsg[device-type = \'${devicetype.otmc.outbound}\'and device-information-type = \'device status\'])')]">
+                <flow-ref name="otmc-outbound-info-request-status" doc:name="otmc-outbound-info-request-status"/>
+            </when>
+             <when expression="#[xpath3('boolean(/tmdd:organizationInformationRequestMsg[organization-information-type = \'${devicetype.otmc.outbound.information}\'])')]">
+                <flow-ref name="otmc-outbound-info-request-organization" doc:name="otmc-outbound-info-request-organization"/>
+            </when>
+            
+       <!-- otmc-interface-inbound routing -->
+			<when expression="#[xpath3('boolean(/tmdd:organizationInformationUpdateMsg/organization-list/organization-information-item[organization-information-type = \'${devicetype.otmc.inbound.information}\'])')]">
+				<flow-ref name="otmc-inbound-organization-publish" doc:name="otmc-inbound-organization-publish" />
+			</when>
+			<when expression="#[xpath3('boolean(/tmdd:organizationInformationSubscriptionMsg[organization-information-type = \'${devicetype.otmc.inbound.information}\' ])')]">
+				<flow-ref name="otmc-inbound-status-subscription" doc:name="otmc-inbound-status-subscription" />
+			</when>
+			<when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.otmc.inbound}\' and device-information-type = \'device inventory\'])')]">
+				<flow-ref name="otmc-inbound-inventory-subscription-NTCIP-To-CDM" doc:name="otmc-inbound-inventory-subscription-NTCIP-To-CDM" />
+			</when>
+			<when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryUpdateMsg/tmdd-object-list/tmdd-object/inventory-header[device-type = \'${devicetype.otmc.inbound}\'])')]">
+                <flow-ref name="otmc-inbound-inventory-publish-NTCIP-To-CDM" doc:name="otmc-inbound-inventory-publish-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryRequestMsg[device-type = \'${devicetype.otmc.inbound}\'and device-information-type = \'device inventory\'])')]">
+				<flow-ref name="otmc-inbound-info-request-inventory" doc:name="Otmc interface Inbound info request for inventory" />
+			</when>
+			<when expression="#[xpath3('boolean(/tmdd:anyTypeStatusRequestMsg[device-type = \'${devicetype.otmc.inbound}\'and device-information-type = \'device status\'])')]">
+				<flow-ref name="otmc-inbound-info-request-status" doc:name="Otmc interface Inbound info request for status" />
+			</when>
+			<when expression="#[xpath3('boolean(/tmdd:organizationInformationRequestMsg[organization-information-type = \'${devicetype.otmc.inbound.information}\'])')]">
+				<flow-ref name="otmc-inbound-info-request-organization" doc:name="Otmc interface Inbound info request for organization" />
+			</when>
+            
+      <!--  otmc services routing -->
+  			<when expression="#[xpath3('boolean(/tmdd:genericDeviceControlRequestMsg/device-control-request-header[device-type = \'${devicetype.otmc.services}\'])')]">
+                <flow-ref name="otmc-services-control-request-NTCIP-To-CDM" doc:name="otmc-services-control-request-NTCIP-To-CDM"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryUpdateMsg/tmdd-object-list/tmdd-object/inventory-header[device-type = \'${devicetype.otmc.services}\'])')]">
+                <flow-ref name="otmc-services-inventory-publish-NTCIP-To-CDM" doc:name="otmc-services-inventory-publish-NTCIP-To-CDM"/>
+            </when> 
+             <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.otmc.services}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="otmc-services-status-subscription-NTCIP-To-CDM" doc:name="otmc-services-status-subscription-NTCIP-To-CDM"/>
+            </when>   
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusUpdateMsg/tmdd-object-list/tmdd-object/status-header[device-type = \'${devicetype.otmc.services}\'])')]">
+                <flow-ref name="otmc-services-status-publish-NTCIP-To-CDM" doc:name="otmc-services-status-publish-NTCIP-To-CDM"/>
+            </when>      
+           <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryRequestMsg[device-type = \'${devicetype.otmc.services}\'and device-information-type = \'device inventory\'])')]">
+                <flow-ref name="otmc-services-info-request-inventory" doc:name="otmc-services-info-request-inventory"/>
+            </when> 
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusRequestMsg[device-type = \'${devicetype.otmc.services}\'and device-information-type = \'device status\'])')]">
+                <flow-ref name="otmc-services-info-request-status" doc:name="otmc-services-info-request-status"/>
+            </when>
+
+      <!--  parking facility routing -->
+  		    <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryUpdateMsg/tmdd-object-list/tmdd-object/inventory-header[device-type = \'${devicetype.parkingFacility}\'])')]">
+                <flow-ref name="Parking-facility-inventory-publish-NTCIP-To-CDM" doc:name="Parking-facility-inventory-publish-NTCIP-To-CDM"/>
+            </when> 
+             <when expression="#[xpath3('boolean(/tmdd:deviceInformationSubscriptionMsg[device-type = \'${devicetype.parkingFacility}\' and device-information-type = \'device status\'])')]">
+                <flow-ref name="parking-facility-status-subscription" doc:name="parking-facility-status-subscription"/>
+            </when>   
+              <when expression="#[xpath3('boolean(/tmdd:anyTypeInventoryRequestMsg[device-type = \'${devicetype.parkingFacility}\'and device-information-type = \'device inventory\'])')]">
+              <flow-ref name="parking-facility-info-request-inventory" doc:name="parking-facility-info-request-inventory"/>
+            </when> 
+             <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusRequestMsg[device-type = \'${devicetype.parkingFacility}\'and device-information-type = \'device status\'])')]">
+               <flow-ref name="parking-facility-info-request-status" doc:name="parking-facility-info-request-status"/>
+            </when> 
+            
+        <!-- situation app routing -->
+             <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusRequestMsg[device-type = \'${devicetype.situation}\'and device-information-type = \'device status\'])')]">
+                <flow-ref name="situation-info-request-status" doc:name="situation-info-request-status"/>
+            </when>
+            <when expression="#[xpath3('boolean(/tmdd:anyTypeStatusUpdateMsg/tmdd-object-list/tmdd-object[situation-id != \'null\'])')]">
+            	<flow-ref name="situation-status-publish-NTCIP-To-CDM" doc:name="situation-status-publish-NTCIP-To-CDM"/>
+            </when>
+            
+            <otherwise>
+ <!-- not implemented messages goes to fault section/-->
+            <expression-component doc:name="prepareUnSupportedFault"><![CDATA[import org.tmdd._3.messages.ErrorReport;
+                import org.tmdd._3.messages.OrganizationInformation;
+                import org.tmdd._3.messages.ObjectFactory;
+
+                ErrorReport errorReport = new ErrorReport();
+                OrganizationInformation orgInformation = new OrganizationInformation();
+                orgInformation.setOrganizationId("${organization_information.organization_id}");
+                errorReport.setOrganizationInformation(orgInformation);
+
+                OrganizationInformation orgReqInformation = new OrganizationInformation();
+                orgReqInformation.setOrganizationId("${organization_requesting.organization_id}");
+                errorReport.setOrganizationRequesting(orgReqInformation);
+
+                errorReport.setErrorCode("center does not support this type request");
+                errorReport.setErrorText("center does not support this type request");
+	            ObjectFactory fact = new ObjectFactory();
+                payload = fact.createErrorReportMsg(errorReport);]]></expression-component>
+                <mule-xml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="cdm" doc:name="marshal to MSGErrorReport xml"/>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/util/prepare_soap_fault.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="prepare soap fault"/>
+                <set-property propertyName="#['http_status']" value="500" doc:name="Property"/>
+                <flow-ref name="wirelog_outgoing" doc:name="wirelog_outgoing"/>
+            </otherwise>
+        </choice>
+        <logger message="=== Incoming NTCIP Validating Response ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="Outgoing Message Logger"/>
+        <choice doc:name="Choice">
+            <when expression="${validate.response}">
+                <message-filter throwOnUnaccepted="true" onUnaccepted="response-validation-failed" doc:name="Validate Response">
+                    <filter ref="ntcipSchemaFilter"/>
+                </message-filter>
+            </when>
+            <otherwise>
+                <logger message="Schema Validation for response is disabled. Skipping Validation." level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <flow-ref name="existdb.response" doc:name="existdb.response"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy when="exception.causedBy(org.mule.api.routing.filter.FilterUnacceptedException)" doc:name="Strategy for NTCIP schema validation exception" logException="false" enableNotifications="false">
+                <static-component>  
+                    <return-data file="static_messages/invalid_xml.xml"/> 
+                </static-component>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl" outputEncoding="UTF-8" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Error xml transformer">
+                    <mule-xml:context-property key="xmlContent" value="#[flowVars.originalPayload]"/>
+                    <mule-xml:context-property key="errorReason" value="Validation failed against generated ntcip message"/>
+                </mule-xml:xslt-transformer>
+                <async doc:name="Async">
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </async>
+                <expression-component doc:name="prepareUnSupportedFault"><![CDATA[import org.tmdd._3.messages.ErrorReport;
+                    import org.tmdd._3.messages.OrganizationInformation;
+                    import org.tmdd._3.messages.ObjectFactory;
+
+                    ErrorReport errorReport = new ErrorReport();
+                    OrganizationInformation orgInformation = new OrganizationInformation();
+                    orgInformation.setOrganizationId("${organization_information.organization_id}");
+                    errorReport.setOrganizationInformation(orgInformation);
+
+                    OrganizationInformation orgReqInformation = new OrganizationInformation();
+                    orgReqInformation.setOrganizationId("${organization_requesting.organization_id}");
+                    errorReport.setOrganizationRequesting(orgReqInformation);
+
+                    errorReport.setErrorCode("missing information prevents processing request");
+                    errorReport.setErrorText("missing information prevents processing request");
+	                ObjectFactory fact = new ObjectFactory();
+                    payload = fact.createErrorReportMsg(errorReport);]]></expression-component>
+                <mule-xml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="cdm" doc:name="marshal to MSGErrorReport xml"/>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/util/prepare_soap_fault.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="prepare soap fault"/>
+                <flow-ref name="wirelog_outgoing" doc:name="wirelog_outgoing"/>
+            </catch-exception-strategy>
+            <catch-exception-strategy doc:name="Catch Exception Strategy" >
+                <logger message="Processing onramp request message failed: " level="ERROR" category="dynac-interface-app" doc:name="log error"/>
+                <set-payload value="#[flowVars.originalPayload]" doc:name="Set Payload"/>
+                 <static-component>  
+                    <return-data file="static_messages/invalid_xml.xml"/> 
+                </static-component>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl" outputEncoding="UTF-8" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Error xml transformer">
+                    <mule-xml:context-property key="xmlContent" value="#[flowVars.originalPayload]"/>
+                    <mule-xml:context-property key="errorReason" value="Request failed validation against TMDD Schema"/>
+                </mule-xml:xslt-transformer>
+                <async doc:name="Copy_of_Async">
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </async>
+                <flow-ref name="build_soap_exception" doc:name="build soap exception"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+
+	<!-- ************************************************************************************************* -->
+	<!-- **************************************** CDM SYNC INBOUND ******************************************** -->
+	<!-- ***************** ******************************************************************************** -->
+	<flow name="charm-ntcip-interface-cdm-sync-inbound" processingStrategy="synchronous">
+        <inbound-endpoint ref="outbound_cdm" exchange-pattern="request-response" doc:name="jms outbound_cdm"/>
+        <set-variable variableName="receivedMsg" value="#[payload]" doc:name="persist input"/>
+        <logger message="=== CDM sync message incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="cdm-filter" doc:name="cdm-filter"/>
+        <flow-ref name="log-indent-cdm-request-flow" doc:name="log-indent-cdm-request-flow"/>
+        <choice doc:name="determine CDM message">
+        
+        <!--  otmc service routing -->
+        <when expression="#[xpath3('boolean(/otmcServices:otmc_services_control_request)')]">
+            <flow-ref name="otmc-services-control-request" doc:name="otmc-services-control-request"/>
+        </when>
+    
+        <otherwise>
+                <logger message="Incoming unknown cdm message!" level="ERROR" category="dynac-interface-app" doc:name="log error"/>
+                <logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="debug log"/>
+            </otherwise>
+        </choice>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+       		<catch-exception-strategy when="exception.causedBy(org.mule.api.routing.filter.FilterUnacceptedException)" doc:name="CDM validation failed Exception Strategy" logException="false">
+                <static-component>  
+                    <return-data file="static_messages/invalid_xml.xml"/> 
+                </static-component>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" encoding="UTF-8" xsl-file="xslt/util/invalid_cdm.xsl" outputEncoding="UTF-8" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Error xml transformer">
+                    <mule-xml:context-property key="xmlContent" value="#[flowVars.receivedMsg]"/>
+                    <mule-xml:context-property key="errorReason" value="Validation failed agaist received cdm message"/>
+                </mule-xml:xslt-transformer>
+                <async doc:name="Async">
+                    <flow-ref name="moveMessageToErrorQueue" doc:name="moveMessageToErrorQueue"/>
+                </async>
+            </catch-exception-strategy>
+       	</choice-exception-strategy>
+        </flow>
+        
+	<!-- ************************************************************************************************* -->
+	<!-- **************************************** Keep Alive OUTBOUND ****************************************** -->
+	<!-- ************************************************************************************************* -->
+	<flow name="dynac-interface-keepalive-to-dynac" processingStrategy="synchronous">
+		<quartz:inbound-endpoint repeatInterval="${keepalive_to_dynac.interval_ms}"
+			startDelay="${keepalive_to_dynac.interval_ms}" doc:name="keep alive to dynac timeout"
+			jobName="keepaliveToDynac" connector-ref="QuartzConnector">
+			<quartz:event-generator-job stateful="true" />
+		</quartz:inbound-endpoint>
+		<invoke object-ref="centerActiveVerificationRequestHandler"
+			method="buildCenterActiveVerificationRequest" name="prepareCenterActiveVerificationRequest"/>
+		<set-variable variableName="varCenterActiveRequest"
+			value="#[payload.value]" doc:name="varCenterActiveRequest" />
+		<mulexml:jaxb-object-to-xml-transformer
+			jaxbContext-ref="cdm" doc:name="JAXB Object to XML" returnClass="java.lang.String" />
+        <logger message="=== CenterActiveVerificationRequestMsg request message outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <logger message="#[payload]" level="DEBUG" category="dynac-interface-app"
+			doc:name="log payload" />
+
+		<flow-ref name="ntcip_client_keepalive" doc:name="send to dynac" />
+		<set-payload value="#[message.payloadAs(String)]"
+			mimeType="text/xml" doc:name="Set Payload" />
+
+        <logger message="=== CenterActiveVerificationRequestMsg response message incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="debug" />
+		 <message-filter doc:name="validate center active response">
+			<filter ref="ntcipSchemaFilter" />
+		</message-filter>
+		<mulexml:jaxb-xml-to-object-transformer
+			jaxbContext-ref="cdm" doc:name="unmarshalCenterActiveResponse" />
+		<invoke name="verifyCenterActiveVerificationResponse"
+			object-ref="centerActiveVerificationRequestHandler" method="verifyCenterActiveVerificationResponseFromDynac"
+			methodArguments="#[payload]"/>
+
+		<choice doc:name="Choice">
+			<when expression="#[payload==true]">
+				<invoke object-ref="connectionStatusService" method="successfulKeepalive" name="Java:succesfulKeepalive"/>
+				<choice doc:name="Choice">
+					<when expression="#[payload == com.cgi.charm.dynac.ConnectionStatusService.ConnectionStatus.RECONNECTED]">
+						<logger	message="connection with Dynac resumed to normal, state: #[payload]"
+							level="INFO" category="dynac-interface-app" doc:name="Logger" />
+					</when>
+					<otherwise>
+						<logger message="connection with Dynac normal, state: #[payload]"
+							level="DEBUG" category="dynac-interface-app" doc:name="Logger" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise>
+				<flow-ref name="error_report" doc:name="error_report" />
+			</otherwise>
+		</choice>
+
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<invoke object-ref="connectionStatusService" method="failedKeepalive" name="Java:failedKeepalive"/>
+			<logger category="dynac-interface-app" level="ERROR"
+				message="connection with Dynac failed, state: #[payload]" doc:name="Logger" />
+		</catch-exception-strategy>
+	</flow>
+
+	<flow name="dynac-interface-keepalive-response-dynac"
+		processingStrategy="synchronous">
+        <logger message="=== CenterActiveVerificationRequestMsg request message incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<logger message="#[payload]" level="DEBUG" category="dynac-interface-app"
+			doc:name="Logger" />
+		<invoke object-ref="centerActiveVerificationRequestHandler"
+			method="buildCenterActiveVerificationResponse" name="prepareCenterActiveVerificationResponse"/>
+		<mulexml:jaxb-object-to-xml-transformer
+			returnClass="java.lang.String" jaxbContext-ref="cdm" doc:name="JAXB Object to XML" />
+        <logger message="=== CenterActiveVerificationRequestMsg response message outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+	</flow>
+
+	<sub-flow name="build_soap_exception">
+		<set-property propertyName="http.status" value="500"
+			doc:name="set http status 500" />
+
+		<choice doc:name="Choice">
+			<!-- when TMDD validation error is thrown -->
+			<!-- TODO: create custom exception and throw that instead -->
+			<when
+				expression="#[exception.causedBy(java.lang.UnsupportedOperationException)]">
+                <expression-component doc:name="Copy_of_prepareUnSupportedFault"><![CDATA[
+                    import org.tmdd._3.messages.ErrorReport;
+                    import org.tmdd._3.messages.OrganizationInformation;
+                    import org.tmdd._3.messages.ObjectFactory;
+
+                    ErrorReport errorReport = new ErrorReport();
+                    OrganizationInformation orgInformation = new OrganizationInformation();
+                    orgInformation.setOrganizationId("${organization_information.organization_id}");
+                    errorReport.setOrganizationInformation(orgInformation);
+
+                    OrganizationInformation orgReqInformation = new OrganizationInformation();
+                    orgReqInformation.setOrganizationId("${organization_requesting.organization_id}");
+                    errorReport.setOrganizationRequesting(orgReqInformation);
+
+                    errorReport.setErrorCode("request does not conform with owner center request format");
+                    errorReport.setErrorText("request does not conform with owner center request format");
+	                ObjectFactory fact = new ObjectFactory();
+                    payload = fact.createErrorReportMsg(errorReport);]]></expression-component>
+                <mule-xml:jaxb-object-to-xml-transformer returnClass="java.lang.String" jaxbContext-ref="cdm" doc:name="Copy_of_marshal to MSGErrorReport xml"/>
+                <mule-xml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/util/prepare_soap_fault.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Copy_of_prepare soap fault"/>
+                <flow-ref name="wirelog_outgoing" doc:name="Copy_of_wirelog_outgoing"/>
+			</when>
+			<otherwise>
+				<static-component>
+					<return-data file="static_messages/internal_error.xml" />
+				</static-component>
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="unknown-message">
+		<logger category="dynac-interface-app" message="Incoming unknown NTCIP message!"
+			level="ERROR" doc:name="Logger" />
+		<logger category="dynac-interface-app" message="#[message.payloadAs(java.lang.String)]"
+			level="ERROR" doc:name="Logger" />
+
+		<set-property propertyName="http.status" value="500"
+			doc:name="set http status 500" />
+		<flow-ref name="handle_exception" doc:name="handle exception" />
+		<static-component>
+			<return-data file="static_messages/unknown_message.xml" />
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="handle_exception">
+		<outbound-endpoint ref="outbound_exception"
+			doc:name="Generic">
+			<logger category="dynac-interface-app" level="ERROR"
+				message="Processing message exception!" />
+			<!-- TODO: this assumes valid xml in the payload, but that is not always
+				the case. Add some routing -->
+			<!-- <mulexml:xml-prettyprinter-transformer returnClass="java.lang.String" 
+				mimeType="text/xml" /> -->
+		</outbound-endpoint>
+	</sub-flow>
+
+ 	<sub-flow name="invalidDeviceTypeFlow">
+ 		<logger category="dynac-interface-app" message="Incoming message does not have proper Device Type" doc:name="Error log" level="ERROR" />
+    </sub-flow>
+
+	<sub-flow name="tmdd_validation_failed">
+		<set-variable variableName="messageType" value="#[xpath3('local-name(/*)')]" doc:name="Variable" />
+         <choice doc:name="Choice">
+             <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.bridge}']">
+                <logger message="Failed to send #[flowVars.messageType] to Bridge App from dynac-interface-app" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.drip}']">
+                <logger message="Failed to send #[flowVars.messageType] to Drip App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.bermdrip}']">
+                <logger message="Failed to send #[flowVars.messageType] to Bermdrip App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+             <when expression="#[payload.contains('${devicetype.hardshoulder}') || payload.contains('hard shoulder status')]">
+                <logger message="Failed to send #[flowVars.messageType] to Hardshoulder App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.prism}']">
+                <logger message="Failed to send #[flowVars.messageType] to Prism App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.msi}']">
+                <logger message="Failed to send #[flowVars.messageType] to MSI App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.detectorSi}']">
+                <logger message="Failed to send #[flowVars.messageType] to Detector-Si App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+             <when expression="#[xpath3('//*/*:device-type') == '${devicetype.tlc}' || payload.contains('VRI')]">
+                <logger message="Failed to send #[flowVars.messageType] to Tlc App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.wind}']">
+                <logger message="Failed to send #[flowVars.messageType] to Wind App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.weather}']">
+                <logger message="Failed to send #[flowVars.messageType] to Weather App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.detectorcat}']">
+                <logger message="Failed to send #[flowVars.messageType] to Detector-Cat App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[payload.contains('route inventory') || payload.contains('route status')]">
+                <logger message="Failed to send #[flowVars.messageType] to Route App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+              <when expression="#[(payload.contains('organization-information-type')) &amp;&amp; xpath3('//*/*:organization-information-type') == '${devicetype.nina}']">
+                <logger message="Failed to send #[flowVars.messageType] to Nina App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('organization-information-type')) &amp;&amp; xpath3('//*/*:organization-information-type') == '${devicetype.ndwAvg}']">
+                <logger message="Failed to send #[flowVars.messageType] to NDW Avg App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('organization-information-type')) &amp;&amp; xpath3('//*/*:organization-information-type') == '${devicetype.ndwSg}']">
+                <logger message="Failed to send #[flowVars.messageType] to NDW SG App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+             <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.traveltime}']">
+                <logger message="Failed to send #[flowVars.messageType] to Traveltime App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[xpath3('//*/*:device-type') == '${devicetype.otmc.outbound}' || payload.contains('otmc-outbound information')]">
+                <logger message="Failed to send #[flowVars.messageType] to Otmc Outbound App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+             <when expression="#[xpath3('//*/*:device-type') == '${devicetype.otmc.inbound}' || payload.contains('otmc-inbound information')]">
+                <logger message="Failed to send #[flowVars.messageType] to Otmc Inbound App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.otmc.services}']">
+                <logger message="Failed to send #[flowVars.messageType] to Otmc Services App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('device-type')) &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.parkingFacility}']">
+                <logger message="Failed to send #[flowVars.messageType] to Parking Facility App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[(payload.contains('situation-id')) || (payload.contains('device-type') &amp;&amp; xpath3('//*/*:device-type') == '${devicetype.situation}')]">
+                <logger message="Failed to send #[flowVars.messageType] to Situation App from dynac-interface-app" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+            	<logger message="No device type field present in NTCIP message" category="dynac-interface-app" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+		<!-- <set-variable variableName="deviceType" value="#[xpath3('boolean(//*/*:network-info-type | //*/*:device-type)')]" doc:name="Variable" /> -->
+		<!-- <set-variable variableName="deviceType" value="#[xpath3('//*/*:contains()/*')]" doc:name="Variable" />-->
+		<!-- <logger message="2222222222222222222  #[xpath3('//*/*:device-type') == '${devicetype.msi}']" level="INFO" doc:name="Logger"/> --> 
+	</sub-flow>
+
+	<flow name="ntcip_client_keepalive" processingStrategy="synchronous">
+		<cxf:proxy-client payload="body"
+			enableMuleSoapHeaders="false" doc:name="CXF" />
+		<until-successful maxRetries="${outbound.connetion.retry.amount}"
+			millisBetweenRetries="${outbound.connetion.retry.delay}" synchronous="true"
+			doc:name="Until Successful"
+			doc:description="Retry number of times as configured in property file before throw an error.">
+			<http:request config-ref="ntcip_outbound" path="${outbound.path}"
+				method="POST" responseTimeout="${keepalive_to_dynac.response_timeout_ms}"
+				doc:name="HTTP">
+			</http:request>
+		</until-successful>
+	</flow>
+	
+	<flow name="ntcip_client_control" processingStrategy="synchronous">
+		<cxf:proxy-client payload="body" enableMuleSoapHeaders="false" doc:name="CXF" />
+		<until-successful maxRetries="${outbound.connetion.retry.amount}" millisBetweenRetries="${outbound.connetion.retry.delay}" synchronous="true" doc:name="Until Successful" doc:description="Retry number of times as configured in property file before throw an error.">
+			<http:request config-ref="ntcip_outbound" path="${outbound.path}" method="POST" responseTimeout="${keepalive_to_dynac.response_timeout_ms}"	doc:name="HTTP">
+			</http:request>
+		</until-successful>
+	</flow>
+	
+	<sub-flow name="response-validation-failed">
+		<logger message="Invalid NTCIP response message!" level="ERROR" category="dynac-interface-app" doc:name="Logger" />
+		<logger message="#[message.payloadAs(java.lang.String)]" level="ERROR" category="dynac-interface-app" doc:name="Logger" />
+		<set-property propertyName="http_status" value="500"
+			doc:name="set http status 500" />
+		<static-component>
+			<return-data file="static_messages/invalid_response.xml" />
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="error_report">
+		<logger message="Error report sent to dynac" level="INFO" category="dynac-interface-app" doc:name="Logger" />
+		<set-property propertyName="http.status" value="500" doc:name="set http status 500" />
+		<static-component>
+			<return-data file="static_messages/invalid_response.xml" />
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="indentationFlow">
+		<mule-xml:xml-prettyprinter-transformer
+			mimeType="text/xml" returnClass="java.lang.String" indentEnabled="${default.indent}"
+			newlines="${default.indent}" />
+	</sub-flow>
+</mule>

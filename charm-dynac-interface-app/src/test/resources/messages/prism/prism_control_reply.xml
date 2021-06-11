@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prism_control_reply xmlns="http://prism.cdm.charm.cgi.com" version="1.0.0">
+	<meta_reply>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+		<request_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</request_id>
+	</meta_reply>
+	<prism_control_mutations>
+		<processed>true</processed>
+		<prism_control>
+			<prism_id>
+				<id>id1</id>
+			</prism_id>
+			<prism_control_attr>
+				<control_timestamp>2006-05-04T18:13:51Z</control_timestamp>
+				<control_message_type>SET</control_message_type>
+				<prism_state_mnemonic>prism_state_mnemonic</prism_state_mnemonic>
+			</prism_control_attr>
+		</prism_control>
+	</prism_control_mutations>
+</prism_control_reply>

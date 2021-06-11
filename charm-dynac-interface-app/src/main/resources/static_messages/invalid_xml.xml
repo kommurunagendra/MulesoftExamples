@@ -1,0 +1,4 @@
+<soap:Fault xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+	<faultcode>soap:Client</faultcode>
+	<faultstring>Request not conform the TMDD schema.</faultstring>
+</soap:Fault>

@@ -1,0 +1,22 @@
+<tmdd:detectorDataMsg xmlns:tmdd="http://www.tmdd.org/3/messages"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <detector-data-item>
+        <organization-information>
+            <organization-id>RWS</organization-id>
+        </organization-information>
+        <detector-list>
+            <detector-data-detail xsi:type="tmdd:DetectorDataDetailCharm">
+                <station-id>id</station-id>
+                <detector-id>id</detector-id>
+                <detection-time-stamp>
+                    <date>20011231</date>
+                    <time>120000</time>
+                </detection-time-stamp>
+                <vehicle-count>99999</vehicle-count>
+                <vehicle-occupancy>0</vehicle-occupancy>
+                <vehicle-speed>0</vehicle-speed>
+                <site-id>id</site-id>
+            </detector-data-detail>
+        </detector-list>
+    </detector-data-item>
+</tmdd:detectorDataMsg>

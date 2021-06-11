@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:dMSInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-000000000001</subscriptionID>
+		<subscriptionName>subscription for msi-app</subscriptionName>
+		<subscriptionFrequency>1</subscriptionFrequency>
+		<subscriptionCount>1</subscriptionCount>
+	</c2cMsgAdmin>
+	<dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DMSInventoryCharm">
+		<device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>Dynac</organization-id>
+			</organization-information>
+			<device-id>msi1</device-id>
+			<device-location>
+				<latitude>2.223</latitude>
+				<longitude>2.222</longitude>
+			</device-location>
+			<device-name>msi -device-1</device-name>
+			<device-description>multi sign</device-description>
+			<device-type>msi</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>30000</scan-interval>
+			<inventory-action>add</inventory-action>
+			<!--Optional: -->
+			<parent-device-id>fep1</parent-device-id>
+			<!--Optional: -->
+			<parent-device-id2>os1</parent-device-id2>
+           <!--Optional:-->
+           <station-line-number>1</station-line-number>
+           <!--Optional:-->
+           <station-line-position>2</station-line-position>
+            <fep-lines>1</fep-lines>
+		</device-inventory-header>
+		<dms-sign-type>variable message sign VMS</dms-sign-type>
+		<!--Optional:-->
+        <position-bps>123</position-bps>
+	</dms-inventory-item>
+</tmdd:dMSInventoryUpdateMsg>

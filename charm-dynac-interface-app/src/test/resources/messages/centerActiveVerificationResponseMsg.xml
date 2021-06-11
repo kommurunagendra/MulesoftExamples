@@ -1,0 +1,9 @@
+<tmdd:centerActiveVerificationResponseMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<organization-information>
+		<organization-id>RWS</organization-id>
+		<organization-name>CHARM-RWS</organization-name>
+		<organization-function>dynac</organization-function>
+	</organization-information>
+	<center-id>dynac-interface-1</center-id>
+	<center-name>Dynac</center-name>
+</tmdd:centerActiveVerificationResponseMsg>

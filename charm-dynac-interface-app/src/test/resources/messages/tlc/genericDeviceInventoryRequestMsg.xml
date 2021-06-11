@@ -1,0 +1,13 @@
+<tmdd:genericDeviceInventoryRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+          <organization-information>
+            <organization-id>RWS</organization-id>
+         </organization-information>
+         <device-type>TDI</device-type>
+         <device-information-type>device inventory</device-information-type>
+         <device-filter xsi:type="tmdd:DeviceInformationRequestFilterCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-id-list>
+               <device-id>tlcId1</device-id>
+               <device-id>tlcId2</device-id>
+            </device-id-list>
+         </device-filter>
+      </tmdd:genericDeviceInventoryRequestMsg>

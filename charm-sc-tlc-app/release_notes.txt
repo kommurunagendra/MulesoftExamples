@@ -1,0 +1,3 @@
+v23.0.4 @?
+- Bugfix ticket 520. Issue is fixed. @wplaat
+- Bugfix ticket 525. Issue is not fixed. @wplaat

@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+
+	<sub-flow name="msi-inventory-subscription">
+        <logger message="=== Msi inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare DMSInventorySubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#dMSInventorySubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	
+	organization-information : {
+		organization-id : p('organization_information.organization_id'),
+		(organization-function : payload.msi_inventory_subscription.subscription_config.owner when payload.msi_inventory_subscription.subscription_config.owner != null otherwise {})
+	},
+	
+	organization-requesting: {
+		organization-id : p('organization_information.organization_id')
+	},
+	
+	device-type : 'msi',
+	
+	device-information-type: 'device inventory',
+	
+	(
+	device-filter : {
+				device-id-list : {
+					(payload.msi_inventory_subscription.subscription_config.*msi_spec  map {		
+						device-id  : $.msi_id.id
+					})
+				}
+		}
+	) when payload.msi_inventory_subscription.subscription_config.*msi_spec != null,	
+	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.msi_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.msi_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+	</sub-flow>
+	
+	<sub-flow name="msi-inventory-subscription-NTCIP-To-CDM">
+
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare msi_inventory_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_inventory_subscription @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.dMSInventorySubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.dMSInventorySubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'inventory'
+		},
+		
+		 
+		(
+			all_msis : {
+				(payload.dMSInventorySubscriptionMsg.device-filter.device-id-list.*device-id map {
+								msi_spec : {
+									msi_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.dMSInventorySubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		),
+		
+		(owner :  payload.dMSInventorySubscriptionMsg.organization-information.organization-function when payload.dMSInventorySubscriptionMsg.organization-information.organization-function != null otherwise {})	
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="msi-inventory-publish">
+        <logger message="=== Msi inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare msi_inventory_publish  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_inventory_publish @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.dMSInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.dMSInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.dMSInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.dMSInventoryUpdateMsg.*dms-inventory-item map {
+				msi_inventory : {
+					action : $.device-inventory-header.inventory-action,
+					msi_id : {
+						id : $.device-inventory-header.device-id
+						},
+					msi_inventory_attr : {
+						name : $.device-inventory-header.device-name,
+						description : $.device-inventory-header.device-description,
+						scan_enabled : $.device-inventory-header.scan-on-off,
+						scan_interval : $.device-inventory-header.scan-interval,
+						fep_id : {
+							id : $.device-inventory-header.parent-device-id2
+						},
+						outstation_id : {
+							id : $.device-inventory-header.parent-device-id
+						},
+						os_line_number : $.device-inventory-header.station-line-number,
+						os_line_position : $.device-inventory-header.station-line-position,
+						identifier : $.device-inventory-header.fep-lines,
+						(owner : $.device-inventory-header.data-owner when $.device-inventory-header.data-owner != null otherwise {})
+					},
+					msi_location_attr : {
+						position_bps : $.device-inventory-header.position-bps-code,
+						position_wgs84 : {
+							latitude : $.device-inventory-header.device-location.latitude,
+							longitude : $.device-inventory-header.device-location.longitude
+						}
+					}
+				}				
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="msi-image-publish">
+        <logger message="=== Msi image publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare image library publish  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_inventory_publish @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.dMSMessageInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.dMSMessageInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.dMSMessageInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.dMSMessageInventoryUpdateMsg.*dms-message-inventory-item map {
+				msi_image_library : {
+					action : $.inventory-action,
+					image_id : {
+						uuid : $.device-id
+					},
+					image_mnemonic : $.message,
+					image_description : $.description,
+					image : {
+						(group_code : $.image-codes.group-code when $.image-codes.group-code != null otherwise { group_code : 0}),
+						(legend_code : $.image-codes.legend-code when $.image-codes.legend-code != null otherwise { legend_code : 0}),
+						(variation_code : $.image-codes.variation-code when $.image-codes.variation-code != null otherwise { variation_code : 0})
+					}
+				}				
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="msi-inventory-publish-variant">
+        <logger message="=== Msi inventory publish incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare dMSInventoryUpdateMsg  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#dMSInventoryUpdateMsg : {	
+	
+	c2cMsgAdmin: {
+		(informationalText:  'FULLSYNC' when payload.msi_inventory_publish.inventory_config.full_sync == 'true'
+		otherwise {}
+		),
+		subscriptionID : payload.msi_inventory_publish.subscription_id.uuid
+		},			
+				
+		((payload.msi_inventory_publish.inventory_config.*msi_inventory map {
+			 dms-inventory-item @(xsi#type : 'tmdd:DMSInventoryCharm') : {
+			 	device-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+			 		
+			 		device-id : $.msi_id.id,
+			 		
+			 		device-location : {
+			 			latitude : $.msi_location_attr.position_wgs84.latitude,
+			 			longitude : $.msi_location_attr.position_wgs84.longitude
+			 		},
+			 		
+			 		device-name : $.msi_inventory_attr.name,
+			 		
+			 		device-description : $.msi_inventory_attr.description,
+			 		
+			 		device-type : 'msi',
+			 		
+			 		scan-on-off : $.msi_inventory_attr.scan_enabled,
+			 		
+			 		scan-interval : $.msi_inventory_attr.scan_interval,
+			 		
+			 		inventory-action : $.action,			 	
+			 			
+			 		parent-device-id : $.msi_inventory_attr.outstation_id.id,
+			 		
+			 		parent-device-id2 : $.msi_inventory_attr.fep_id.id,
+			 				 		
+			 		station-line-number : $.msi_inventory_attr.os_line_number,
+			 		
+			 		station-line-position : $.msi_inventory_attr.os_line_position,
+			 		
+			 		fep-lines : $.msi_inventory_attr.identifier,
+			 		
+			 		position-bps-code : $.msi_location_attr.position_bps,
+			 		
+			 		(data-owner : $.msi_inventory_attr.owner when $.msi_inventory_attr.owner != null otherwise {})
+			 	}
+			 }
+		}) when payload.msi_inventory_publish.inventory_config.*msi_inventory != null otherwise {}	)
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+	</sub-flow>
+	
+	<sub-flow name="msi-status-subscription">
+        <logger message="=== Msi status subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare msi_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_status_subscription @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0") : {	
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		
+		(((payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								msi_spec : {
+									msi_id : {
+										id : $.device-id
+									}
+								}
+							}
+							 )
+					when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null otherwise {
+				all_msis : true 
+				
+					}
+			
+		)
+		when payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionAction.subscriptionAction-item != "cancelSubscription" otherwise {} 
+		)
+					
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>		
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="msi-status-publish">
+        <logger message="=== Msi status publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare dMSStatusUpdateMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#dMSStatusUpdateMsg : {
+	c2cMsgAdmin   : {	
+		subscriptionID : payload.msi_status_publish.subscription_id.uuid
+	},
+		
+		((payload.msi_status_publish.*msi_publish map {
+			dms-status-item @(xsi#type : 'tmdd:DMSDeviceStatusCharm') : {
+				device-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm'): {
+					
+					organization-information : {
+						organization-id : p('organization_information.organization_id')
+					},
+					
+					device-id : $.msi_id.id,					
+					
+					(device-status : 'on' when $.msi_status_attr.msi_status_information.image_status == "ok" otherwise {}),				
+					(device-status : 'marginal' when $.msi_status_attr.msi_status_information.image_status == "downgraded" otherwise {}),	
+					(device-status : 'failed' when $.msi_status_attr.msi_status_information.image_status == "defect" otherwise {}),	
+					(device-status : 'unavailable' when $.msi_status_attr.msi_status_information.image_status == "not_found" otherwise {}),	
+										
+					(device-comm-status : 'operational' when $.msi_status_attr.msi_status_information.msi_state == "ok" otherwise {}),
+					(device-comm-status : 'unknown' when $.msi_status_attr.msi_status_information.msi_state == "no_specification" otherwise {}),
+					(device-comm-status : 'offline' when $.msi_status_attr.msi_status_information.msi_state == "no_communication" otherwise {}),
+					(device-comm-status : 'failed' when $.msi_status_attr.msi_status_information.msi_state == "fatal" otherwise {}),
+					
+					last-comm-time : toDateAndTime($.msi_status_attr.last_status_update),
+					
+					device-type : 'msi'					
+					
+				},
+				current-message : $.msi_status_attr.msi_status_information.image_mnemonic,
+				(($.*msi_error map (error, errorIndex) -> {
+					msi-error: {
+						class : error.error_class,
+    	           		subclass: error.error_subclass,
+        	       		code: error.error_code,
+            	   		description: error.error_description
+               		}
+				} ) when $.msi_error != null otherwise {} )
+			}
+		}) when payload.msi_status_publish.*msi_publish != null otherwise {} )
+		
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="msi-info-request-inventory">
+        <logger message="=== Msi info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message metadata:id="94a37d63-ed75-4518-81f5-31f9bf9273c8" doc:name="Prepare msi_info_request Inventory Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_info_request @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},	
+	info_spec: {
+		inventory: true when payload.dMSInventoryRequestMsg.device-information-type == "device inventory"
+				otherwise false,
+		status: false,
+		library: false
+	},
+	(
+	all_msis: true when payload.dMSInventoryRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.dMSInventoryRequestMsg.device-filter.device-id-list.*device-id map {
+			msi_spec:{
+				msi_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare dMSInventoryMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#dMSInventoryMsg : {		
+	((payload.msi_info_reply.*msi_publish map {	
+		dms-inventory-item @(xsi#type : 'tmdd:DMSInventoryCharm'): {
+			device-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {
+				
+				organization-information : {
+					organization-id : p('organization_information.organization_id')
+				},
+				
+				device-id : $.msi_id.id,
+				
+				device-location : {
+					latitude : $.msi_location_attr.position_wgs84.latitude,
+					longitude : $.msi_location_attr.position_wgs84.longitude
+				},
+				
+				device-name : $.msi_inventory_attr.name,
+				
+				(device-description :  $.msi_inventory_attr.description when  $.msi_inventory_attr.description != null otherwise {}),
+				
+				device-type : "msi",
+				
+				scan-on-off : $.msi_inventory_attr.scan_enabled,
+				
+				scan-interval : $.msi_inventory_attr.scan_interval,
+				
+				parent-device-id : $.msi_inventory_attr.outstation_id.id,
+				
+				parent-device-id2 : $.msi_inventory_attr.fep_id.id,
+				
+				station-line-number : $.msi_inventory_attr.os_line_number,
+				
+				station-line-position : $.msi_inventory_attr.os_line_position,
+				
+				fep-lines : $.msi_inventory_attr.identifier	,
+										
+				(data-owner : $.msi_inventory_attr.owner when $.msi_inventory_attr.owner != null otherwise {})
+			},
+			position-bps : $.msi_location_attr.position_bps
+			}
+		}
+	) when payload.msi_info_reply.*msi_publish != null otherwise {
+		
+			"" : {
+				dms-inventory-item @(xsi#type : 'tmdd:DMSInventoryCharm'): {
+					device-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {
+					organization-information : {
+						organization-id : p('organization_information.organization_id')
+				    },					
+					device-id : 0,
+					device-name : "msi"
+					
+					}
+			
+				}
+			}
+	})	
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+	
+	<sub-flow name="msi-info-request-status">
+        <logger message="=== Msi info request status incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+            <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message metadata:id="94a37d63-ed75-4518-81f5-31f9bf9273c8" doc:name="Prepare msi_info_request Status Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+msi_info_request @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},	
+	info_spec: {
+		inventory: false,
+		status: true when payload.dMSStatusRequestMsg.device-information-type == "device status"
+				otherwise false,
+		library: false
+	},
+	(
+	all_msis: true when payload.dMSStatusRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.dMSStatusRequestMsg.device-filter.device-id-list.*device-id map {
+			msi_spec:{
+				msi_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare dMSStatusMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#dMSStatusMsg : {
+		((payload.msi_info_reply.*msi_publish map {
+			dms-status-item @(xsi#type : 'tmdd:DMSDeviceStatusCharm') : {
+				device-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm'): {
+					
+					organization-information : {
+						organization-id : p('organization_information.organization_id')
+					},
+					
+					device-id : $.msi_id.id,					
+					
+					(device-status : 'on' when $.msi_status_attr.msi_status_information.image_status == "ok" otherwise {}),				
+					(device-status : 'marginal' when $.msi_status_attr.msi_status_information.image_status == "downgraded" otherwise {}),	
+					(device-status : 'failed' when $.msi_status_attr.msi_status_information.image_status == "defect" otherwise {}),	
+					(device-status : 'unavailable' when $.msi_status_attr.msi_status_information.image_status == "not_found" otherwise {}),	
+										
+					(device-comm-status : 'operational' when $.msi_status_attr.msi_status_information.msi_state == "ok" otherwise {}),
+					(device-comm-status : 'unknown' when $.msi_status_attr.msi_status_information.msi_state == "no_specification" otherwise {}),
+					(device-comm-status : 'offline' when $.msi_status_attr.msi_status_information.msi_state == "no_communication" otherwise {}),
+					(device-comm-status : 'failed' when $.msi_status_attr.msi_status_information.msi_state == "fatal" otherwise {}),
+					
+					last-comm-time : toDateAndTime($.msi_status_attr.last_status_update),
+					
+					device-type : 'msi'			
+					
+				},
+				
+				current-message : $.msi_status_attr.msi_status_information.image_mnemonic,
+				
+				(($.*msi_error map (error, errorIndex) -> {
+					msi-error: {
+						class : error.error_class,
+    	           		subclass: error.error_subclass,
+        	       		code: error.error_code,
+            	   		description: error.error_description
+               		}
+				} ) when $.msi_error != null otherwise {} )
+				                    	
+			}
+		}) when payload.msi_info_reply.*msi_publish != null otherwise {
+			"" : {
+				dms-status-item @(xsi#type : 'tmdd:DMSDeviceStatusCharm'): {
+					device-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm'): {
+					organization-information : {
+						organization-id : p('organization_information.organization_id')
+				    },
+				    
+				    device-id : 0,
+				    
+				    device-status : "unavailable"
+				 },
+				 
+				 current-message : ""
+				}
+			}
+		})	
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		</sub-flow>
+	
+		<sub-flow name="msi-info-request-library">
+        <mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/msi/transformToInfoRequestLibraryCDM.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="Prepare msi_info_request Library Message">
+            <mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+            <mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+        </mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="to CDM" />
+
+		<mulexml:xslt-transformer
+			xsl-file="xslt/msi/transformToInfoReplyLibraryNTCIP.xsl" doc:name="reply to ntcip response" >
+			<mulexml:context-property key="organization_id"
+				value="${organization_information.organization_id}" />
+			</mulexml:xslt-transformer>
+	</sub-flow>
+	
+	<sub-flow name="msi-control-request">
+        <logger message="=== Msi control request incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message metadata:id="2e4d2af5-0d21-434d-98f3-dfca5a7c3fef" doc:name="Prepare msi_control_request Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+
+---
+msi_control_request @(xmlns: "http://msi.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id : {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	msi_control: {
+		msi_id: {
+			id: payload.dMSControlRequestMsg.device-control-request-header.device-id
+		},
+		msi_control_attr: {
+			control_timestamp : dateTimeToTimeStamp(payload.dMSControlRequestMsg.device-control-request-header.command-request-time.date,  payload.dMSControlRequestMsg.device-control-request-header.command-request-time.time),
+			control_message_type: "SET",
+			control_source: upper payload.dMSControlRequestMsg.control-source,
+			msi_control_information: {
+				image_mnemonic: payload.dMSControlRequestMsg.dms-message
+			},
+			msi_control_data: {}
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+			<!-- workaround to store organization_id to reply back with response -->
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare deviceControlResponse Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#deviceControlResponseMsg @(xsi#type: 'tmdd:DeviceControlResponseCharm'): {
+	
+	organization-information:{
+		organization-id: 'RWS'
+	},
+	
+	
+	device-id: payload.msi_control_reply.msi_control_mutations.msi_control.msi_id.id,
+	
+	request-id : 0,
+	
+	request-status: "requested changes completed" when payload.msi_control_reply.msi_control_mutations.processed == "true"
+	otherwise "request rejected invalid command parameters",
+	
+	device-type : "msi",
+	
+	comments : "dummyComments"
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+</mule>

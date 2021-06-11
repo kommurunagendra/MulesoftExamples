@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+	<Appenders>
+		<Console name="STDOUT" target="SYSTEM_OUT">
+			<PatternLayout pattern="%-5p %d [%t] %c: %m%n" />
+		</Console>
+	</Appenders>
+	<Loggers>
+		<!-- Enable DEBUG level for FAT1 Internal Test -->
+		<AsyncLogger name="dynac-interface-app" level="DEBUG" />
+		<AsyncLogger name="com.cgi.charm.dynac" level="DEBUG" />
+
+		<AsyncLogger name="wire-log" level="INFO" />
+
+		<!-- CXF is used heavily by Mule for web services -->
+		<AsyncLogger name="org.apache.cxf" level="NONE"/>
+
+		<!-- Apache Commons tend to make a lot of noise which can clutter the log-->
+		<AsyncLogger name="org.apache" level="WARN"/>
+
+		<!-- Reduce startup noise -->
+		<AsyncLogger name="org.springframework.beans.factory" level="WARN"/>
+
+		<!-- Mule classes -->
+		<AsyncLogger name="org.mule" level="INFO"/>
+		<AsyncLogger name="com.mulesoft" level="INFO"/>
+
+		<!-- Reduce DM verbosity -->
+		<AsyncLogger name="org.jetel" level="WARN"/>
+		<AsyncLogger name="Tracking" level="WARN"/>
+		<Root level="DEBUG">
+			<AppenderRef ref="STDOUT" />
+		</Root>
+	</Loggers>
+</Configuration>

@@ -1,0 +1,12 @@
+<ns2:organizationInformationMsg
+	xmlns:ns2="http://www.tmdd.org/3/messages" xmlns:ns3="http://www.ntcip.org/c2c-message-administration">
+	<organization-information-item
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns2:OrganizationInformationCharm">
+		<organization-id>Ndw1</organization-id>
+		<organization-name>CBW_Device_1</organization-name>
+		<organization-function>server</organization-function>
+		<scan-on-off>true</scan-on-off>
+		<description>CBW Device 1</description>
+		<organization-information-type>ndw avg information</organization-information-type>
+	</organization-information-item>
+</ns2:organizationInformationMsg>

@@ -1,0 +1,47 @@
+<otmc_outbound_organisation_publish xmlns="http://outbound.otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-100000000006</uuid>
+    </message_id>
+    <message_create_date>2018-02-07T12:14:08Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00000000-0000-0000-0000-100000000006</uuid>
+  </subscription_id>
+  <organisation_config>
+    <full_sync>true</full_sync>
+    <inventory_id>
+      <uuid>00000000-0000-0000-0000-100000000006</uuid>
+    </inventory_id>
+    <otmc_organisation>
+      <otmc_id>
+        <id>ndw-id3</id>
+      </otmc_id>
+      <action>add</action>
+      <otmc_organisation_attr>
+        <name>NDW ID3 name</name>
+        <description>ndw-id3 description</description>
+        <scan_enabled>true</scan_enabled>
+        <address>sasa</address>
+        <alive_period>1</alive_period>
+        <alive_timeout_period>1</alive_timeout_period>
+        <acknowledge_timeout_period>1</acknowledge_timeout_period>
+      </otmc_organisation_attr>
+    </otmc_organisation>
+    <otmc_organisation>
+      <otmc_id>
+        <id>ndw-id3</id>
+      </otmc_id>
+      <action>add</action>
+      <otmc_organisation_attr>
+        <name>NDW ID3 name</name>
+        <description>ndw-id3 description</description>
+        <scan_enabled>true</scan_enabled>
+        <address>sasa</address>
+        <alive_period>1</alive_period>
+        <alive_timeout_period>1</alive_timeout_period>
+        <acknowledge_timeout_period>1</acknowledge_timeout_period>
+      </otmc_organisation_attr>
+    </otmc_organisation>
+  </organisation_config>
+</otmc_outbound_organisation_publish>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<!-- ****************************************************************** -->
+	<!-- ********************ASYNC INBOUND ENDPOINT************************ -->
+	<!-- ****************************************************************** -->
+	<flow name="charm-tlc-appFlow-async_inbound">
+		<inbound-endpoint ref="tlc_inbound_cdm_async"
+			doc:name="jms_async_inbound" />
+		<set-variable variableName="varRquestXml" value="#[payload]"
+			doc:name="varRquestXml" />
+		<flow-ref name="schema-filter" doc:name="schema-filter" />
+		<flow-ref name="charm-sc-tlc-incoming-wirelog" doc:name="charm-sc-tlc-incoming-wirelog" />
+		<choice doc:name="Choice">
+			<when expression="#[xpath3('boolean(/tlc:tlc_inventory_publish)')]">
+				<flow-ref name="charm-sc-tlc-inventory-publish" doc:name="charm-sc-tlc-inventory-publish" />
+
+			</when>
+			<when expression="#[xpath3('boolean(/tlc:tlc_status_subscription)')]">
+				<flow-ref name="charm-tlc-status-subscription" doc:name="charm-tlc-status-subscription" />
+			</when>
+			<when expression="#[xpath3('boolean(/tlc:tlc_status_publish)')]">
+				<flow-ref name="charm-tlc-status-publish-inbound" doc:name="charm-tlc-status-publish-inbound" />
+			</when>
+			<otherwise>
+				<logger message="#[payload]" level="INFO" doc:name="Logger" />
+			</otherwise>
+		</choice>
+		<set-variable variableName="MULE_REPLYTO_STOP" value="true"
+			doc:name="MULE_REPLYTO_STOP" />
+        <exception-strategy ref="tlcExceptionStrategy" doc:name="Reference Exception Strategy"/>
+		
+	</flow>
+
+
+
+	<!-- ****************************************************************** -->
+	<!-- ********************SYNC INBOUND ENDPOINT************************ -->
+	<!-- ****************************************************************** -->
+	<flow name="charm-tlc-appFlow-sync_inbound">
+		<inbound-endpoint ref="tlc_inbound_cdm_sync"
+			doc:name="jms_sync_inbound" />
+		<set-variable variableName="varRquestXml" value="#[payload]"
+			doc:name="varRquestXml" />
+		<flow-ref name="schema-filter" doc:name="schema-filter" />
+		<flow-ref name="charm-sc-tlc-incoming-wirelog" doc:name="charm-sc-tlc-incoming-wirelog" />
+		<choice doc:name="Choice">
+			<when expression="#[xpath3('boolean(/tlc:tlc_info_request)')]">
+				<logger message="after Choice Component" level="INFO"
+					doc:name="Logger" />
+				<flow-ref name="charm-sc-tlc-infoFlow" doc:name="charm-tlc-app-info-request" />
+			</when>
+			<when expression="#[xpath3('boolean(/tlc:tlc_control_request)')]">
+				<flow-ref name="charm-sc-tlc-controlFlow" doc:name="charm-sc-tlc-controlFlow" />
+			</when>
+			<otherwise>
+				<logger message="Unexpected payload received : #[payload]" level="WARN" doc:name="Logger" />
+			</otherwise>
+		</choice>
+        <exception-strategy ref="tlcExceptionStrategy" doc:name="Reference Exception Strategy"/>
+	</flow>
+	
+	<sub-flow name="pause_statusSubscriptionOtmcServices_timer">
+	
+		<scripting:component doc:name="Groovy status Subscription Timer">
+			<scripting:script engine="Groovy"><![CDATA[import java.util.Set
+import org.mule.transport.quartz.QuartzConnector
+import org.quartz.JobKey
+import org.quartz.Scheduler
+import org.quartz.impl.matchers.GroupMatcher
+
+Scheduler quartzScheduler = ((QuartzConnector) eventContext.getMuleContext().getRegistry().lookupConnector('StatusSubscriptionQuartzConnector')).getQuartzScheduler()
+Set<JobKey> jobs = quartzScheduler.getJobKeys(GroupMatcher.jobGroupEquals('statusSubscriptionJobGroup'))
+for (JobKey job : jobs) {
+		if(job.getName().equals('quartz://tlcStatusSubcriptionOtmcServices')){
+		quartzScheduler.pauseJob(job)
+	}
+}
+return payload]]></scripting:script>
+		</scripting:component>
+	</sub-flow>
+	
+		<sub-flow name="pause_statusSubscriptionOtmcInboundApp_timer">
+		<scripting:component doc:name="Groovy status Subscription Timer">
+			<scripting:script engine="Groovy"><![CDATA[import java.util.Set
+import org.mule.transport.quartz.QuartzConnector
+import org.quartz.JobKey
+import org.quartz.Scheduler
+import org.quartz.impl.matchers.GroupMatcher
+
+Scheduler quartzScheduler = ((QuartzConnector) eventContext.getMuleContext().getRegistry().lookupConnector('StatusSubscriptionQuartzConnector')).getQuartzScheduler()
+Set<JobKey> jobs = quartzScheduler.getJobKeys(GroupMatcher.jobGroupEquals('statusSubscriptionJobGroup'))
+for (JobKey job : jobs) {
+	if(job.getName().equals('quartz://tlcStatusSubcriptionOtmcInboundApp')){
+		quartzScheduler.pauseJob(job)
+	}
+}
+return payload]]></scripting:script>
+		</scripting:component>
+	</sub-flow>
+	
+</mule>

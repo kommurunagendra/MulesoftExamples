@@ -1,0 +1,36 @@
+<tmdd:dMSInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DMSInventoryCharm">
+		<device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xsi:type="tmdd:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id1</device-id>
+			<device-location>
+				<latitude>0.0</latitude>
+				<longitude>0.0</longitude>
+			</device-location>
+			<device-name>name</device-name>
+			<device-description>description</device-description>
+			<device-type>cms sign</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>0</scan-interval>
+			<inventory-action>add</inventory-action>
+			<protocol>udp-1.1</protocol>
+			<hostname>10.2.2.2</hostname>
+			<port>3333</port>
+			<response-timeout>2000</response-timeout>
+			<command-timeout>1000</command-timeout>
+			<parent-device-id>id4</parent-device-id>
+			<parent-device-id2>id3</parent-device-id2>
+			<station-line-number>0</station-line-number>
+			<station-line-position>0</station-line-position>
+			<fep-lines>2</fep-lines>
+			<position-bps-code>code</position-bps-code>
+			<data-owner>dynac</data-owner>
+		</device-inventory-header>
+		<dms-sign-type>variable message sign VMS</dms-sign-type>
+		<prism-type-id>id2</prism-type-id>
+	</dms-inventory-item>
+</tmdd:dMSInventoryMsg>

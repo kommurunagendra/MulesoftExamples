@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE hibernate-mapping PUBLIC  
+          "-//Hibernate/Hibernate Mapping DTD 3.0//EN"  
+          "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="com.cgi.charm.sc.tlc.persistence.model">
+	<class name="com.cgi.charm.sc.tlc.persistence.model.TlcPropertyInfo"
+		table="tlc_property_info">
+		<id name="id" column="property_id">
+			<generator class="increment" />
+		</id>
+		<property name="key" column="key_" />
+		<property name="value" column="value" />
+		<set name="tlcSubscriptionInfo" table="tlc_subscription_property"
+			inverse="true" lazy="false">
+			<key>
+				<column name="property_id" not-null="true" />
+			</key>
+			<many-to-many
+				entity-name="com.cgi.charm.sc.tlc.persistence.model.TlcSubscriptionInfo">
+				<column name="subscription_id" not-null="true" />
+			</many-to-many>
+		</set>
+	</class>
+</hibernate-mapping>

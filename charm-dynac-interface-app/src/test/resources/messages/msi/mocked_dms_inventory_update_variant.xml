@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><tmdd:dMSInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <c2cMsgAdmin> 
+    <informationalText>FULLSYNC</informationalText>  
+    <subscriptionID>00000000-0000-0000-0000-000000000001</subscriptionID> 
+  </c2cMsgAdmin>  
+  <dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSInventoryCharm">  
+    <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm"> 
+      <organization-information> 
+        <organization-id>RWS</organization-id> 
+      </organization-information>  
+      <device-id>msi_id_1</device-id>  
+      <device-location> 
+        <latitude>1.111</latitude>  
+        <longitude>1.111</longitude> 
+      </device-location>  
+      <device-name>msi</device-name>  
+      <device-description>msi app 1</device-description>  
+      <device-type>msi</device-type>  
+      <scan-on-off>true</scan-on-off>  
+      <scan-interval>1</scan-interval>  
+      <inventory-action>add</inventory-action>  
+      <parent-device-id>os_id_1</parent-device-id>  
+      <parent-device-id2>fep_id_1</parent-device-id2>  
+      <station-line-number>1</station-line-number>  
+      <station-line-position>1</station-line-position>  
+      <fep-lines>1</fep-lines>  
+      <position-bps-code>1</position-bps-code>  
+      <data-owner>nina</data-owner> 
+    </device-inventory-header> 
+  </dms-inventory-item> 
+</tmdd:dMSInventoryUpdateMsg>

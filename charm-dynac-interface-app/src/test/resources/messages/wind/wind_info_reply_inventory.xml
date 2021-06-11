@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wind_info_reply version="1.0.0" xmlns="http://wind.cdm.charm.cgi.com">
+  <meta_reply>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </message_id>
+    <message_create_date>2001-12-31T12:00:00Z</message_create_date>
+    <request_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </request_id>
+  </meta_reply>
+  <wps_publish>
+    <wps_id>
+      <id>deviceId1</id>
+    </wps_id>
+    <wps_inventory_attr>
+      <name>name</name>
+      <description>description</description>
+      <scan_enabled>true</scan_enabled>
+      <address>address</address>
+      <port>0</port>
+    </wps_inventory_attr>
+    <wps_location_attr>
+      <position_bps>position_bps</position_bps>
+      <position_wgs84>
+        <latitude>0.0</latitude>
+        <longitude>0.0</longitude>
+      </position_wgs84>
+    </wps_location_attr>
+  </wps_publish>
+</wind_info_reply>

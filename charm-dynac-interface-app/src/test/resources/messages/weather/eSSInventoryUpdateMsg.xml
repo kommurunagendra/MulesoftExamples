@@ -1,0 +1,50 @@
+<tmdd:eSSInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+		<subscriptionName>test</subscriptionName>
+		<subscriptionFrequency>1</subscriptionFrequency>
+	</c2cMsgAdmin>
+	<ess-inventory-item xmlns:type="tmdd:ESSInventoryCharm"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>dynac-1</organization-id>
+				<organization-name>dynac</organization-name>
+			</organization-information>
+			<device-id>id-01</device-id>
+			<device-location>
+				<latitude>1.1111</latitude>
+				<longitude>1.1111</longitude>
+			</device-location>
+			<device-name>deviceName1</device-name>
+			<device-description>deviceDescription1</device-description>
+			<device-type>environmental sensor station</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>1000</scan-interval>
+			<inventory-action>add</inventory-action>
+			<hostname>10.20.178.193</hostname>
+			<port>22</port>
+			<file-name-path>/home/asb/New folder</file-name-path>
+			<authentication>
+				<user-id>asb</user-id>
+				<password>asb</password>
+			</authentication>
+		</device-inventory-header>
+		<ess-sensor-list>
+			<ess-sensor>
+				<ess-sensor-inventory-header>
+					<organization-information>
+						<organization-id>dynac-1</organization-id>
+					</organization-information>
+					<device-id>id-01</device-id>
+					<device-location>
+						<latitude>1.1111</latitude>
+						<longitude>1.1111</longitude>
+					</device-location>
+					<device-name>deviceName1</device-name>
+				</ess-sensor-inventory-header>
+			</ess-sensor>
+		</ess-sensor-list>
+	</ess-inventory-item>
+</tmdd:eSSInventoryUpdateMsg>

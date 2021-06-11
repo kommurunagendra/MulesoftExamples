@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:test="http://www.mulesoft.org/schema/mule/test"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<flow name="tlc-roadside-mock">
+		<tcp:inbound-endpoint exchange-pattern="request-response"
+			host="0.0.0.0" port="9192" connector-ref="TCP" responseTimeout="10000"
+			name="tcpserver" doc:name="TCP" />
+		<byte-array-to-string-transformer
+			doc:name="Tcp Byte Array to String" />
+		<logger message="Request received : #[payload]" level="INFO"
+			category="charm-sc-tlc-app" doc:name="Request receivedLogger" />
+		<set-variable variableName="requestId"
+			value="#[org.apache.commons.lang.StringUtils.split(payload, '#')[0]]"
+			doc:name="command Variable" />
+		<logger message="Request id is : #[flowVars.requestId]" level="INFO"
+			category="charm-sc-tlc-app" doc:name="Request IdLogger" />
+		<choice doc:name="Choice">
+			<when expression="#[message.payload.contains('KTIJD')]"
+				evaluator="string">
+				<set-payload value="#[flowVars.requestId]#=WOE 2017-03-29 12:02:13"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('VRI.LB')]"
+				evaluator="string">
+				<set-payload
+					value="#[flowVars.requestId]#=&quot;19970117:150023,0,1010,SG02,R,1,1,2,0&quot;,&quot;20160623:171112,0,200132,4,7,7,&quot;"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('PAR.LB')]"
+				evaluator="string">
+				<set-payload
+					value="#[flowVars.requestId]#=&quot;20160609:163243,0,EGGP/EG_b_I_TR=15,4&quot;,&quot;20160609:163242,0,EGGP/EG_a_I_TR=15,10&quot;"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('D.A:A')]"
+				evaluator="string">
+				<set-payload
+					value="#[flowVars.requestId]#=N='D.A',O='Detectortoestand',T=0,U=4444,F=40,E=256,S=1,L=0,MIN=0,MAX=20,I='D.I'"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('D.I')]"
+				evaluator="string">
+				<set-payload
+					value="#[flowVars.requestId]#=&quot;SG11_1&quot;,&quot;SG11_2&quot;"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('D.A')]"
+				evaluator="string">
+				<set-payload
+					value="#[flowVars.requestId]#=0,0"
+					doc:name="Command Response Payload" />
+			</when>
+			<when expression="#[message.payload.contains('=')]" evaluator="string">
+				<set-payload value="#[flowVars.requestId]#:A"
+					doc:name="Command Response Payload" />
+			</when>
+			<otherwise>
+				<set-payload value="#[flowVars.requestId]#=123"
+					doc:name="Command Response Default Payload" />
+			</otherwise>
+		</choice>
+		<logger message="Response being returned : #[payload]" level="INFO"
+			category="charm-sc-tlc-app" doc:name="ResponseLogger" />
+	</flow>
+</mule>

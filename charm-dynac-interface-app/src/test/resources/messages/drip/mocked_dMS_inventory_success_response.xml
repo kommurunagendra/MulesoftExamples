@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:dMSInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+    <dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="tmdd:DMSInventoryCharm">
+        <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+            <organization-information>
+                <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>D-A20-4,222</device-id>
+            <device-location>
+                <latitude>5.332</latitude>
+                <longitude>2.333</longitude>
+            </device-location>
+            <device-name>DRIP A20 4,222</device-name>
+            <device-description>Tekstdrip ter hoogte van afslag A20-Rotterdam West</device-description>
+            <device-type>text dms</device-type>
+            <scan-on-off>true</scan-on-off>
+            <scan-interval>2000</scan-interval>
+            <protocol>udp-1.1</protocol>
+            <hostname>10.2.2.2</hostname>
+            <port>3333</port>
+            <response-timeout>2000</response-timeout>
+            <command-timeout>1000</command-timeout>
+        </device-inventory-header>
+        <position-bps/>
+        <physical-mounting>gantry</physical-mounting>
+        <vms-type>matrixSign</vms-type>
+    </dms-inventory-item>
+</tmdd:dMSInventoryMsg>

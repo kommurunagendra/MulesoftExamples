@@ -1,0 +1,40 @@
+<tmdd:dMSControlRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages"
+						   xsi:type="tmdd:DMSControlRequestCharm"
+						   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<authentication>
+		<user-id>dynac</user-id>
+		<password>test</password>
+	</authentication>
+	<device-control-request-header xsi:type="tmdd:DeviceControlRequestHeaderCharm">
+		<authentication>
+			<user-id>dynac</user-id>
+			<password>test</password>
+		</authentication>
+		<organization-requesting>
+			<organization-id>RWS</organization-id>
+		</organization-requesting>
+		<device-id>B-A20-2,244</device-id>
+		<request-id>someId</request-id>
+		<device-type>graphical dms</device-type>
+	</device-control-request-header>
+	<dms-message>[pt20o5][g1][np]</dms-message>
+	<dms-request-command>put up custom message</dms-request-command>
+	<dms-command-parameters xsi:type="tmdd:DMSControlDetailsCharm">
+		<dms-message>[pt20o5][g1][np]</dms-message>
+		<dms-control-attr>
+			<operation-mode>online</operation-mode>
+			<dim-mode>automatic</dim-mode>
+			<dim-status>2</dim-status>
+		</dms-control-attr>
+		<dms-graphics>
+			<graphic-id>0</graphic-id>
+			<bitmap>iVBORw0KGgoAAAANSUhEUgAAAMAAAACACAMAAABqWpZZAAAADFBMVEUAAAAAAAD/AAD////Rk7pIAAAAAXRSTlMAQObYZgAAAIJJREFUeNrtz7ENAAAIwzDg/5/hiA4szl5V7q6sCfe1z//fAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOQdZ/4CAsyzTZcAAAAASUVORK5CYII=</bitmap>
+		</dms-graphics>
+		<dms-graphics>
+			<graphic-id>1</graphic-id>
+			<bitmap>iVBORw0KGgoAAAANSUhEUgAAAMAAAACACAMAAABqWpZZAAAADFBMVEUAAAAAAAD/AAD////Rk7pIAAAAAXRSTlMAQObYZgAAAIJJREFUeNrtz7ENAAAIwzDg/5/hiA4szl5V7q6sCfe1z//fAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOQdZ/4CAsyzTZcAAAAASUVORK5CYII=</bitmap>
+		</dms-graphics>
+		<animation-state>4</animation-state>
+		<animation-delay>3</animation-delay>
+	</dms-command-parameters>
+</tmdd:dMSControlRequestMsg>

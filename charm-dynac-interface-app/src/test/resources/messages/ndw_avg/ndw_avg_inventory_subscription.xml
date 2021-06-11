@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ndw_avg_inventory_subscription xmlns="http://avg.ndw.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>3db08066-1832-4ac7-beb7-76b84fab490d</uuid>
+		</message_id>
+		<message_create_date>2016-07-24T17:08:32.514Z</message_create_date>
+	</meta>
+	<subscription_config>
+		<subscription_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</subscription_id>
+		<subscription_attr>
+			<subscription_name>subscription_name</subscription_name>
+			<subscription_type>inventory</subscription_type>
+		</subscription_attr>
+		<ndw_spec>
+			<ndw_id>
+				<id>NdwId1</id>
+			</ndw_id>
+		</ndw_spec>
+		<ndw_spec>
+			<ndw_id>
+				<id>NdwId2</id>
+			</ndw_id>
+		</ndw_spec>
+	</subscription_config>
+</ndw_avg_inventory_subscription>

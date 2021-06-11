@@ -1,0 +1,64 @@
+<tmdd:dMSInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+    <c2cMsgAdmin>
+        <informationalText>FULLSYNC</informationalText>
+        <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+        <subscriptionName>test</subscriptionName>
+        <subscriptionFrequency>1</subscriptionFrequency>
+    </c2cMsgAdmin>
+    <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+            <organization-information>
+                <organization-id>dynac-1</organization-id>
+            </organization-information>
+            <device-id>deviceId1</device-id>
+            <device-location>
+                <latitude>1.1111</latitude>
+                <longitude>1.1111</longitude>
+            </device-location>
+            <device-name>deviceName1</device-name>
+            <device-description>deviceDescription1</device-description>
+            <device-type>text dms</device-type>
+            <scan-on-off>true</scan-on-off>
+            <scan-interval>10</scan-interval>
+            <inventory-action>add</inventory-action>
+            <protocol>udp-1.1</protocol>
+            <hostname>127.0.0.1</hostname>
+            <port>80</port>
+            <response-timeout>10</response-timeout>
+            <command-timeout>10</command-timeout>
+            <position-bps-code>bps-code</position-bps-code>
+        </device-inventory-header>
+        <dms-sign-type>variable message sign VMS</dms-sign-type>
+        <physical-mounting>gantry</physical-mounting>
+        <vms-type>monochromeGraphic</vms-type>
+    </dms-inventory-item>
+    <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+            <organization-information>
+                <organization-id>dynac-2</organization-id>
+            </organization-information>
+            <device-id>deviceId2</device-id>
+            <device-location>
+                <latitude>2.2222</latitude>
+                <longitude>2.2222</longitude>
+            </device-location>
+            <device-name>deviceName2</device-name>
+            <device-description>deviceDescription2</device-description>
+            <device-type>text dms</device-type>
+            <scan-on-off>true</scan-on-off>
+            <scan-interval>20</scan-interval>
+            <inventory-action>add</inventory-action>
+            <protocol>udp-2.2</protocol>
+            <hostname>127.0.0.2</hostname>
+            <port>80</port>
+            <response-timeout>20</response-timeout>
+            <command-timeout>20</command-timeout>
+            <position-bps-code>bps-code</position-bps-code>
+        </device-inventory-header>
+        <dms-sign-type>variable message sign VMS</dms-sign-type>
+        <physical-mounting>gantry</physical-mounting>
+        <vms-type>monochromeGraphic</vms-type>
+    </dms-inventory-item>
+</tmdd:dMSInventoryUpdateMsg>

@@ -1,0 +1,24 @@
+<tmdd:dMSControlRequestMsg xsi:type="tmdd:DMSControlRequestCharm" xmlns:tmdd="http://www.tmdd.org/3/messages" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+    <device-control-request-header xsi:type="tmdd:DeviceControlRequestHeaderCharm">
+		<authentication>
+			<user-id>dummy</user-id>
+            <password>test</password>
+		</authentication>
+		<organization-requesting>
+			<organization-id>RWS</organization-id>
+		</organization-requesting>
+		<device-id>id1</device-id>
+		<request-id>request</request-id>
+		<command-request-time>
+			<date>20150917</date>
+			<time>0848112220</time>
+		</command-request-time>
+		<device-type>msi</device-type>
+	</device-control-request-header>
+		<dms-message>image_mnemonic</dms-message>
+        <control-source>operator</control-source>
+</tmdd:dMSControlRequestMsg>

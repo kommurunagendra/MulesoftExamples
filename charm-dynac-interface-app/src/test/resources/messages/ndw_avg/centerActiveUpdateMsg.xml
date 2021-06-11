@@ -1,0 +1,17 @@
+<tmdd:centerActiveUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+  </c2cMsgAdmin>
+  <center-active-update>
+    <organization-information>
+      <organization-id>RWS</organization-id>
+    </organization-information>
+    <center-id>NdwId1</center-id>
+    <center-name>center-name</center-name>
+    <last-comm-time>
+      <date>20170509</date>
+      <time>103341</time>
+    </last-comm-time>
+    <center-comm-status>offline</center-comm-status>
+  </center-active-update>
+</tmdd:centerActiveUpdateMsg>

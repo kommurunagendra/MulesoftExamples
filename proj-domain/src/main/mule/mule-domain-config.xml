@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain:mule-domain
+        xmlns="http://www.mulesoft.org/schema/mule/core"
+        xmlns:domain="http://www.mulesoft.org/schema/mule/ee/domain"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+        xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/ee/domain http://www.mulesoft.org/schema/mule/ee/domain/current/mule-domain-ee.xsd">
+
+    <!-- configure here resource to be shared within the domain -->
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="50b1b785-53fd-4427-bb13-65fbef6ccc11" >
+		<salesforce:basic-connection username="test@example.com" password="test" securityToken="test" />
+	</salesforce:sfdc-config>
+
+</domain:mule-domain>

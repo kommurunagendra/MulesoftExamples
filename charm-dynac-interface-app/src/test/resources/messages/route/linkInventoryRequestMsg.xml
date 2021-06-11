@@ -1,0 +1,13 @@
+<tmdd:linkInventoryRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<organization-requesting>
+		<organization-id>RWS</organization-id>
+	</organization-requesting>
+	<network-information-type>route inventory</network-information-type>
+	<roadway-network-id-list>
+		<roadway-network-id>id-01</roadway-network-id>
+	</roadway-network-id-list>
+</tmdd:linkInventoryRequestMsg>

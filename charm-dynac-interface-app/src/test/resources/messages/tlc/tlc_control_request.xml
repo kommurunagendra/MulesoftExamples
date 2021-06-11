@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tlc_control_request version="1.0.0" xmlns="http://tlc.cdm.charm.cgi.com">
+	<meta>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+	</meta>
+	<tlc_control>
+		<tlc_id>
+			<id>id1</id>
+		</tlc_id>
+		<tlc_control_attr>
+			<control_timestamp>2006-05-04T18:13:51Z</control_timestamp>
+			<ivera_object>
+				<name>objectName1</name>
+				<displayname>displayName1</displayname>
+				<parameters>
+					<parameter>
+						<key>elementName1</key>
+						<value>elementValue1</value>
+					</parameter>
+					<parameter>
+						<key>elementName2</key>
+						<value>elementValue2</value>
+					</parameter>
+				</parameters>
+			</ivera_object>
+		</tlc_control_attr>
+	</tlc_control>
+</tlc_control_request>

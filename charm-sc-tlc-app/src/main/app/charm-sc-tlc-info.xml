@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<sub-flow name="charm-sc-tlc-infoFlow">
+		<mulexml:jaxb-xml-to-object-transformer
+			jaxbContext-ref="tlc" doc:name="XML to TlcInfoRequest" />
+		<set-variable variableName="tlcInfoReq" value="#[payload]"
+			doc:name="Variable" />
+		<logger message="RealTimeStatus : #[flowVars.tlcInfoReq.isRealtimeStatus()]"
+			level="INFO" doc:name="logger" category="tlc-app" />
+		<choice doc:name="Choice">
+			<when expression="#[payload.getInfoSpec().isStatus()]">
+				<invoke object-ref="tlcDeviceInfoList" method="handle"
+					methodArguments="#[payload]" methodArgumentTypes="com.cgi.charm.cdm.tlc.TlcInfoRequest" name="Invoke1"/>
+				<choice doc:name="Choice">
+					<when expression="#[payload.size()==0]">
+						<flow-ref name="tlc-info-replyFlow" doc:name="tlc-info-replyFlow" />
+					</when>
+					<otherwise>
+						<choice doc:name="Choice">
+							<when expression="#[flowVars.tlcInfoReq.isRealtimeStatus()==true]">
+								<foreach doc:name="For Each">
+                                    <choice doc:name="Choice">
+                                        <when expression="#[payload.getCommState() == &quot;ONLINE&quot;]">
+                                            <flow-ref name="charm-sc-tlc-infoSub_Flow" doc:name="charm-sc-tlc-infoSub_Flow"/>
+                                        </when>
+                                        <otherwise>
+                                            <logger message="device is not active" level="INFO" doc:name="Logger" category="charm-sc-tlc-app"/>
+                                        </otherwise>
+                                    </choice>
+									
+								</foreach>
+                                <flow-ref name="tlc-info-replyFlow" doc:name="tlc-info-replyFlow"/>
+							</when>
+							<otherwise>
+								<flow-ref name="tlc-info-replyFlow" doc:name="tlc-info-replyFlow" />
+							</otherwise>
+						</choice>
+					</otherwise>
+				</choice>
+
+			</when>
+			<otherwise>
+				<flow-ref name="tlc-info-replyFlow" doc:name="tlc-info-replyFlow" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+    <sub-flow name="charm-sc-tlc-infoSub_Flow">
+        <expression-component doc:name="Expression"><![CDATA[import com.cgi.charm.cdm.tlc.TlcInfoRequest; 
+TlcInfoRequest tlcInfoRequest=flowVars.tlcInfoReq;
+TlcInfoRequest infoRequest =(TlcInfoRequest) tlcInfoRequest.clone();
+flowVars.tlcInfoRequest=infoRequest;]]></expression-component>
+									<message-properties-transformer
+										scope="invocation" doc:name="Message Properties">
+										<add-message-property key="deviceInfo"
+											value="#[payload]" />
+										<add-message-property key="port"
+											value="#[payload.getPortnumberClient()]" />
+										<add-message-property key="host"
+											value="#[payload.getIpnrVri()]" />
+									</message-properties-transformer>
+									<flow-ref name="StatusAttrCommands" doc:name="StatusAttrCommands" />
+									<expression-component doc:name="Expression"><![CDATA[app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);]]></expression-component>
+									<expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setIveraObject(null);]]></expression-component>
+									<expression-filter
+										expression="#[flowVars.tlcInfoRequest.getTlcExtra().size()&gt;0]"
+										doc:name="Expression" />
+									<set-payload value="#[flowVars.tlcInfoRequest.getTlcExtra()]"
+										doc:name="Set Payload" />
+									<foreach doc:name="For Each">
+										<expression-filter expression="#[payload.getIveraObject().size()&gt;0]"
+											doc:name="Expression" />
+										<set-payload value="#[payload.getIveraObject()]"
+											doc:name="Set Payload" />
+										<set-variable variableName="listOfInfoIveraObjects"
+											value="#[[]]" doc:name="Variable" />
+										<flow-ref name="InfoReqStatusIveraObjectsFlow"
+											doc:name="InfoReqStatusIveraObjectsFlow" />
+										<expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.getIveraObject().addAll(flowVars.listOfInfoIveraObjects);
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+						]]></expression-component>
+									</foreach>
+    </sub-flow>
+	<sub-flow name="StatusAttrCommands">
+		<invoke object-ref="listOfIveraObjects" method="statusAttrObjectList" name="ListOfIveraObjects"/>
+		<foreach doc:name="For Each">
+			<flow-ref name="prepareIveraCommand" doc:name="prepareIveraCommand" />
+			<invoke object-ref="tlcUpdateDeviceInfoWithIveraValues"
+				method="updateDeviceInfoWithStatusAttr" methodArguments="#[flowVars.deviceInfo],#[flowVars.iveraObject],#[payload]"
+				methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String,java.lang.String" name="updateDeviceInfo"/>
+			<expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo=payload;]]></expression-component>
+		</foreach>
+	</sub-flow>
+	<sub-flow name="InfoReqStatusIveraObjectsFlow">
+		<foreach doc:name="For Each">
+			<set-variable variableName="infoIveraObject" value="#[payload]"
+				doc:name="Variable" />
+			<expression-filter expression="#[payload.getParameters()!=null]"
+				doc:name="Expression" />
+			<choice doc:name="Choice">
+				<when expression="#[payload.getName().equalsIgnoreCase(&quot;D&quot;)]">
+					<set-variable variableName="parameterList" value="#[[]]"
+						doc:name="Variable" />
+					<flow-ref name="DetectorIveraObjectParameters" doc:name="DetectorIveraObjectParameters" />
+					<expression-component doc:name="Expression"><![CDATA[flowVars.infoIveraObject.getParameters().setParameter(flowVars.parameterList);]]></expression-component>
+				</when>
+				<otherwise>
+					<set-payload value="#[payload.getParameters().getParameter()]"
+						doc:name="Set Payload" />
+					<flow-ref name="IveraObjectParameters" doc:name="IveraObjectParameters" />
+				</otherwise>
+			</choice>
+			<expression-component doc:name="Expression"><![CDATA[flowVars.listOfInfoIveraObjects.add(flowVars.infoIveraObject);]]></expression-component>
+		</foreach>
+	</sub-flow>
+	<sub-flow name="IveraObjectParameters">
+		<foreach doc:name="For Each">
+			<message-properties-transformer scope="invocation"
+				doc:name="Message Properties">
+				<add-message-property key="parameter" value="#[payload]" />
+			</message-properties-transformer>
+
+			<expression-component doc:name="Expression"><![CDATA[		            
+					import java.lang.StringBuilder;
+					import java.lang.String;
+					import org.apache.commons.lang.math.NumberUtils;
+					
+				    StringBuilder sb=new StringBuilder();
+		            sb.append(flowVars.infoIveraObject.getName());
+		            sb.append("/");
+		            String key=payload.getKey().trim();
+		            if (NumberUtils.isNumber(key)) {
+		                   sb.append("#");
+		            }
+		           sb.append(key);
+		           payload=sb.toString();
+				]]></expression-component>
+			<invoke object-ref="prepareCommand" method="getReadCommand"
+				methodArguments="#[flowVars.deviceInfo],#[payload]"
+				methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="Invoke2"/>
+			<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+			<expression-component doc:name="Expression"><![CDATA[                      import java.lang.String;   
+                      import java.lang.StringBuffer;                  
+                      
+                       StringBuffer sb=new StringBuffer();
+                       sb.append(flowVars.infoIveraObject.getName())
+                       .append(".").append(flowVars.parameter.getKey());
+                       flowVars.parameter.setKey(sb.toString());
+                       flowVars.parameter.setValue(payload.substring(payload.indexOf("=") + 1).trim());]]></expression-component>
+		</foreach>
+	</sub-flow>
+	<sub-flow name="tlc-info-replyFlow">
+		<set-payload value="#[flowVars.tlcInfoReq]" doc:name="Set Payload" />
+		<component doc:name="TlcInfoRequestHandler">
+			<singleton-object
+				class="com.cgi.charm.sc.tlc.handler.TlcInfoRequestHandler" />
+		</component>
+		<mulexml:jaxb-object-to-xml-transformer
+			returnClass="java.lang.String" jaxbContext-ref="tlc" doc:name="JAXB Object to XML" />
+		<flow-ref name="charm-sc-tlc-sync-outbound" doc:name="charm-sc-tlc-sync-outbound" />
+	</sub-flow>
+	<sub-flow name="DetectorIveraObjectParameters">
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],D.A:A"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="Invoke3"/>
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],D.I"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="Invoke4"/>
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<invoke object-ref="tlcIveraObjectElementsAndValues" method="setIndexElementNames"
+			methodArguments="#[payload]" methodArgumentTypes="java.lang.String" name="Invoke5"/>
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],D.A"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="Invoke6"/>
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<invoke object-ref="tlcIveraObjectElementsAndValues" method="setIndexElementValues"
+			methodArguments="#[payload]" methodArgumentTypes="java.lang.String" name="Invoke7"/>
+		<set-payload
+			value="#[flowVars.infoIveraObject.getParameters().getParameter()]"
+			doc:name="Set Payload" />
+		<foreach doc:name="For Each">
+			<invoke object-ref="tlcIveraObjectElementsAndValues" method="mapParameterWithDetectorObj"
+				methodArguments="#[flowVars.infoIveraObject.getName()],#[payload.getKey()]"
+				methodArgumentTypes="java.lang.String,java.lang.String" name="Invoke"/>
+			<expression-component doc:name="Expression"><![CDATA[flowVars.parameterList.addAll(payload);]]></expression-component>
+		</foreach>
+	</sub-flow>
+</mule>

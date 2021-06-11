@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<msi_control_reply version="1.0.0" xmlns="http://msi.cdm.charm.cgi.com">
+  <meta_reply>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </message_id>
+    <message_create_date>2001-12-31T12:00:00Z</message_create_date>
+    <request_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </request_id>
+  </meta_reply>
+  <msi_control_mutations>
+    <processed>true</processed>
+    <msi_control>
+      <msi_id>
+        <id>id1</id>
+      </msi_id>
+      <msi_control_attr>
+        <control_timestamp>2001-12-31T12:00:00Z</control_timestamp>
+        <control_message_type>TEST</control_message_type>
+        <control_source>AID</control_source>
+        <msi_control_information>
+          <image_mnemonic>image_mnemonic_1</image_mnemonic>
+        </msi_control_information>
+        <msi_control_data>
+          <group_code>0</group_code>
+          <legend_code>0</legend_code>
+          <variation_code>0</variation_code>
+        </msi_control_data>
+      </msi_control_attr>
+    </msi_control>
+  </msi_control_mutations>
+</msi_control_reply>

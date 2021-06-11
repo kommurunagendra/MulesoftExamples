@@ -1,0 +1,23 @@
+
+<tmdd:genericDeviceInventoryRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>unknonw</user-id>
+		<password>unknonw</password>
+		<!--Optional: -->
+		<operator-id>unknonw</operator-id>
+	</authentication>
+
+	<organization-information>
+		<organization-id>RWS</organization-id>
+	</organization-information>
+	<organization-requesting>
+		<organization-id>kapsch</organization-id>
+	</organization-requesting>
+	<device-type>wind sensor</device-type>
+	<device-information-type>device inventory</device-information-type>
+	<device-filter>
+		<device-id-list>
+			<device-id>deviceId1</device-id>
+		</device-id-list>
+	</device-filter>
+</tmdd:genericDeviceInventoryRequestMsg>

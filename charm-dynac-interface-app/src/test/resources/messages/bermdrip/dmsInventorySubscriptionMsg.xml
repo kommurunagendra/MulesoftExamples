@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:dMSInventorySubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+   <authentication>
+      <user-id>dummy</user-id>
+      <password>test</password>
+   </authentication>
+   <organization-information>
+      <organization-id>RWS</organization-id>
+   </organization-information>
+   <device-type>graphical dms</device-type>
+   <device-information-type>device inventory</device-information-type>
+   <c2cMsgAdmin>
+      <returnAddress>http://localhost:8081/</returnAddress>
+      <subscriptionAction>
+         <subscriptionAction-item>replaceSubscription</subscriptionAction-item>
+      </subscriptionAction>
+      <subscriptionType>
+         <subscriptionType-item>onChange</subscriptionType-item>
+      </subscriptionType>
+      <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+      <subscriptionName>subscription for bermdrip-app</subscriptionName>
+      <subscriptionFrequency>1</subscriptionFrequency>
+   </c2cMsgAdmin>
+</tmdd:dMSInventorySubscriptionMsg>

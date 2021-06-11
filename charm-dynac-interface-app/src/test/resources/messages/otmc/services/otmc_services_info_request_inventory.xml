@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<otmc_services_info_request xmlns="http://services.otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </message_id>
+    <message_create_date>2018-02-08T03:44:24Z</message_create_date>
+  </meta>
+  <info_spec>
+    <inventory>true</inventory>
+    <status>false</status>
+  </info_spec>
+  <otmc_services_spec>
+    <otmc_services_id>
+      <id>otmc_service_id</id>
+    </otmc_services_id>
+  </otmc_services_spec>
+  <all_subscriptions>false</all_subscriptions>
+</otmc_services_info_request>

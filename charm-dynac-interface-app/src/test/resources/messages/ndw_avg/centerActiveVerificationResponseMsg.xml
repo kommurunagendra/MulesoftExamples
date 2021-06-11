@@ -1,0 +1,18 @@
+<tmdd:centerActiveVerificationResponseMsg xmlns:tmdd="http://www.tmdd.org/3/messages" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:CenterActiveInformation">
+  <organization-information>
+    <organization-id>RWS</organization-id>
+    <center-contact-list>
+      <center-contact-details>
+        <center-id>Ndw1</center-id>
+        <center-name>Center Name</center-name>
+      </center-contact-details>
+    </center-contact-list>
+  </organization-information>
+  <center-id>Center Id</center-id>
+  <center-name>Center Name</center-name>
+  <last-comm-time>
+    <date>20170509</date>
+    <time>103341</time>
+  </last-comm-time>
+  <center-comm-status>offline</center-comm-status>
+</tmdd:centerActiveVerificationResponseMsg>

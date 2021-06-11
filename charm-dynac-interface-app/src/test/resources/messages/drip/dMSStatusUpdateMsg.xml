@@ -1,0 +1,53 @@
+<tmdd:dMSStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+  </c2cMsgAdmin>
+  <dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSDeviceStatusCharm">
+    <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>D A20 2,223</device-id>
+      <device-status>on</device-status>
+      <device-comm-status>operational</device-comm-status>
+      <device-type>text dms</device-type>
+    </device-status-header>
+    <current-message>[jl3]tot A4 aansl Leiderdorp[nl][jl2]&lt;- via A12/A4 27 min[nl][jl4]via N11 16 min -&gt;</current-message>
+    <dms-control-attr>
+      <operation-mode>reset</operation-mode>
+      <dim-mode>automatic</dim-mode>
+      <dim-status>1</dim-status>
+    </dms-control-attr>
+    <dms-status-attr>
+      <climate-status>0</climate-status>
+      <display-status>
+        <display-mode>1</display-mode>
+        <display-state>true</display-state>
+        <flasher-state>ok</flasher-state>
+        <pictogram-state>ok</pictogram-state>
+      </display-status>
+      <other-information>
+        <drip-type>2</drip-type>
+        <serial-number>312312312</serial-number>
+        <drip-version>1.2</drip-version>
+        <location-code>1</location-code>
+        <protocol-config>2</protocol-config>
+        <font-name>sans-serif</font-name>
+        <regel-config>2</regel-config>
+        <temperature>0</temperature>
+        <ventilator-status>on</ventilator-status>
+      </other-information>
+      <door-status-list>
+        <dms-door>
+          <door-nr>1</door-nr>
+          <door-state>true</door-state>
+        </dms-door>
+      </door-status-list>
+      <test-result>
+        <selftest-start-time>2002-05-30</selftest-start-time>
+        <selftest-end-time>2002-05-30</selftest-end-time>
+        <watchdog-reset-counter>1</watchdog-reset-counter>
+      </test-result>
+    </dms-status-attr>
+  </dms-status-item>
+</tmdd:dMSStatusUpdateMsg>

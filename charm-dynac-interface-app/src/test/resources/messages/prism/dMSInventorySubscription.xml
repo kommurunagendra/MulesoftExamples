@@ -1,0 +1,30 @@
+<tmdd:dMSInventorySubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <authentication> 
+    <user-id>dummy</user-id>  
+    <password>test</password> 
+  </authentication>  
+  <organization-information> 
+    <organization-id>RWS</organization-id>  
+    <organization-function>nina</organization-function>
+  </organization-information>
+  <device-type>cms sign</device-type>  
+  <device-information-type>device inventory</device-information-type>  
+  <device-filter> 
+    <device-id-list> 
+      <device-id>prismId1</device-id>  
+      <device-id>prismId2</device-id> 
+    </device-id-list> 
+  </device-filter>  
+  <c2cMsgAdmin> 
+    <returnAddress>http://localhost:41082/</returnAddress>  
+    <subscriptionAction> 
+      <subscriptionAction-item>newSubscription</subscriptionAction-item>
+    </subscriptionAction>  
+    <subscriptionType> 
+      <subscriptionType-item>onChange</subscriptionType-item> 
+    </subscriptionType>  
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>  
+    <subscriptionName>subscription_name</subscriptionName>  
+    <subscriptionFrequency>1</subscriptionFrequency> 
+  </c2cMsgAdmin> 
+</tmdd:dMSInventorySubscriptionMsg>

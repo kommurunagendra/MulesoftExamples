@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><weather_status_publish xmlns="http://weather.cdm.charm.cgi.com"
+	version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2015-10-22T08:48:11Z</message_create_date>
+	</meta>
+	<subscription_id>
+		<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+	</subscription_id>
+	<weather_publish>
+		<weather_id>
+			<id>id-1</id>
+		</weather_id>
+		<weather_status_attr>
+			<filename>filename</filename>
+			<path>path</path>
+			<timestamp>2006-05-04T18:13:51Z</timestamp>
+		</weather_status_attr>
+	</weather_publish>
+</weather_status_publish>

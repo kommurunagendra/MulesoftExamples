@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:deviceControlResponseMsg xmlns:tmdd="http://www.tmdd.org/3/messages"
+                               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                               xsi:type="tmdd:DeviceControlResponseCharm">
+   <organization-information>
+      <organization-id>RWS</organization-id>
+   </organization-information>
+   <device-id>grandbridge1</device-id>
+   <request-id>123456</request-id>
+   <request-status>request rejected invalid command parameters</request-status>
+   <device-type>bridge</device-type>
+   <comments>dummyComments</comments>
+</tmdd:deviceControlResponseMsg>

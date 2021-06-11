@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bridge_error xmlns="http://bridge.cdm.charm.cgi.com"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0.0">
+	<error_code>
+		Invalid XML
+	</error_code>
+	<error_message>
+		Problem validating the XML with XSD
+	</error_message>
+</bridge_error>

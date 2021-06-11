@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ndw_avg_status_publish xmlns="http://avg.ndw.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000010</uuid>
+		</message_id>
+		<message_create_date>2017-05-09T10:33:41.294Z</message_create_date>
+	</meta>
+	<subscription_id>
+		<uuid>00000000-0000-0000-0000-000000000010</uuid>
+	</subscription_id>
+	<subscription_ref>
+		<property>
+			<key>source</key>
+			<value>dynac-interface-app.async</value>
+		</property>
+		<property>
+			<key>destination</key>
+			<value>ndw-avg-interface-app.async</value>
+		</property>
+	</subscription_ref>
+	<ndw_publish>
+		<ndw_id>
+			<id>NdwId1</id>
+		</ndw_id>
+		<ndw_status_attr>
+			<time>2017-05-09T10:33:41.294Z</time>
+			<comm_state>offline</comm_state>
+		</ndw_status_attr>		
+	</ndw_publish>
+</ndw_avg_status_publish>

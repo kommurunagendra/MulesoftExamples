@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE hibernate-mapping PUBLIC  
+          "-//Hibernate/Hibernate Mapping DTD 3.0//EN"  
+          "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="com.cgi.charm.sc.tlc.persistence.model">
+
+	<class name="com.cgi.charm.sc.tlc.persistence.model.TlcSubscriptionInfo"
+		table="tlc_subscription_info">
+		<id name="subscriptionId" column="subscription_id">
+		</id>
+		<property name="allTlcs" column="all_tlcs" />
+		<!-- subscription_attr -->
+		<property name="subscriptionName" column="subscription_name" />
+		<property name="subscriptionType" column="subscription_type"></property>
+		<property name="owner" column="owner"/>
+		<property name="tlcSpec" column="tlc_devices">
+		<type name="com.cgi.charm.common.persistence.JSONListType">
+				<param name="element">com.cgi.charm.cdm.tlc.TlcSpec</param>
+				<param name="type">LIST</param>
+			</type>
+		</property>
+		<set name="properties" table="tlc_subscription_property" inverse="false"
+			cascade="all" lazy="false">
+			<key>
+				<column name="subscription_id" not-null="true" />
+			</key>
+			<many-to-many
+				entity-name="com.cgi.charm.sc.tlc.persistence.model.TlcPropertyInfo">
+				<column name="property_id" not-null="true" />
+			</many-to-many>
+		</set>
+	</class>
+</hibernate-mapping>

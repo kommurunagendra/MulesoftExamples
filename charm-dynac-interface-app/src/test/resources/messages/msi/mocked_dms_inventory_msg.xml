@@ -1,0 +1,54 @@
+<tmdd:dMSInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DMSInventoryCharm">
+		<device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id1</device-id>
+			<device-location>
+				<latitude>1.111</latitude>
+				<longitude>2.222</longitude>
+			</device-location>
+			<device-name>msi app 1</device-name>
+			<device-description>msi</device-description>
+			<device-type>msi</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>10</scan-interval>
+			<parent-device-id>os1</parent-device-id>			
+			<parent-device-id2>fep1</parent-device-id2>          
+           <station-line-number>1</station-line-number>          
+           <station-line-position>1</station-line-position>
+            <fep-lines>1</fep-lines>
+            <data-owner>dynac</data-owner>
+		</device-inventory-header>
+        <position-bps>123</position-bps>
+	</dms-inventory-item>
+	<dms-inventory-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DMSInventoryCharm">
+		<device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="tmdd:DeviceInventoryHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id2</device-id>
+			<device-location>
+				<latitude>3.333</latitude>
+				<longitude>4.444</longitude>
+			</device-location>
+			<device-name>msi app 2</device-name>
+			<device-description>msi</device-description>
+			<device-type>msi</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>20</scan-interval>
+			<parent-device-id>os2</parent-device-id>			
+			<parent-device-id2>fep2</parent-device-id2>          
+           <station-line-number>2</station-line-number>          
+           <station-line-position>2</station-line-position>
+            <fep-lines>2</fep-lines>
+            <data-owner>dynac</data-owner>
+		</device-inventory-header>
+        <position-bps>456</position-bps>
+	</dms-inventory-item>
+</tmdd:dMSInventoryMsg>

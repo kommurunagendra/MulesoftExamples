@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" 
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<sub-flow name="route-inventory-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message metadata:id="0c5353a1-1f5a-46ee-8f1c-75d636c2e85a" doc:name="Prepare trafficNetworkInformationSubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#trafficNetworkInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	organization-requesting: {
+		organization-id : p('organization_information.organization_id')
+	},
+	network-information-type: 'route inventory',
+	
+	(
+	all_routes : true when payload.route_inventory_subscription.subscription_config.*route_spec == null
+	otherwise roadway-network-id-list : {
+		(payload.route_inventory_subscription.subscription_config.*route_spec  map {		
+			roadway-network-id  : $.route_id.id
+		})
+	}
+	),	
+	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'newSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.route_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: 'subscription_name',
+		subscriptionFrequency: '1'
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+	
+	<sub-flow name="route-inventory-publish">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare route_inventory_publish  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+route_inventory_publish @(xmlns: "http://rs.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.linkInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.linkInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.linkInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.linkInventoryUpdateMsg.link-inventory-list.link-inventory-item.link-list.*link map {
+				route_inventory : {
+					action : $.inventory-action,
+					route_id : {
+						id : $.link-id
+						},
+					route_inventory_attr : {
+						name : $.link-name,
+						description : $.link-description,
+						scan_enabled : true,
+						scan_interval : 0,
+						route_length : $.link-length,
+						
+						($.detector-id-list.*device-id map {
+							detector_list : {					
+								detector_id : {
+									id : $.device-id
+								}
+							}
+						})
+					},
+					route_location_attr : {
+						start_position : {
+							position_bps : $.link-begin-node-id,
+							position_wgs84 : {
+								latitude : $.link-begin-node-location.latitude,
+								longitude : $.link-begin-node-location.longitude
+							}
+						},
+						end_position : {
+							position_bps : $.link-end-node-id,
+							position_wgs84 : {
+								latitude : $.link-end-node-location.latitude,
+								longitude : $.link-end-node-location.longitude
+							}
+						}
+					}
+				}
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="route-status-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare route_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+route_status_subscription @(xmlns: "http://rs.cdm.charm.cgi.com", version:"1.0.0") : {	
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.trafficNetworkInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.trafficNetworkInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		
+		(((payload.trafficNetworkInformationSubscriptionMsg.roadway-network-id-list.*roadway-network-id map {
+								route_spec : {
+									route_id : {
+										id : $.roadway-network-id
+									}
+								}
+							}
+							 )
+					when payload.trafficNetworkInformationSubscriptionMsg.roadway-network-id-list.*roadway-network-id != null otherwise {
+				all_routes : true 
+				
+					}
+			
+		)
+		when payload.trafficNetworkInformationSubscriptionMsg.c2cMsgAdmin.subscriptionAction.subscriptionAction-item != "cancelSubscription" otherwise {} 
+		)
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>		
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="route-status-publish">
+
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+
+        <dw:transform-message doc:name="Prepare linkStatusUpdateMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#linkStatusUpdateMsg : {
+	c2cMsgAdmin   : {	
+		subscriptionID : payload.route_status_publish.subscription_id.uuid
+	},
+	link-status-list : {
+		link-status-item : {
+			organization-information : {
+				organization-id  : p('organization_information.organization_id')
+			},
+			
+			link-list : {
+				(payload.route_status_publish.*route_publish map {
+					link @(xsi#type : 'tmdd:LinkStatusListCharm') :  {
+						network-id : 'text',
+						link-id : $.route_id.id,
+						link-status : 'no determination' when $.route_status_attr.status == "no_data"
+						otherwise 'open',
+							
+						(delay : $.route_status_attr.actual.travel_delay when $.route_status_attr.actual.travel_delay != null otherwise {}),
+						
+						(travel-time : $.route_status_attr.actual.travel_time when $.route_status_attr.actual.travel_time != null otherwise {}),												
+						
+						last-update-time : currentDateTime 
+						when $.route_status_attr.timestamp_last_update == null 
+						otherwise toDateAndTime($.route_status_attr.timestamp_last_update),
+						
+						timestamp-start-average : currentDateTime 
+						when $.route_status_attr.timestamp_start_average == null 
+						otherwise toDateAndTime($.route_status_attr.timestamp_start_average),
+						
+						timestamp-measure-minute : currentDateTime 
+						when $.route_status_attr.timestamp_measure_minute == null
+						otherwise toDateAndTime($.route_status_attr.timestamp_measure_minute),
+	
+						(traffic-jam-length : $.route_status_attr.actual.traffic_jam_length when $.route_status_attr.actual.traffic_jam_length != null otherwise {}),
+						
+                     	(traffic-jam-length-quality : $.route_status_attr.actual.traffic_jam_length_quality when $.route_status_attr.actual.traffic_jam_length_quality != null otherwise {}),
+                     	
+                        (travel-time-quality : $.route_status_attr.actual.travel_time_quality when $.route_status_attr.actual.travel_time_quality != null otherwise {}),
+                        
+                        (travel-delay-quality : $.route_status_attr.actual.travel_delay_quality when $.route_status_attr.actual.travel_delay_quality != null otherwise {}),
+                        
+                        traffic-averages : {
+                        	(traffic-jam-length : $.route_status_attr.average.traffic_jam_length when $.route_status_attr.average.traffic_jam_length != null otherwise {}),
+                        	(traffic-jam-length-quality : $.route_status_attr.average.traffic_jam_length_quality when $.route_status_attr.average.traffic_jam_length_quality != null otherwise {}),
+                        	(travel-time : $.route_status_attr.average.travel_time when $.route_status_attr.average.travel_time != null otherwise {}),
+                        	(travel-time-quality : $.route_status_attr.average.travel_time_quality when $.route_status_attr.average.travel_time_quality != null otherwise {}),
+                        	(delay : $.route_status_attr.average.travel_delay when $.route_status_attr.average.travel_delay != null otherwise {}),
+                        	(travel-delay-quality : $.route_status_attr.average.travel_delay_quality when $.route_status_attr.average.travel_delay_quality != null otherwise {})                     	
+                        },
+                        traffic-network-type : 'route status'						
+					}
+				})
+			}		
+		}
+	}
+	
+	
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>	
+	
+	<sub-flow name="route-info-request-inventory">
+		
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+		<flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare route_info_request Inventory Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+route_info_request @(xmlns: "http://rs.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	info_spec: {
+		inventory : true when payload.linkInventoryRequestMsg.network-information-type == "route inventory"
+		otherwise false,
+		status : false
+	},
+	
+	(
+	all_routes : true when payload.linkInventoryRequestMsg.roadway-network-id-list == null
+	otherwise	
+	{(payload.linkInventoryRequestMsg.roadway-network-id-list.*roadway-network-id  map {		
+		route_spec : {
+			route_id : {
+				id : $.roadway-network-id
+			}			
+		} 
+	})}),
+	
+	all_subscriptions : false
+	
+	
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare linkInventoryMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#linkInventoryMsg : {		
+		link-inventory-item : {
+			organization-information : {
+				organization-id  : p('organization_information.organization_id')
+			},
+			
+			
+				link-list : { 
+					link @(xsi#type : 'tmdd:LinkInventoryListCharm'):  {
+						network-id : 'text',
+						link-id : 'text',
+						link-name : 'text',
+						link-type : 'unknown',
+						link-begin-node-id : 'text',
+						link-begin-node-location : {
+							latitude : 0.0,
+                     		longitude : 0.0
+						},                     	
+                  		link-end-node-id : 'text',
+                  		link-end-node-location : {
+                  			latitude : 0.0,
+                     		longitude : 0.0
+                  		}                		                 							
+					}				
+				} when payload.route_info_reply.*route_publish == null 
+				
+				otherwise {
+					(payload.route_info_reply.*route_publish map {
+					link @(xsi#type : 'tmdd:LinkInventoryListCharm'):  {
+						network-id : 'text',
+						link-id : $.route_id.id,
+						link-name : $.route_inventory_attr.name,
+						link-type : 'collector',
+						link-begin-node-id : $.route_location_attr.start_position.position_bps,
+						link-begin-node-location : {
+							latitude : $.route_location_attr.start_position.position_wgs84.latitude,
+                     		longitude : $.route_location_attr.start_position.position_wgs84.longitude
+						},                     	
+                  		link-end-node-id : $.route_location_attr.end_position.position_bps,
+                  		link-end-node-location : {
+                  			latitude : $.route_location_attr.end_position.position_wgs84.latitude,
+                     		longitude : $.route_location_attr.end_position.position_wgs84.longitude
+                  		},                     
+                  		link-length : $.route_inventory_attr.route_length,                  		
+                  		link-description : $.route_inventory_attr.description,
+                  		
+                  		detector-id-list : {
+                  			($.route_inventory_attr.*detector_list map {                  			
+                  				device-id : $.detector_id.id
+                  			}) 	
+                  		},
+                  		
+                  		network-info-type : 'route inventory'                  		                 							
+					}
+				})
+				}
+				
+		}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+	</sub-flow>
+
+	<sub-flow name="route-info-request-status">
+		
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+		<flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare route_info_request Status Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+route_info_request @(xmlns: "http://rs.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	info_spec: {
+		inventory : false,
+		status : true when payload.linkStatusRequestMsg.network-information-type == "route status"
+		otherwise false
+	},
+	
+	(
+	all_routes : true when payload.linkStatusRequestMsg.roadway-network-id-list == null
+	otherwise	
+	{(payload.linkStatusRequestMsg.roadway-network-id-list.*roadway-network-id  map {		
+		route_spec : {
+			route_id : {
+				id : $.roadway-network-id
+			}			
+		} 
+	})}),
+	
+	all_subscriptions : false
+	
+	
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+
+
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+
+
+        <dw:transform-message doc:name="Prepare linkStatusMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+
+%var currentDateTime = {
+	date : now as :date as :string {format: "yyyyMMdd"},
+	time : now as :localdatetime  as :string {format: "HHmmss"}
+}
+---
+tmdd#linkStatusMsg : {		
+		link-status-item : {
+			organization-information : {
+				organization-id  : p('organization_information.organization_id')
+			},
+			link-list : { 
+					link :  {
+						network-id : 'text',
+						link-id : 'text',
+						link-status : 'no determination'             		                 							
+					}				
+				} when payload.route_info_reply.*route_publish == null 
+				
+				otherwise {
+					(payload.route_info_reply.*route_publish map {
+					link @(xsi#type : 'tmdd:LinkStatusListCharm'):  {
+						
+						network-id : 'text',
+						
+						link-id : $.route_id.id,
+						
+						link-status : 'no determination' when $.route_status_attr.status == "no_data"
+						otherwise 'open',
+						
+						(delay : $.route_status_attr.actual.travel_delay when $.route_status_attr.actual.travel_delay != null otherwise {}),
+						
+						(travel-time : $.route_status_attr.actual.travel_time when $.route_status_attr.actual.travel_time != null otherwise {}),					
+						
+						last-update-time : currentDateTime 
+						when $.route_status_attr.timestamp_last_update == null 
+						otherwise toDateAndTime($.route_status_attr.timestamp_last_update),
+						
+						timestamp-start-average : currentDateTime 
+						when $.route_status_attr.timestamp_start_average == null 
+						otherwise toDateAndTime($.route_status_attr.timestamp_start_average),
+						
+						timestamp-measure-minute : currentDateTime 
+						when $.route_status_attr.timestamp_measure_minute == null
+						otherwise toDateAndTime($.route_status_attr.timestamp_measure_minute),
+												
+						(traffic-jam-length : $.route_status_attr.actual.traffic_jam_length when $.route_status_attr.actual.traffic_jam_length != null otherwise {}),
+                     	
+                     	(traffic-jam-length-quality : $.route_status_attr.actual.traffic_jam_length_quality when $.route_status_attr.actual.traffic_jam_length_quality != null otherwise {}),
+                        
+                        (travel-time-quality : $.route_status_attr.actual.travel_time_quality when $.route_status_attr.actual.travel_time_quality != null otherwise {}),
+                        
+                        (travel-delay-quality : $.route_status_attr.actual.travel_delay_quality when $.route_status_attr.actual.travel_delay_quality != null otherwise {}),
+                        
+                        traffic-averages : {
+                        	
+                        	(traffic-jam-length : $.route_status_attr.average.traffic_jam_length when $.route_status_attr.average.traffic_jam_length != null otherwise {}),
+                        	
+                        	(traffic-jam-length-quality : $.route_status_attr.average.traffic_jam_length_quality when $.route_status_attr.average.traffic_jam_length_quality != null otherwise {}),
+                        	
+                        	(travel-time : $.route_status_attr.average.travel_time when $.route_status_attr.average.travel_time != null otherwise {}),
+                        	
+                        	(travel-time-quality : $.route_status_attr.average.travel_time_quality when $.route_status_attr.average.travel_time_quality != null otherwise {}),
+                        	
+                        	(delay : $.route_status_attr.average.travel_delay when $.route_status_attr.average.travel_delay != null otherwise {}),
+                        	
+                        	(travel-delay-quality : $.route_status_attr.average.travel_delay_quality when $.route_status_attr.average.travel_delay_quality != null otherwise {})                      	
+                        },
+                        traffic-network-type : 'route status'
+                        }
+				})
+				}
+		}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+
+
+	</sub-flow>
+	
+	
+</mule>

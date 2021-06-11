@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<flow name="proj2Flow" doc:id="cdd2a45c-2ccc-489d-843f-2fa0af3919f1" >
+		<salesforce:create doc:name="Create" doc:id="0bd06b9a-90d6-46f3-a309-22c50c8d07b9" config-ref="Salesforce_Config" type="connect"/>
+	</flow>
+	
+</mule>

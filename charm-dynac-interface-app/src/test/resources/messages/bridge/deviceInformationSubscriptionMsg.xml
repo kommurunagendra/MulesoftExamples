@@ -1,0 +1,19 @@
+<tmdd:deviceInformationSubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <organization-information>
+    <organization-id>RWS</organization-id>
+  </organization-information>
+  <device-type>bridge</device-type>
+  <device-information-type>device status</device-information-type>
+  <c2cMsgAdmin>
+    <returnAddress>http://localhost:41082/</returnAddress>
+    <subscriptionAction>
+      <subscriptionAction-item>replaceSubscription</subscriptionAction-item>
+    </subscriptionAction>
+    <subscriptionType>
+      <subscriptionType-item>onChange</subscriptionType-item>
+    </subscriptionType>
+    <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+    <subscriptionName>subscription for dynac</subscriptionName>
+    <subscriptionFrequency>1</subscriptionFrequency>
+  </c2cMsgAdmin>
+</tmdd:deviceInformationSubscriptionMsg>

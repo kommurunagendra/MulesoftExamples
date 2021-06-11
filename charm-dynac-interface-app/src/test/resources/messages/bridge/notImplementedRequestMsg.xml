@@ -1,0 +1,21 @@
+<tmdd:gateStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+	</c2cMsgAdmin>
+	<gate-status-item>
+		<device-status-header>
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>grandbridge1</device-id>
+			<device-status>on</device-status>
+			<last-comm-time>
+				<date>20150917</date>
+				<time>084811222</time>
+			</last-comm-time>
+		
+		</device-status-header>
+			
+		<gate-status>gate open</gate-status>
+	</gate-status-item>
+</tmdd:gateStatusUpdateMsg>

@@ -1,0 +1,29 @@
+<tmdd:dMSControlRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DMSControlRequestCharm">
+	<authentication>
+		<user-id>user</user-id>
+		<password>pwd</password>
+		<!--Optional: -->
+		<operator-id>oper</operator-id>
+	</authentication>
+	<device-control-request-header
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceControlRequestHeaderCharm">
+		<authentication>
+			<user-id>user</user-id>
+			<password>pwd</password>
+			<!--Optional: -->
+			<operator-id>oper</operator-id>
+		</authentication>
+		<organization-requesting>
+			<organization-id>RWS</organization-id>
+		</organization-requesting>
+		<device-id>id1</device-id>
+		<request-id>default</request-id>
+		<command-request-time>
+			<date>20150917</date>
+			<time>0848112220</time>
+		</command-request-time>
+		<device-type>cms sign</device-type>
+	</device-control-request-header>
+	<dms-message>prism_state_mnemonic</dms-message>	
+	<control-type>set</control-type>
+</tmdd:dMSControlRequestMsg>

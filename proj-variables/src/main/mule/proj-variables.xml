@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2cf963ab-53cf-4448-85fe-b6a4e0d1e2ec" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="proj-variablesFlow" doc:id="ec1cee60-6238-4528-a187-344e07a3da4e" >
+		<http:listener doc:name="Listener" doc:id="5cb4ed53-7d22-43d2-a07a-16ece9ae7dbf" config-ref="HTTP_Listener_config" path="/demo"/>
+		<set-variable value="nagendra" doc:name="Set Variable" doc:id="fbadd43f-87fa-4437-b2fb-1749a56a17db" variableName="name"/>
+		<set-variable value="banagalore" doc:name="Set Variable" doc:id="b7d94f98-125d-436f-9e30-235d040a1e76" variableName="city"/>
+		<set-payload value="#[vars.name ++ vars.city]" doc:name="Set Payload" doc:id="8ba6327b-5c2d-437c-a7d0-5f4684c4c7b9" />
+	</flow>
+</mule>

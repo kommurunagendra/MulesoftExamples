@@ -1,0 +1,37 @@
+<tmdd:detectorStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <c2cMsgAdmin> 
+    <subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID> 
+  </c2cMsgAdmin>  
+  <detector-status-item> 
+    <detector-list> 
+      <detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DetectorStatusDetailsRSW">  
+        <detector-status-header> 
+          <organization-information> 
+            <organization-id>RWS</organization-id> 
+          </organization-information>  
+          <device-id>id-01</device-id>  
+          <device-status>on</device-status>  
+          <last-comm-time> 
+            <date>19700101</date>  
+            <time>000000</time> 
+          </last-comm-time> 
+        </detector-status-header>  
+        <connection-type>yes</connection-type> 
+      </detector>  
+      <detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DetectorStatusDetailsRSW">  
+        <detector-status-header> 
+          <organization-information> 
+            <organization-id>RWS</organization-id> 
+          </organization-information>  
+          <device-id>id-02</device-id>  
+          <device-status>on</device-status>  
+          <last-comm-time> 
+            <date>19700202</date>  
+            <time>020202</time> 
+          </last-comm-time> 
+        </detector-status-header>  
+        <connection-type>yes</connection-type> 
+      </detector> 
+    </detector-list> 
+  </detector-status-item> 
+</tmdd:detectorStatusUpdateMsg>

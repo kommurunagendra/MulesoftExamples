@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<detector_cat_info_request xmlns="http://detector.cat.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2015-10-22T08:48:11Z</message_create_date>
+	</meta>
+	<info_spec>
+		<inventory>true</inventory>
+		<status>false</status>
+		<data>false</data>
+	</info_spec>
+	<all_feps>true</all_feps>
+	<all_outstations>true</all_outstations>
+	<all_detectors>true</all_detectors>
+	<all_subscriptions>false</all_subscriptions>
+</detector_cat_info_request>

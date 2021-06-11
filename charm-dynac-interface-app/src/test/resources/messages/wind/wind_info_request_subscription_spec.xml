@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wind_info_request version="1.0.0" xmlns="http://wind.cdm.charm.cgi.com">
+  	<meta>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+	</meta>
+	<info_spec>
+		<inventory>true</inventory>
+		<status>true</status>
+	</info_spec>
+    <wps_spec>
+      <wps_id>
+        <id>id</id>
+      </wps_id>
+    </wps_spec>
+	<subscription_spec>
+		<subscription_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</subscription_id>
+	</subscription_spec>
+</wind_info_request>

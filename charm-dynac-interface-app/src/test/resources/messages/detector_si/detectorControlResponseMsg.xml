@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:deviceControlResponseMsg
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:tmdd="http://www.tmdd.org/3/messages"
+        xsi:type="tmdd:DeviceControlResponseCharm">
+    <organization-information>
+        <organization-id>RWS</organization-id>
+    </organization-information>
+    <device-id>id</device-id>
+    <request-id>test</request-id>
+    <request-status>requested changes completed</request-status>
+    <device-type>detector station</device-type>
+</tmdd:deviceControlResponseMsg>

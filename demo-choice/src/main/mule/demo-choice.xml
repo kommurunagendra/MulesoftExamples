@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e9cfce4c-ba0d-4489-97f8-8a0355204490" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="demo-choiceFlow" doc:id="fb057f68-8ad6-4f94-8dac-68169537bd7f" >
+		<http:listener doc:name="Listener" doc:id="22be846d-71e9-4115-8b7d-220862c76053" config-ref="HTTP_Listener_config" path="/hello"/>
+		<set-variable value="#[attributes.queryParams.country]" doc:name="Set Variable" doc:id="e5a93851-a90d-4f61-9045-1b9bc34d64ec" variableName="countryName"/>
+		<choice doc:name="Choice" doc:id="f1efdedb-0436-48e4-a047-78569ae1343b" >
+			<when expression='#[vars.countryName  == "Singapore"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="9de68099-f004-41be-bf1d-6b1b70cfaa0c" message="country is singapore"/>
+			</when>
+			<when expression='#[vars.countryName == "India"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="4bbc02ba-22ec-40fd-8b38-06b4dd6a9897" message="country is india"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="74c1cf39-576b-4b0e-ab1b-aca48cf420c3" message="default one"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

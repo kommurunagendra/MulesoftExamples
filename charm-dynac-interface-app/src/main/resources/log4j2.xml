@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+	<Appenders>
+		<RollingFile name="ROLLFILE" 
+				fileName="/var/log/dynac-interface-app/dynac-interface.log" 
+				filePattern="/var/log/dynac-interface-app/dynac-interface.%i.log">
+			<PatternLayout pattern="%-5p %d [%t] %c: %m%n" />
+			<SizeBasedTriggeringPolicy size="10 MB" />
+			<DefaultRolloverStrategy max="10" />
+		</RollingFile>
+	</Appenders>
+	<Loggers>
+		<!-- Enable DEBUG level for FAT1 Internal Test -->
+		<AsyncLogger name="dynac-interface-app" level="INFO" />
+		
+		<AsyncLogger name="wire-log" level="INFO" />
+
+		<AsyncLogger name="com.cgi.charm" level="INFO" />
+		
+		<!-- CXF is used heavily by Mule for web services -->
+        <AsyncLogger name="org.apache.cxf" level="NONE"/>
+
+        <!-- Apache Commons tend to make a lot of noise which can clutter the log-->
+        <AsyncLogger name="org.apache" level="WARN"/>
+
+        <!-- Reduce startup noise -->
+        <AsyncLogger name="org.springframework.beans.factory" level="WARN"/>
+
+        <!-- Mule classes -->
+        <AsyncLogger name="org.mule" level="INFO"/>
+        <AsyncLogger name="com.mulesoft" level="INFO"/>
+
+        <!-- Reduce DM verbosity -->
+        <AsyncLogger name="org.jetel" level="WARN"/>
+        <AsyncLogger name="Tracking" level="WARN"/>
+
+		<Root level="INFO">
+			<AppenderRef ref="ROLLFILE" />
+		</Root>
+	</Loggers>
+</Configuration>

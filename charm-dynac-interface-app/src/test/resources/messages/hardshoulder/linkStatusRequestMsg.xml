@@ -1,0 +1,16 @@
+  <tmdd:linkStatusRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <!--Optional:-->
+         <authentication>
+            <user-id>dummy</user-id>
+            <password>test</password>
+         </authentication>
+         <organization-requesting>
+            <organization-id>RWS</organization-id>
+         </organization-requesting>
+         <network-information-type>hard shoulder status</network-information-type>
+         <!--Optional
+         <roadway-network-id-list>
+            <roadway-network-id>premit ac</roadway-network-id>
+         </roadway-network-id-list>
+         -->
+      </tmdd:linkStatusRequestMsg>

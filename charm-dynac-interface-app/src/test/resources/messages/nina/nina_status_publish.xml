@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nina_status_publish xmlns="http://nina.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2017-05-09T10:33:41.294Z</message_create_date>
+	</meta>
+	<subscription_id>
+		<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+	</subscription_id>
+	<subscription_ref>
+		<property>
+			<key>source</key>
+			<value>nina-app.async</value>
+		</property>
+		<property>
+			<key>destination</key>
+			<value>dynac-interface-app.async</value>
+		</property>
+		<property>
+			<key>somePropKey</key>
+			<value>somePropValue</value>
+		</property>
+	</subscription_ref>
+	<nina_publish>
+		<nina_id>
+			<id>cbw1</id>
+		</nina_id>
+		<nina_status_attr>
+			<time>2017-05-25T09:59:01Z</time>
+			<comm_state>offline</comm_state>
+		</nina_status_attr>
+	</nina_publish>
+	<nina_publish>
+		<nina_id>
+			<id>cbw2</id>
+		</nina_id>
+		<nina_status_attr>
+			<time>2016-06-22T19:39:31Z</time>
+			<comm_state>offline</comm_state>
+		</nina_status_attr>
+	</nina_publish>
+</nina_status_publish> 

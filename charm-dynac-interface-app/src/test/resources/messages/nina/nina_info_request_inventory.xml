@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<nina_info_request xmlns="http://nina.cdm.charm.cgi.com" version="1.0.0">
+    <meta>
+        <message_id>
+            <uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+        </message_id>
+        <message_create_date>2017-06-16T02:34:59Z</message_create_date>
+    </meta>
+    <info_spec>
+        <inventory>true</inventory>
+        <status>false</status>
+    </info_spec>
+    <nina_spec>
+        <nina_id>
+            <id>Id-01</id>
+        </nina_id>
+    </nina_spec>
+    <nina_spec>
+        <nina_id>
+            <id>Id-02</id>
+        </nina_id>
+    </nina_spec>
+    <all_subscriptions>false</all_subscriptions>
+</nina_info_request>

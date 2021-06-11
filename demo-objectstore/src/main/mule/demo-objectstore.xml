@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="81b8cb10-bdf9-4b16-a7b5-4287fa2f6f66" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="2a16eda7-a741-4bc0-b8fb-642e62d0843b" />
+	<http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="19de8ead-2022-4950-aa36-a5ddee26fee3" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:listener-config name="HTTP_Listener_config2" doc:name="HTTP Listener config" doc:id="b4ffbab6-924c-4de4-b6bf-f5070061ad5b" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<http:listener-config name="HTTP_Listener_config3" doc:name="HTTP Listener config" doc:id="8a3e176f-879e-45cc-994b-a43daadb970e" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="demo-objectstoreFlow" doc:id="3bda1f69-a650-4738-ab8f-8175fbcffd56" >
+		<http:listener doc:name="Listener" doc:id="0303f4b2-2df1-4a4e-b2da-32eb93334001" config-ref="HTTP_Listener_config" path="/store"/>
+		<set-variable value="#[attributes.queryParams.key]" doc:name="Set Variable" doc:id="bd1e210c-6a12-4037-9ae0-887ff7238371" variableName="key"/>
+		<set-variable value="#[attributes.queryParams.value]" doc:name="Set Variable" doc:id="e9864ca1-db67-4849-95e7-b6ff58c29002" variableName="value"/>
+		<os:store doc:name="Store" doc:id="2eb4369a-2e9a-49ce-8ccd-11b764ad87d2" key="#[vars.key]" objectStore="Object_store">
+			<os:value ><![CDATA[#[vars.value]]]></os:value>
+		</os:store>
+	</flow>
+	<flow name="demo-objectstoreFlow1" doc:id="1d3f1d65-cda1-4c1c-ae13-307c4f79d101" >
+		<http:listener doc:name="Listener" doc:id="004f2868-9f68-4034-92f4-08359638dc0b" config-ref="HTTP_Listener_config3" path="/retrieve"/>
+		<set-variable value="#[attributes.queryParams.key]" doc:name="Set Variable" doc:id="7dc8e3dd-d93f-4d71-b02e-a8a329f9370f" variableName="key"/>
+		<os:retrieve doc:name="Retrieve" doc:id="fc387ce8-e84a-46ea-a9f3-517737703414" key="#[vars.key]" objectStore="Object_store"/>
+	</flow>
+</mule>

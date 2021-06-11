@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<sub-flow name="tlc-inventory-publish">
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_inventory_publish.xsl" doc:name="construct inventory publish" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="tlc-control-request">
+		<set-variable
+				value="#[xpath3('/tmdd:genericDeviceControlRequestMsg/device-control-request-header/request-id')]"
+				variableName="requestid" doc:name="Request Id" />
+		<set-variable
+				value="#[xpath3('/tmdd:genericDeviceControlRequestMsg/device-control-request-header/device-type')]"
+				variableName="devicetype" doc:name="Device Type" />
+
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_control_request.xsl" doc:name="construct control" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_control_reply.xsl" doc:name="reply to ntcip response" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+			<mulexml:context-property key="requestid" value="#[requestid]" />
+			<mulexml:context-property key="devicetype" value="#[devicetype]" />
+		</mulexml:xslt-transformer>
+	</sub-flow>
+
+	<sub-flow name="tlc-status-subscription">
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_status_subscription.xsl" doc:name="construct subscription" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="to async cdm"/>
+		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="tlc-status-publish">
+		<mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/tlc/tlc_status_publish.xsl" doc:name="XSLT">
+		 	<mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="tlc-inventory-subscription">
+		<mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/tlc/tlc_inventory_subscription.xsl" doc:name="XSLT" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="return_address" value="${dynac_interface.return_address}"/>
+            <mulexml:context-property key="userId" value="${user_id}"/>
+            <mulexml:context-property key="password" value="${password}"/>
+            <mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="tlc-info-request-status">
+		
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_info_request_status.xsl" doc:name="construct tlc info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_info_reply_status.xsl" doc:name="reply to ntcip response">
+		<mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+	</sub-flow>
+	
+	<sub-flow name="tlc-info-request-inventory">		
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_info_request_inventory.xsl" doc:name="construct tlc info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		
+		<mulexml:xslt-transformer xsl-file="xslt/tlc/tlc_info_reply_inventory.xsl" doc:name="reply to ntcip response" maxActiveTransformers="5" maxIdleTransformers="2">
+            <mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+        </mulexml:xslt-transformer>
+	</sub-flow>
+</mule>

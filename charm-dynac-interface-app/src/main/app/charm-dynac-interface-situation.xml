@@ -1,0 +1,971 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <sub-flow name="situation-status-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare fullEventUpdateSubscription Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#fullEventUpdateSubscriptionMsg : {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	request-header: {
+		organization-requesting : {
+			organization-id : p('organization_information.organization_id')
+		},
+		message-type-version : 3,
+		message-number : 1,
+		message-time-stamp : {
+			date : 20011231,
+			time : 120000
+		}
+	},
+	(request-type : {
+			( request-focus : "all current events" ) when payload.situation_status_subscription.subscription_config.all_situations == "true",
+			( request-focus : "specific events" ) when payload.situation_status_subscription.subscription_config.all_situations == "false",
+			(event-ids : {
+				(payload.situation_status_subscription.subscription_config.*situation_spec map {
+					event-id : $.situation_id.id
+				})
+			}) when payload.situation_status_subscription.subscription_config.situation_spec != null
+		}) when payload.situation_status_subscription.subscription_config.all_situations != null,
+		c2cMsgAdmin : {
+			returnAddress: p('dynac_interface.return_address'),
+			subscriptionAction: {
+				subscriptionAction-item: 'replaceSubscription'
+			},
+			subscriptionType: {
+				subscriptionType-item: 'onChange'
+			},
+			subscriptionID: payload.situation_status_subscription.subscription_config.subscription_id.uuid,
+			subscriptionName: payload.situation_status_subscription.subscription_config.subscription_attr.subscription_name,
+			subscriptionFrequency: 2
+		}
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+    <sub-flow name="situation-status-publish-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare situation_status_publish Message">
+            <dw:input-payload />
+            <dw:input-variable  variableName="uuid"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+---
+situation_status_publish @(xmlns: "http://situation.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta : {
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	subscription_id : {
+			uuid : payload.anyTypeStatusUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	(
+		payload.anyTypeStatusUpdateMsg.tmdd-object-list.*tmdd-object map {
+			situation_publish : {
+				situation_id : {
+					id : $.situation-id
+				},
+				situation_status_attr : {
+					situation_version : $.situation-version,
+					situation_id : $.situation-status-id,
+					version_create_date : dateTimeToTimeStamp($.message-time-stamp.date, $.message-time-stamp.time),
+					( severity : "high") when $.severity != null and $.severity == "major",
+					( severity : "medium") when $.severity != null and $.severity == "minor",
+					( severity : "low") when $.severity != null and $.severity == "none",
+					(
+						$.situation-records.*situation-record map {
+							situation_record : {
+								( situation_record_type : "RoadOrCarriagewayOrLaneManagement" ) when $.situation-record-type == "road or carriageway or lane management",
+								( situation_record_type : "ReroutingManagement" ) when $.situation-record-type == "rerouting management",
+								( situation_record_type : "Accident" ) when $.situation-record-type == "accident",
+								( situation_record_type : "AbnormalTraffic" ) when $.situation-record-type == "abnormal traffic",
+								( situation_record_type : "Activity" ) when $.situation-record-type == "activity",
+								( situation_record_type : "AuthorityOperation" ) when $.situation-record-type == "authority operation",
+								( situation_record_type : "DisturbanceActivity" ) when $.situation-record-type == "disturbance activity",
+								( situation_record_type : "PublicEvent" ) when $.situation-record-type == "public event",
+								( situation_record_type : "PoorEnvironmentConditions" ) when $.situation-record-type == "poor environment conditions",
+								( situation_record_type : "NonWeatherRelatedRoadConditions" ) when $.situation-record-type == "non weather related road conditions",
+								( situation_record_type : "WeatherRelatedRoadConditions" ) when $.situation-record-type == "weather related road conditions",
+								( situation_record_type : "AnimalPresenceObstruction" ) when $.situation-record-type == "animal presence obstruction",
+								( situation_record_type : "EnvironmentalObstruction" ) when $.situation-record-type == "environmental obstruction",
+								( situation_record_type : "GeneralObstruction" ) when $.situation-record-type == "general obstruction",
+								( situation_record_type : "InfrastructureDamageObstruction" ) when $.situation-record-type == "infrastructure damage obstruction",
+								( situation_record_type : "VehicleObstruction" ) when $.situation-record-type == "vehicle obstruction",
+								situation_record_version : $.event-reference.event-update,
+								situation_record_id : $.event-reference.event-id,
+								create_date : dateTimeToTimeStamp($.message-header.message-time-stamp.date, $.message-header.message-time-stamp.time),
+								version_date : dateTimeToTimeStamp($.event-reference.update-time.date, $.event-reference.update-time.time),
+								(
+									$.event-indicators.*event-indicator map {
+										( probability : "certain") when $.status != null and $.status == "confirmed",
+										( probability : "probable") when $.status != null and $.status == "probable",
+										( probability : "riskOf") when $.status != null and $.status == "risk of"
+									}
+								),
+								validity : {
+									validity_status : "definedByValidityTimeSpec",
+									start_date : dateTimeToTimeStamp($.event-element-details.event-element-detail.event-times.start-time.date, $.event-element-details.event-element-detail.event-times.start-time.time),
+									end_date : dateTimeToTimeStamp($.event-element-details.event-element-detail.event-times.expected-end-time.date, $.event-element-details.event-element-detail.event-times.expected-end-time.time)
+								},
+								( impact : {
+									number_lanes_restricted : $.event-element-details.event-element-detail.event-lanes.event-lane.lanes-total-affected,
+									number_lanes_operational : $.event-element-details.event-element-detail.event-lanes.event-lane.lanes-total-original as :number - $.event-element-details.event-element-detail.event-lanes.event-lane.lanes-total-affected as :number,
+									number_lanes_total : $.event-element-details.event-element-detail.event-lanes.event-lane.lanes-total-original,
+									( delays : {
+										delay_time : $.event-element-details.event-element-detail.event-times.valid-period.estimated-duration
+									}) when $.event-element-details.event-element-detail.event-times.valid-period != null
+								}) when $.event-element-details.event-element-detail.event-lanes != null,
+								(cause : {
+									( managed_cause : {
+										managed_cause_id : $.other-references.other-reference.responsible-event.event-id,
+										managed_cause_version : $.other-references.other-reference.responsible-event.event-update,
+										target_class : $.other-references.other-reference.responsible-event.target
+									}) when $.other-references != null,
+									( non_managed_cause : {
+										( non_managed_cause_type : "earlierAccident") when $.non-managed-cause-type == "earlier accident",
+										( non_managed_cause_type : "earlierEvent") when $.non-managed-cause-type == "earlier event",
+										( non_managed_cause_type : "excessiveHeat") when $.non-managed-cause-type == "excessive heat",
+										( non_managed_cause_type : "holidayTraffic") when $.non-managed-cause-type == "holiday traffic",
+										( non_managed_cause_type : "infrastructureFailure") when $.non-managed-cause-type == "infrastructure failure",
+										( non_managed_cause_type : "largeNumbersOfVisitors") when $.non-managed-cause-type == "large number of visitors",
+										( non_managed_cause_type : "pollutionAlert") when $.non-managed-cause-type == "pollution alert",
+										( non_managed_cause_type : "poorWeather") when $.non-managed-cause-type == "poor weather",
+										( non_managed_cause_type : "problemsAtBorderPost") when $.non-managed-cause-type == "problems at border post",
+										( non_managed_cause_type : "roadsideEvent") when $.non-managed-cause-type == "roadside event",
+										( non_managed_cause_type : "rubberNecking") when $.non-managed-cause-type == "rubber necking",
+										( non_managed_cause_type : "securityIncident") when $.non-managed-cause-type == "security incident",
+										( non_managed_cause_type : "shearWeightOfTraffic") when $.non-managed-cause-type == "shear weight of traffic",
+										( non_managed_cause_type : "technicalProblems") when $.non-managed-cause-type == "technical problems",
+										( non_managed_cause_type : $.non-managed-cause-type) when $.non-managed-cause-type == "accident"
+											or $.non-managed-cause-type == "congestion" or $.non-managed-cause-type == "frost" or $.non-managed-cause-type == "obstruction"
+											or $.non-managed-cause-type == "terrorism" or $.non-managed-cause-type == "other",
+										( description : $.event-comments.event-comment) when $.event-comments != null,
+										( description : "description") when $.non-managed-cause-type == "other" and $.event-comments == null
+									}) when $.non-managed-cause-type != null
+								}) when ($.other-references != null) or ($.non-managed-cause-type != null),
+								(
+									$.event-indicators.*event-indicator map {
+										( management : {
+											( life_cycle_end : true) when $.status == "ended", 
+											( life_cycle_cancel : true ) when $.status == "cancelled"
+										}) when $.status != null and ($.status == "ended" or $.status == "cancelled")
+									}
+								),
+								( network_management : {
+									compliance_option : $.compliance-option when $.compliance-option != null otherwise "advisory",
+									( road_or_carriageway_or_lane_management : {
+										( road_or_carriageway_or_lane_management_type : "carriagewayClosures") when $.event-headline.headline.laneManagement == "carriageway closures",
+										( road_or_carriageway_or_lane_management_type : "contraflow") when $.event-headline.headline.laneManagement == "contra flow",
+										( road_or_carriageway_or_lane_management_type : "hardShoulderRunningInOperation") when $.event-headline.headline.laneManagement == "hard shoulder running in operation",
+										( road_or_carriageway_or_lane_management_type : "keepToTheLeft") when $.event-headline.headline.laneManagement == "keep to the left",
+										( road_or_carriageway_or_lane_management_type : "keepToTheRight") when $.event-headline.headline.laneManagement == "keep to the right",
+										( road_or_carriageway_or_lane_management_type : "laneClosures") when $.event-headline.headline.laneManagement == "lane closures",
+										( road_or_carriageway_or_lane_management_type : "lanesDeviated") when $.event-headline.headline.laneManagement == "lanes deviated",
+										( road_or_carriageway_or_lane_management_type : "narrowLanes") when $.event-headline.headline.laneManagement == "narrow lanes",
+										( road_or_carriageway_or_lane_management_type : "newRoadworksLayout") when $.event-headline.headline.laneManagement == "new roadworks layout",
+										( road_or_carriageway_or_lane_management_type : "overnightClosures") when $.event-headline.headline.laneManagement == "overnight closures",
+										( road_or_carriageway_or_lane_management_type : "roadCleared") when $.event-headline.headline.laneManagement == "road cleared",
+										( road_or_carriageway_or_lane_management_type : "roadClosed") when $.event-headline.headline.laneManagement == "road closed",
+										( road_or_carriageway_or_lane_management_type : "useOfSpecifiedLanesOrCarriagewaysAllowed") when $.event-headline.headline.laneManagement == "use of specified lanes or carriageways allowed",
+										( road_or_carriageway_or_lane_management_type : "tidalFlowLaneInOperation") when $.event-headline.headline.laneManagement == "tidal flow lane in operation",
+										( road_or_carriageway_or_lane_management_type : "useSpecifiedLanesOrCarriageways") when $.event-headline.headline.laneManagement == "use specified lanes or carriageways",
+										( road_or_carriageway_or_lane_management_type : "other") when $.event-headline.headline.laneManagement == "other"
+									}) when $.situation-record-type == "road or carriageway or lane management",
+									( rerouting_management : {
+										(rerouting_management_type : "followDiversionSigns") when $.event-headline.headline.reroutingManagement == "follow diversion signs",
+										(rerouting_management_type : "followLocalDiversion") when $.event-headline.headline.reroutingManagement == "follow local diversion",
+										(rerouting_management_type : "followSpecialMarkers") when $.event-headline.headline.reroutingManagement == "foloow special markers",
+										(rerouting_management_type : "useEntry") when $.event-headline.headline.reroutingManagement == "use entry",
+										(rerouting_management_type : "useExit") when $.event-headline.headline.reroutingManagement == "use exit",
+										(rerouting_management_type : "useIntersectionOrJunction") when $.event-headline.headline.reroutingManagement == "use intersection or junction",
+										(rerouting_itinerary_description : $.rerouting-itinerary-description ) when $.rerouting-itinerary-description != null,
+										(signed_rerouting : $.signed-rerouting) when $.signed-rerouting != null
+									}) when $.situation-record-type == "rerouting management"
+								}) when $.situation-record-type == "road or carriageway or lane management" or $.situation-record-type == "rerouting management",
+								( accident : {
+									(accident_type : "accidentInvolvingBicycles" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a bicycle",
+									(accident_type : "accidentInvolvingBuses" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a bus",
+									(accident_type : "accidentInvolvingHazardousMaterials" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving hazardous materials",
+									(accident_type : "accidentInvolvingMassTransitVehicle" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving mass transit",
+									(accident_type : "accidentInvolvingRadioactiveMaterial" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving radioactive materials",
+									(accident_type : "accidentInvolvingHeavyLorries" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a semi trailer",
+									(accident_type : "accidentInvolvingMopeds" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a moped",
+									(accident_type : "accidentInvolvingMotorcycles" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a motorcycle",
+									(accident_type : "accidentInvolvingTrain" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a train",
+									(accident_type : "chemicalSpillageAccident" ) when  $.event-headline.headline.accidents-and-incidents == "chemical spill",
+									(accident_type : "collision" ) when  $.event-headline.headline.accidents-and-incidents == "incident",
+									(accident_type : "collisionWithAnimal" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving an animal",
+									(accident_type : "collisionWithObstruction" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving obstruction",
+									(accident_type : "collisionWithPerson" ) when  $.event-headline.headline.accidents-and-incidents == "accident involving a pedestrian",
+									(accident_type : "earlierAccident" ) when  $.event-headline.headline.accidents-and-incidents == "earlier accident",
+									(accident_type : "fuelSpillageAccident" ) when  $.event-headline.headline.accidents-and-incidents == "fuel spill",
+									(accident_type : "jackknifedArticulatedLorry" ) when  $.event-headline.headline.accidents-and-incidents == "jackknifed semi trailer",
+									(accident_type : "jackknifedCaravan" ) when  $.event-headline.headline.accidents-and-incidents == "jackknifed trailer home",
+									(accident_type : "jackknifedTrailer" ) when  $.event-headline.headline.accidents-and-incidents == "jackknifed trailer",
+									(accident_type : "multipleVehicleCollision" ) when  $.event-headline.headline.accidents-and-incidents == "multi vehicle incident",
+									(accident_type : "multivehicleAccident" ) when  $.event-headline.headline.accidents-and-incidents == "multi vehicle accident",
+									(accident_type : "oilSpillageAccident" ) when  $.event-headline.headline.accidents-and-incidents == "oil spill",
+									(accident_type : "overturnedHeavyLorry" ) when  $.event-headline.headline.accidents-and-incidents == "overturned semi trailer",
+									(accident_type : "overturnedTrailer" ) when  $.event-headline.headline.accidents-and-incidents == "overturned trailer",
+									(accident_type : "overturnedVehicle" ) when  $.event-headline.headline.accidents-and-incidents == "overturned vehicle",
+									(accident_type : "seriousAccident" ) when  $.event-headline.headline.accidents-and-incidents == "serious accident",
+									(accident_type : "vehicleOffRoad" ) when  $.event-headline.headline.accidents-and-incidents == "vehicle off road",
+									(accident_type : "vehicleSpunAround" ) when  $.event-headline.headline.accidents-and-incidents == "vehicle spun out",
+									(accident_type : "accident") when  $.event-headline.headline.accidents-and-incidents == "accident",
+									(accident_type : "other") when $.event-headline.headline.accidents-and-incidents == "other",
+									(
+										$.vehicle-involved-with-hazardous-goods.*list-item map {
+											vehicle_involved_with_hazardous_goods : {
+												chemical_name : $
+											}
+										} when $.vehicle-involved-with-hazardous-goods != null otherwise {}
+									)
+								}) when $.situation-record-type == "accident",
+								(
+									authority_operation : {
+										( authority_operation_type : "accidentInvestigationWork" ) when $.event-headline.headline.disturbances == "accident investigation",
+										( authority_operation_type : "civilEmergency" ) when $.event-headline.headline.disturbances == "civil emergency",
+										( authority_operation_type : "policeCheckPoint" ) when $.event-headline.headline.disturbances == "checkpoint"
+									}
+								) when $.situation-record-type == "authority operation",
+								(
+									conditions : {
+										( conditions_type : $.conditions-type) when $.conditions-type != null and ($.conditions-type == "impossible"
+											or $.conditions-type == "hazardous" or $.conditions-type == "normal" or $.conditions-type == "other"),
+										( conditions_type : "passableWithCare") when $.conditions-type != null and $.conditions-type == "passable with care",
+										( conditions_type : "veryHazardous") when $.conditions-type != null and $.conditions-type == "very hazardous",
+										( conditions_type : "winterConditions") when $.conditions-type != null and $.conditions-type == "winter conditions",
+										( poor_environment_conditions : {
+											(poor_environment_conditions_type : "blizzard") when $.event-headline.headline.precipitation == "blizzard",
+											(poor_environment_conditions_type : "blowingDust") when $.event-headline.headline.visibility-and-air-quality == "blowing dust",
+											(poor_environment_conditions_type : "blowingSnow") when $.event-headline.headline.visibility-and-air-quality == "blowing snow",
+											(poor_environment_conditions_type : "crosswinds") when $.event-headline.headline.winds == "crosswinds",
+											(poor_environment_conditions_type : "damagingHail") when $.event-headline.headline.precipitation == "damaging hail",
+											(poor_environment_conditions_type : "denseFog") when $.event-headline.headline.visibility-and-air-quality == "dense fog",
+											(poor_environment_conditions_type : "extremeHeat") when $.event-headline.headline.temperature == "extreme heat",
+											(poor_environment_conditions_type : "fog") when $.event-headline.headline.visibility-and-air-quality == "fog",
+											(poor_environment_conditions_type : "freezingFog") when $.event-headline.headline.visibility-and-air-quality == "freezing fog",
+											(poor_environment_conditions_type : "frost") when $.event-headline.headline.precipitation == "frost",
+											(poor_environment_conditions_type : "gales") when $.event-headline.headline.winds == "gale force winds",
+											(poor_environment_conditions_type : "gustyWinds") when $.event-headline.headline.winds == "gusty winds",
+											(poor_environment_conditions_type : "hail") when $.event-headline.headline.precipitation == "hail",
+											(poor_environment_conditions_type : "heavyFrost") when $.event-headline.headline.precipitation == "heavy frost",
+											(poor_environment_conditions_type : "heavyRain") when $.event-headline.headline.precipitation == "heavy rain",
+											(poor_environment_conditions_type : "heavySnowfall") when $.event-headline.headline.precipitation == "heavy snow",
+											(poor_environment_conditions_type : "hurricaneForceWinds") when $.event-headline.headline.winds == "hurricane force winds",
+											(poor_environment_conditions_type : "lowSunGlare") when $.event-headline.headline.visibility-and-air-quality == "low sun glare",
+											(poor_environment_conditions_type : "patchyFog") when $.event-headline.headline.visibility-and-air-quality == "patchy fog",
+											(poor_environment_conditions_type : "rain") when $.event-headline.headline.precipitation == "rain",
+											(poor_environment_conditions_type : "sandstorms") when $.event-headline.headline.visibility-and-air-quality == "sandstorms",
+											(poor_environment_conditions_type : "severeExhaustPollution") when $.event-headline.headline.visibility-and-air-quality == "severe exhaust pollution",
+											(poor_environment_conditions_type : "severeSmog") when $.event-headline.headline.visibility-and-air-quality == "severe smog",
+											(poor_environment_conditions_type : "showers") when $.event-headline.headline.precipitation == "showers",
+											(poor_environment_conditions_type : "sleet") when $.event-headline.headline.precipitation == "sleet",
+											(poor_environment_conditions_type : "smogAlert") when $.event-headline.headline.visibility-and-air-quality == "smog alert",
+											(poor_environment_conditions_type : "smokeHazard") when $.event-headline.headline.visibility-and-air-quality == "smoke hazard",
+											(poor_environment_conditions_type : "snowfall") when $.event-headline.headline.precipitation == "snow showers",
+											(poor_environment_conditions_type : "sprayHazard") when $.event-headline.headline.visibility-and-air-quality == "spray hazard",
+											(poor_environment_conditions_type : "strongGustsOfWind") when $.event-headline.headline.winds == "strong gusts of wind",
+											(poor_environment_conditions_type : "strongWinds") when $.event-headline.headline.winds == "strong winds",
+											(poor_environment_conditions_type : "swarmsOfInsects") when $.event-headline.headline.visibility-and-air-quality == "swarms of insects",
+											(poor_environment_conditions_type : "temperatureFalling") when $.event-headline.headline.temperature == "temperature falling",
+											(poor_environment_conditions_type : "thunderstorms") when $.event-headline.headline.precipitation == "thunderstorms",
+											(poor_environment_conditions_type : "tornadoes") when $.event-headline.headline.winds == "tornado",
+											(poor_environment_conditions_type : "veryStrongGustsOfWind") when $.event-headline.headline.winds == "very strong gusts of wind",
+											(poor_environment_conditions_type : "visibilityReduced") when $.event-headline.headline.visibility-and-air-quality == "visibility reduced",
+											(poor_environment_conditions_type : "whiteout") when $.event-headline.headline.visibility-and-air-quality == "white out",
+											(poor_environment_conditions_type : "winterStorm") when $.event-headline.headline.precipitation == "winter storm",
+											visability : $.visibility when $.visibility != null otherwise 0
+										}) when $.situation-record-type == "poor environment conditions",
+										( non_weather_related_road_conditions : {
+											(non_weather_related_road_conditions_type : "dieselOnRoad") when $.event-headline.headline.pavement-conditions == "diesel on roadway",
+											(non_weather_related_road_conditions_type : "leavesOnRoad") when $.event-headline.headline.pavement-conditions == "leaves on roadway",
+											(non_weather_related_road_conditions_type : "looseChippings") when $.event-headline.headline.pavement-conditions == "loose gravel",
+											(non_weather_related_road_conditions_type : "looseSandOnRoad") when $.event-headline.headline.pavement-conditions == "loose sand on roadway",
+											(non_weather_related_road_conditions_type : "mudOnRoad") when $.event-headline.headline.pavement-conditions == "mud on roadway",
+											(non_weather_related_road_conditions_type : "oilOnRoad") when $.event-headline.headline.pavement-conditions == "oil on roadway",
+											(non_weather_related_road_conditions_type : "petrolOnRoad") when $.event-headline.headline.pavement-conditions == "fuel on roadway",
+											(non_weather_related_road_conditions_type : "roadSurfaceInPoorCondition") when $.event-headline.headline.pavement-conditions == "road surface in poor condition",
+											(non_weather_related_road_conditions_type : "slipperyRoad") when $.event-headline.headline.pavement-conditions == "slippery",
+											(non_weather_related_road_conditions_type : "other") when $.event-headline.headline.pavement-conditions == "other"
+										}) when $.situation-record-type == "non weather related road conditions",
+										( weather_related_road_conditions : {
+											( weather_related_road_conditions_type : "blackIce" ) when $.event-headline.headline.pavement-conditions == "black ice",
+											( weather_related_road_conditions_type : "deepSnow" ) when $.event-headline.headline.pavement-conditions == "deep snow",
+											( weather_related_road_conditions_type : "dry" ) when $.event-headline.headline.pavement-conditions == "dry pavement",
+											( weather_related_road_conditions_type : "freezingOfWetRoads" ) when $.event-headline.headline.pavement-conditions == "freezing of wet roads",
+											( weather_related_road_conditions_type : "freezingRain" ) when $.event-headline.headline.pavement-conditions == "freezing rain",
+											( weather_related_road_conditions_type : "freshSnow" ) when $.event-headline.headline.pavement-conditions == "fresh snow",
+											( weather_related_road_conditions_type : "ice" ) when $.event-headline.headline.pavement-conditions == "ice",
+											( weather_related_road_conditions_type : "iceBuildUp" ) when $.event-headline.headline.pavement-conditions == "ice build up",
+											( weather_related_road_conditions_type : "icyPatches" ) when $.event-headline.headline.pavement-conditions == "icy patches",
+											( weather_related_road_conditions_type : "looseSnow" ) when $.event-headline.headline.pavement-conditions == "loose snow",
+											( weather_related_road_conditions_type : "packedSnow" ) when $.event-headline.headline.pavement-conditions == "packed snow",
+											( weather_related_road_conditions_type : "roadSurfaceMelting" ) when $.event-headline.headline.pavement-conditions == "melting tar",
+											( weather_related_road_conditions_type : "slipperyRoad" ) when $.event-headline.headline.pavement-conditions == "slippery",
+											( weather_related_road_conditions_type : "slushOnRoad" ) when $.event-headline.headline.pavement-conditions == "slush",
+											( weather_related_road_conditions_type : "slushStrings" ) when $.event-headline.headline.pavement-conditions == "frozen slush",
+											( weather_related_road_conditions_type : "snowDrifts" ) when $.event-headline.headline.pavement-conditions == "snow drifts",
+											( weather_related_road_conditions_type : "snowOnTheRoad" ) when $.event-headline.headline.pavement-conditions == "snow on roadway",
+											( weather_related_road_conditions_type : "surfaceWater" ) when $.event-headline.headline.pavement-conditions == "surface water hazard",
+											( weather_related_road_conditions_type : "wet" ) when $.event-headline.headline.pavement-conditions == "wet pavement",
+											( weather_related_road_conditions_type : "wetAndIcyRoad" ) when $.event-headline.headline.pavement-conditions == "wet and icy roads",
+											( weather_related_road_conditions_type : "other" ) when $.event-headline.headline.pavement-conditions == "other"
+										}) when $.situation-record-type == "weather related road conditions"
+									}
+								) when $.situation-record-type == "poor environment conditions" or $.situation-record-type == "non weather related road conditions"
+									or $.situation-record-type == "weather related road conditions",
+								(
+									obstruction : {
+										(mobility_type : $.mobility-type) when $.mobility-type != null,
+										(mobility_type : "unknown") when $.mobility-type == null,
+										(
+											animal_presence_obstruction : {
+												(animal_presence_obstruction_type : "animalsOnTheRoad") when $.event-headline.headline.obstruction == "animal on roadway",
+												(animal_presence_obstruction_type : "herdOfAnimalsOnTheRoad") when $.event-headline.headline.obstruction == "herd of animals on roadway",
+												(animal_presence_obstruction_type : "largeAnimalsOnTheRoad") when $.event-headline.headline.obstruction == "large animal on roadway",
+												(alive : $.animal-alive) when $.animal-alive != null,
+												(alive : false) when $.animal-alive == null
+											}
+										) when $.situation-record-type == "animal presence obstruction",
+										(
+											environmental_obstruction : {
+												(environmental_obstruction_type : "earthquakeDamage") when $.event-headline.headline.disasters == "earthquake damage",
+												(environmental_obstruction_type : "fallenTrees") when $.event-headline.headline.obstruction == "fallen trees",
+												(environmental_obstruction_type : "fallingIce") when $.event-headline.headline.disasters == "falling ice",
+												(environmental_obstruction_type : "flashFloods") when $.event-headline.headline.disasters == "flash flood",
+												(environmental_obstruction_type : "flooding") when $.event-headline.headline.disasters == "major flood",
+												(environmental_obstruction_type : "forestFire") when $.event-headline.headline.disasters == "forest fire",
+												(environmental_obstruction_type : "grassFire") when $.event-headline.headline.disasters == "grass fire",
+												(environmental_obstruction_type : "landslips") when $.event-headline.headline.disasters == "land slips",
+												(environmental_obstruction_type : "mudSlide") when $.event-headline.headline.disasters == "mud slide",
+												(environmental_obstruction_type : "seriousFire") when $.event-headline.headline.disasters == "serious fire",
+												(environmental_obstruction_type : "sewerOverflow") when $.event-headline.headline.disasters == "sewer overflow",
+												(environmental_obstruction_type : "smokeOrFumes") when $.event-headline.headline.disasters == "smoke or fumes",
+												(environmental_obstruction_type : "stormDamage") when $.event-headline.headline.disasters == "storm damage",
+												(environmental_obstruction_type : "other") when $.event-headline.headline.disasters == "other"
+											}
+										) when $.situation-record-type == "environmental obstruction",
+										(
+											general_obstruction : {
+												(general_obstruction_type : "airCrash") when $.event-headline.headline.obstruction == "air crash",
+												(general_obstruction_type : "clearanceWork") when $.event-headline.headline.obstruction == "clearance work",
+												(general_obstruction_type : "cyclistsOnRoadway") when $.event-headline.headline.obstruction == "bicyclists on roadway",
+												(general_obstruction_type : "debris") when $.event-headline.headline.obstruction == "debris on roadway",
+												(general_obstruction_type : "explosion") when $.event-headline.headline.obstruction == "explosion",
+												(general_obstruction_type : "explosionHazard") when $.event-headline.headline.obstruction == "explosion hazard",
+												(general_obstruction_type : "highSpeedChase") when $.event-headline.headline.obstruction == "high speed chase",
+												(general_obstruction_type : "houseFire") when $.event-headline.headline.obstruction == "house fire",
+												(general_obstruction_type : "industrialAccident") when $.event-headline.headline.obstruction == "industrial accident",
+												(general_obstruction_type : "objectOnTheRoad") when $.event-headline.headline.obstruction == "object on roadway",
+												(general_obstruction_type : "objectsFallingFromMovingVehicle") when $.event-headline.headline.obstruction == "objects falling from moving vehicle",
+												(general_obstruction_type : "peopleOnRoadway") when $.event-headline.headline.obstruction == "people on roadway",
+												(general_obstruction_type : "railCrash") when $.event-headline.headline.obstruction == "rail crash",
+												(general_obstruction_type : "recklessDriver") when $.event-headline.headline.obstruction == "reckless driver",
+												(general_obstruction_type : "rescueAndRecoveryWork") when $.event-headline.headline.obstruction == "rescue and recovery work",
+												(general_obstruction_type : "severeFrostDamagedRoadway") when $.event-headline.headline.obstruction == "frost jacking",
+												(general_obstruction_type : "shedLoad") when $.event-headline.headline.obstruction == "shed load",
+												(general_obstruction_type : "spillageOccurringFromMovingVehicle") when $.event-headline.headline.obstruction == "spillage from moving vehicle",
+												(general_obstruction_type : "spillageOnTheRoad") when $.event-headline.headline.obstruction == "spillage on roadway",
+												(general_obstruction_type : "unprotectedAccidentArea") when $.event-headline.headline.obstruction == "unprotected accident area",
+												(general_obstruction_type : "other") when $.event-headline.headline.obstruction == "other"
+											}
+										) when $.situation-record-type == "general obstruction",
+										(
+											infrastructure_damage_obstruction : {
+												(infrastructure_damage_obstruction_type : "burstPipe") when $.event-headline.headline.obstruction == "burst pipe",
+												(infrastructure_damage_obstruction_type : "burstWaterMain") when $.event-headline.headline.obstruction == "broken water main",
+												(infrastructure_damage_obstruction_type : "collapsedSewer") when $.event-headline.headline.obstruction == "collapsed sewer",
+												(infrastructure_damage_obstruction_type : "damagedBridge") when $.event-headline.headline.obstruction == "damaged bridge",
+												(infrastructure_damage_obstruction_type : "damagedCrashBarrier") when $.event-headline.headline.obstruction == "damaged crash barrier",
+												(infrastructure_damage_obstruction_type : "damagedGantry") when $.event-headline.headline.obstruction == "damaged gantry",
+												(infrastructure_damage_obstruction_type : "damagedRoadSurface") when $.event-headline.headline.obstruction == "damaged road surface",
+												(infrastructure_damage_obstruction_type : "damagedTunnel") when $.event-headline.headline.obstruction == "damaged tunnel",
+												(infrastructure_damage_obstruction_type : "damagedViaduct") when $.event-headline.headline.obstruction == "damaged viaduct",
+												(infrastructure_damage_obstruction_type : "fallenPowerCables") when $.event-headline.headline.obstruction == "downed cables",
+												(infrastructure_damage_obstruction_type : "gasLeak") when $.event-headline.headline.obstruction == "gas leak",
+												(infrastructure_damage_obstruction_type : "weakBridge") when $.event-headline.headline.obstruction == "weak bridge",
+												(infrastructure_damage_obstruction_type : "other") when $.event-headline.headline.obstruction == "other infrastructure"
+											}
+										) when $.situation-record-type == "infrastructure damage obstruction",
+										(
+											vehicle_obstruction : {
+												(vehicle_obstruction_type : "abandonedVehicle") when $.event-headline.headline.obstruction == "abandoned vehicle",
+												(vehicle_obstruction_type : "brokenDownBus") when $.event-headline.headline.obstruction == "broken down bus",
+												(vehicle_obstruction_type : "brokenDownHeavyLorry") when $.event-headline.headline.obstruction == "broken down heavy lorry",
+												(vehicle_obstruction_type : "brokenDownVehicle") when $.event-headline.headline.obstruction == "broken down vehicle",
+												(vehicle_obstruction_type : "convoy") when $.event-headline.headline.obstruction == "convoy",
+												(vehicle_obstruction_type : "damagedVehicle") when $.event-headline.headline.obstruction == "damaged vehicle",
+												(vehicle_obstruction_type : "emergencyVehicle") when $.event-headline.headline.obstruction == "emergency vehicle",
+												(vehicle_obstruction_type : "overheightVehicle") when $.event-headline.headline.obstruction == "overheight vehicle",
+												(vehicle_obstruction_type : "prohibitedVehicleOnTheRoadway") when $.event-headline.headline.obstruction == "prohibited vehicle on the roadway",
+												(vehicle_obstruction_type : "slowVehicle") when $.event-headline.headline.obstruction == "slow vehicle",
+												(vehicle_obstruction_type : "snowplough") when $.event-headline.headline.obstruction == "snow plough",
+												(vehicle_obstruction_type : "unlitVehicleOnTheRoad") when $.event-headline.headline.obstruction == "unlit vehicle on the road",
+												(vehicle_obstruction_type : "vehicleOnFire") when $.event-headline.headline.obstruction == "vehicle on fire",
+												(vehicle_obstruction_type : "vehicleCarryingHazardousMaterials") when $.event-headline.headline.obstruction == "vehicle carrying hazardous materials",
+												(vehicle_obstruction_type : "vehicleOnWrongCarriageway") when $.event-headline.headline.obstruction == "vehicle on wrong carrageway",
+												(vehicle_obstruction_type : "vehicleStuckUnderBridge") when $.event-headline.headline.obstruction == "vehicle stuck under bridge",
+												(vehicle_obstruction_type : "vehicleWithOverwideLoad") when $.event-headline.headline.obstruction == "vehicle with overwide load",
+												(vehicle_obstruction_type : "other") when $.event-headline.headline.obstruction == "other"
+											}
+										) when $.situation-record-type == "vehicle obstruction"
+									}
+								) when $.situation-record-type == "animal presence obstruction" or $.situation-record-type == "environmental obstruction" 
+									or $.situation-record-type == "general obstruction" or $.situation-record-type == "infrastructure damage obstruction"
+									or $.situation-record-type == "vehicle obstruction",
+								(
+									$.event-element-details.event-element-detail.event-locations.*event-location map {
+										situation_record_location : {
+											part_of_alternative_route : $.location-on-link.second-link-designator when $.location-on-link.second-link-designator != null otherwise false,
+											situation_record_location_type : $.location-on-link.link-ownership,
+											index : $.location-on-link.link-designator,
+											point_location_for_display_wgs84 : {
+												display_latitude : $.location-on-link.primary-location.geo-location.latitude,
+												display_longitude : $.location-on-link.primary-location.geo-location.longitude
+											},
+											(point_location_for_display_bps : $.location-on-link.primary-location.geo-location.position-bps-code) when $.location-on-link.primary-location.geo-location.position-bps-code != null,
+											(
+												linear_coordinates_start_point_wgs84 : {
+													start_latitude : $.location-on-link.alternate-designations.alternate-designation.primary-location.geo-location.latitude,
+													start_longitude : $.location-on-link.alternate-designations.alternate-designation.primary-location.geo-location.longitude
+												}
+											) when $.location-on-link.alternate-designations != null,
+											(linear_coordinates_start_point_bps : $.location-on-link.alternate-designations.alternate-designation.primary-location.geo-location.position-bps-code)
+												when $.location-on-link.alternate-designations.alternate-designation.primary-location.geo-location.position-bps-code != null,
+											(
+												linear_coordinates_end_point_wgs84 : {
+													end_latitude : $.location-on-link.alternate-designations.alternate-designation.secondary-location.geo-location.latitude,
+													end_longitude : $.location-on-link.alternate-designations.alternate-designation.secondary-location.geo-location.longitude
+												}
+											) when $.location-on-link.alternate-designations != null or $.location-on-link.alternate-designations.alternate-designation.secondary-location != null,
+											(linear_coordinates_end_point_bps : $.location-on-link.alternate-designations.alternate-designation.secondary-location.geo-location.position-bps-code) 
+												when $.location-on-link.alternate-designations.alternate-designation.secondary-location.geo-location.position-bps-code != null,
+											(
+												linear_supplementory_pos_description : {
+													carriageway : $.location-on-link.primary-location.geo-location.carriageway,
+													($.location-on-link.primary-location.geo-location.lane-list.*specific-lane map {
+														lane : $
+													} when $.location-on-link.primary-location.geo-location.lane-list != null otherwise {}),
+													(length_affected : $.location-on-link.primary-location.geo-location.length as :number{format : ""}) when $.location-on-link.primary-location.geo-location.length != null
+												}
+											) when $.location-on-link.primary-location.geo-location != null
+										}
+									} when $.event-element-details.event-element-detail.event-locations.*event-location != null otherwise {}
+								)
+							}
+						}
+					)
+				}
+			}
+		}
+	)
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+        <flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+        <static-component>  
+            <return-data file="static_messages/c2cMessageReceipt_ok.xml"/> 
+        </static-component>
+    </sub-flow>
+    <sub-flow name="situation-info-request-status">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare situation_info_request Status Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+situation_info_request @(xmlns: "http://situation.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	info_spec : {
+		inventory : false,
+		status : true when payload.anyTypeStatusRequestMsg.device-information-type == "device status"
+				otherwise false
+	},
+	(
+	all_situations: true when payload.anyTypeStatusRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.anyTypeStatusRequestMsg.device-filter.device-id-list.*device-id map {
+			situation_spec : {
+				situation_id : {
+					id : $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions : false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare anyTypeStatusMsg Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeStatusMsg : {
+	(tmdd-object-list : {
+		(
+			payload.situation_info_reply.*situation_publish map {
+				tmdd-object @(xsi#type : 'tmdd:Situation'): {
+					situation-id : $.situation_id.id,
+					situation-version : $.situation_status_attr.situation_version,
+					situation-status-id : $.situation_status_attr.situation_id,
+					message-time-stamp : toDateAndTime($.situation_status_attr.version_create_date),
+					(severity : "major") when $.situation_status_attr.severity != null and $.situation_status_attr.severity == "high",
+					(severity : "minor") when $.situation_status_attr.severity != null and $.situation_status_attr.severity == "medium",
+					(severity : "none") when $.situation_status_attr.severity == null or $.situation_status_attr.severity == "low",
+					situation-records : {
+						($.situation_status_attr.*situation_record map ((situationRecord, indexOfSituationRecord)-> {
+							situation-record @(xsi#type : 'tmdd:Situation-record'): {
+								message-header : {
+									organization-sending : {
+										organization-id : p('organization_information.organization_id')
+									},
+									message-type-version : 1,
+									message-number : 1,
+									message-time-stamp : toDateAndTime(situationRecord.create_date)
+								},
+								event-reference : {
+									event-id : situationRecord.situation_record_id,
+									event-update : situationRecord.situation_record_version,
+									update-time : toDateAndTime(situationRecord.version_date)
+								},
+								(event-indicators : {
+									(event-indicator : {
+										(status : "confirmed") when situationRecord.probability == "certain",
+										(status : "probable") when situationRecord.probability == "probable",
+										(status : "risk of") when situationRecord.probability == "riskOf"
+									}) when situationRecord.probability != null,
+									(event-indicator : {
+										(status : "ended") when situationRecord.management.life_cycle_end != null,
+										(status : "canceled") when situationRecord.management.life_cycle_cancel != null
+									}) when situationRecord.management != null
+								}) when situationRecord.probability != null and situationRecord.management != null,
+								(other-references : {
+									other-reference : {
+										responsible-event @(xsi#type : 'tmdd:EventReferenceCharm'): {
+											event-id : situationRecord.cause.managed_cause.managed_cause_id,
+											event-update : situationRecord.cause.managed_cause.managed_cause_version,
+											update-time : toDateAndTime(situationRecord.version_date),
+											target : situationRecord.cause.managed_cause.target_class
+										}
+									}
+								}) when situationRecord.cause != null and situationRecord.cause.managed_cause != null,
+								event-headline : {
+									headline : {
+										(laneManagement : "carriageway closures") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "carriagewayClosures",
+										(laneManagement : "contra flow") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "contraflow",
+										(laneManagement : "hard shoulder running in operation") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "hardShoulderRunningInOperation",
+										(laneManagement : "keep to the left") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "keepToTheLeft",
+										(laneManagement : "keep to the right") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "keepToTheRight",
+										(laneManagement : "lane closures") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "laneClosures",
+										(laneManagement : "lanes deviated") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "lanesDeviated",
+										(laneManagement : "narrow lanes") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "narrowLanes",
+										(laneManagement : "new roadworks layout") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "newRoadworksLayout",
+										(laneManagement : "overnight closures") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "overnightClosures",
+										(laneManagement : "road cleared") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "roadCleared",
+										(laneManagement : "road closed") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "roadClosed",
+										(laneManagement : "use of specified lanes or carriageways allowed") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "useOfSpecifiedLanesOrCarriagewaysAllowed",
+										(laneManagement : "tidal flow lane in operation") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "tidalFlowLaneInOperation",
+										(laneManagement : "use specified lanes or carriageways") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "useSpecifiedLanesOrCarriageways",
+										(laneManagement : "other") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement"
+											and situationRecord.network_management.road_or_carriageway_or_lane_management.road_or_carriageway_or_lane_management_type == "other",
+										(reroutingManagement : "follow diversion signs") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "followDiversionSigns",
+										(reroutingManagement : "follow local diversion") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "followLocalDiversion",
+										(reroutingManagement : "foloow special markers") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "followSpecialMarkers",
+										(reroutingManagement : "use entry") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "useEntry",
+										(reroutingManagement : "use exit") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "useExit",
+										(reroutingManagement : "use intersection or junction") when situationRecord.situation_record_type == "ReroutingManagement"
+											and situationRecord.network_management.rerouting_management.rerouting_management_type == "useIntersectionOrJunction",
+										(accidents-and-incidents : "accident") when situationRecord.situation_record_type == "Accident"	and situationRecord.accident.accident_type == "accident",
+										(accidents-and-incidents : "accident involving a bicycle") when situationRecord.situation_record_type == "Accident"	and situationRecord.accident.accident_type == "accidentInvolvingBicycles",
+										(accidents-and-incidents : "accident involving a bus") when situationRecord.situation_record_type == "Accident"	and situationRecord.accident.accident_type == "accidentInvolvingBuses",
+										(accidents-and-incidents : "accident involving hazardous materials") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingHazardousMaterials",
+										(accidents-and-incidents : "accident invovling a semi trailer") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingHeavyLorries",
+										(accidents-and-incidents : "accident involving mass transit") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingMassTransitVehicle",
+										(accidents-and-incidents : "accident involving a moped") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingMopeds",
+										(accidents-and-incidents : "accident involving a motorcycle") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingMotorcycles",
+										(accidents-and-incidents : "accident involving radioactive materials") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingRadioactiveMaterial",
+										(accidents-and-incidents : "accident involving a train") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "accidentInvolvingTrain",
+										(accidents-and-incidents : "chemical spill") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "chemicalSpillageAccident",
+										(accidents-and-incidents : "incident") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "collision",
+										(accidents-and-incidents : "accident involving an animal") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "collisionWithAnimal",
+										(accidents-and-incidents : "accident involving obstruction") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "collisionWithObstruction",
+										(accidents-and-incidents : "accident involving a pedestrian") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "collisionWithPerson",
+										(accidents-and-incidents : "earlier accident") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "earlierAccident",
+										(accidents-and-incidents : "fuel spill") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "fuelSpillageAccident",
+										(accidents-and-incidents : "jackknifed semi trailer") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "jackknifedArticulatedLorry",
+										(accidents-and-incidents : "jackknifed trailer home") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "jackknifedCaravan",
+										(accidents-and-incidents : "jackknifed trailer") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "jackknifedTrailer",
+										(accidents-and-incidents : "multi vehicle incident") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "multipleVehicleCollision",
+										(accidents-and-incidents : "multi vehicle accident") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "multivehicleAccident",
+										(accidents-and-incidents : "oil spill") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "oilSpillageAccident",
+										(accidents-and-incidents : "overturned semi trailer") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "overturnedHeavyLorry",
+										(accidents-and-incidents : "overturned trailer") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "overturnedTrailer",
+										(accidents-and-incidents : "overturned vehicle") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "overturnedVehicle",
+										(accidents-and-incidents : "serious accident") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "seriousAccident",
+										(accidents-and-incidents : "vehicle off road") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "vehicleOffRoad",
+										(accidents-and-incidents : "vehicle spun out") when situationRecord.situation_record_type == "Accident"	and situationRecord.accident.accident_type == "vehicleSpunAround",
+										(accidents-and-incidents : "other") when situationRecord.situation_record_type == "Accident" and situationRecord.accident.accident_type == "other",
+										(disturbances : "accident investigation") when situationRecord.situation_record_type == "AuthorityOperation" and situationRecord.authority_operation.authority_operation_type == "accidentInvestigationWork",
+										(disturbances : "civil emergency") when situationRecord.situation_record_type == "AuthorityOperation" and situationRecord.authority_operation.authority_operation_type == "civilEmergency",
+										(disturbances : "checkpoint") when situationRecord.situation_record_type == "AuthorityOperation" and situationRecord.authority_operation.authority_operation_type == "policeCheckPoint",
+										(precipitation : "blizzard") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "blizzard",
+										(precipitation : "damaging hail") when situationRecord.situation_record_type == "PoorEnvironmentConditions"	and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "damagingHail",
+										(precipitation : "frost") when situationRecord.situation_record_type == "PoorEnvironmentConditions"	and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "frost",
+										(precipitation : "hail") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "hail",
+										(precipitation : "heavy frost") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "heavyFrost",
+										(precipitation : "heavy rain") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "heavyRain",
+										(precipitation : "heavy snow") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "heavySnowfall",
+										(precipitation : "rain") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "rain",
+										(precipitation : "showers") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "showers",
+										(precipitation : "sleet") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "sleet",
+										(precipitation : "snow showers") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "snowfall",
+										(precipitation : "thunderstorms") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "thunderstorms",
+										(precipitation : "winter storm") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "winterStorm",
+										(visibillity-and-air-quality : "blowing dust") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "blowingDust",
+										(visibillity-and-air-quality : "blowing snow") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "blowingSnow",
+										(visibillity-and-air-quality : "dense fog") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "denseFog",
+										(visibillity-and-air-quality : "fog") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "fog",
+										(visibillity-and-air-quality : "freezing fog") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "freezingFog",
+										(visibillity-and-air-quality : "low sun glare") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "lowSunGlare",
+										(visibillity-and-air-quality : "patchy fog") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "patchyFog",
+										(visibillity-and-air-quality : "sandstorms") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "sandstorms",
+										(visibillity-and-air-quality : "severe exhaust pollution") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "severeExhaustPollution",
+										(visibillity-and-air-quality : "severe smog") when situationRecord.situation_record_type == "PoorEnvironmentConditions"	and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "severeSmog",
+										(visibillity-and-air-quality : "smog alert") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "smogAlert",
+										(visibillity-and-air-quality : "smoke hazard") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "smokeHazard",
+										(visibillity-and-air-quality : "spray hazard") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "sprayHazard",
+										(visibillity-and-air-quality : "swarms of insects") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "swarmsOfInsects",
+										(visibillity-and-air-quality : "visibility reduced") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "visibilityReduced",
+										(visibillity-and-air-quality : "white out") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "whiteout",
+										(winds : "crosswinds") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "crosswinds",
+										(winds : "gale force winds") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "gales",
+										(winds : "gusty winds") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "gustyWinds",
+										(winds : "hurricane force winds") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "hurricaneForceWinds",
+										(winds : "strong gusts of wind") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "strongGustsOfWind",
+										(winds : "strong winds") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "strongWinds",
+										(winds : "tornado") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "tornadoes",
+										(winds : "very strong gusts of wind") when situationRecord.situation_record_type == "PoorEnvironmentConditions"	and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "veryStrongGustsOfWind",
+										(temperature : "extreme heat") when situationRecord.situation_record_type == "PoorEnvironmentConditions" and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "extremeHeat",
+										(temperature : "temperature falling") when situationRecord.situation_record_type == "PoorEnvironmentConditions"	and situationRecord.conditions.poor_environment_conditions.poor_environment_conditions_type == "temperatureFalling",
+										(pavement-conditions : "diesel on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "dieselOnRoad",
+										(pavement-conditions : "leaves on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "leavesOnRoad",
+										(pavement-conditions : "loose gravel") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "looseChippings",
+										(pavement-conditions : "loose sand on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConitions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "looseSandOnRoad",
+										(pavement-conditions : "mud on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "mudOnRoad",
+										(pavement-conditions : "oil on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "oilOnRoad",
+										(pavement-conditions : "fuel on roadway") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "petrolOnRoad",
+										(pavement-conditions : "road surface in poor condition") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "roadSurfaceInPoorCondition",
+										(pavement-conditions : "slippery") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "slipperyRoad",
+										(pavement-conditions : "other") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "other",
+										(pavement-conditions : "black ice") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "blackIce",
+										(pavement-conditions : "deep snow") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "deepSnow",
+										(pavement-conditions : "dry pavement") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "dry",
+										(pavement-conditions : "freezing of wet roads") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "freezingOfWetRoads",
+										(pavement-conditions : "freezing rain") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "freezingRain",
+										(pavement-conditions : "fresh snow") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "freshSnow",
+										(pavement-conditions : "ice") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "ice",
+										(pavement-conditions : "ice build up") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "iceBuildUp",
+										(pavement-conditions : "icy patches") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "icyPatches",
+										(pavement-conditions : "loose snow") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "looseSnow",
+										(pavement-conditions : "packed snow") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "packedSnow",
+										(pavement-conditions : "melting tar") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "roadSurfaceMelting",
+										(pavement-conditions : "slippery") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "slipperyRoad",
+										(pavement-conditions : "slush") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "slushOnRoad",
+										(pavement-conditions : "frozen slush") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "slushStrings",
+										(pavement-conditions : "snow drifts") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "snowDrifts",
+										(pavement-conditions : "snow on roadway") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "snowOnTheRoad",
+										(pavement-conditions : "surface water hazard") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions"	and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "surfaceWater",
+										(pavement-conditions : "wet pavement") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "wet",
+										(pavement-conditions : "wet and icy roads") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "wetAndIcyRoad",
+										(pavement-conditions : "other") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions" and situationRecord.conditions.non_weather_related_road_conditions.non_weather_related_road_conditions_type == "other",
+										(obstruction : "animal on roadway") when situationRecord.situation_record_type == "AnimalPresenceObstruction" and situationRecord.obstruction.animal_presence_obstruction.animal_presence_obstruction_type == "animalsOnTheRoad",
+										(obstruction : "herd of animals on roadway") when situationRecord.situation_record_type == "AnimalPresenceObstruction" and situationRecord.obstruction.animal_presence_obstruction.animal_presence_obstruction_type == "herdOfAnimalsOnTheRoad",
+										(obstruction : "large animal on roadway") when situationRecord.situation_record_type == "AnimalPresenceObstruction"	and situationRecord.obstruction.animal_presence_obstruction.animal_presence_obstruction_type == "largeAnimalsOnTheRoad",
+										(disasters : "earthquake damage") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "earthquakeDamage",
+										(obstruction : "fallen trees") when situationRecord.situation_record_type == "EnvironmentalObstruction"	and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "fallenTrees",
+										(disasters : "falling ice") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "fallingIce",
+										(disasters : "flash flood") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "flashFloods",
+										(disasters : "major flood") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "flooding",
+										(disasters : "forest fire") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "forestFire",
+										(disasters : "grass fire") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "grassFire",
+										(disasters : "land slips") when situationRecord.situation_record_type == "EnvironmentalObstruction"	and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "landslips",
+										(disasters : "mud slide") when situationRecord.situation_record_type == "EnvironmentalObstruction"	and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "mudSlide",
+										(disasters : "serious fire") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "seriousFire",
+										(disasters : "sewer overflow") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "sewerOverflow",
+										(disasters : "smoke or fumes") when situationRecord.situation_record_type == "EnvironmentalObstruction"	and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "smokeOrFumes",
+										(disasters : "storm damage") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "stormDamage",
+										(disasters : "other") when situationRecord.situation_record_type == "EnvironmentalObstruction" and situationRecord.obstruction.environmental_obstruction.environmental_obstruction_type == "other",
+										(obstruction : "air crash") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "airCrash",
+										(obstruction : "clearance work") when situationRecord.situation_record_type == "GeneralObstruction"	and situationRecord.obstruction.general_obstruction.general_obstruction_type == "clearanceWork",
+										(obstruction : "bicyclists on roadway") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "cyclistsOnRoadway",
+										(obstruction : "debris on roadway") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "debris",
+										(obstruction : "explosion") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "explosion",
+										(obstruction : "explosion hazard") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "explosionHazard",
+										(obstruction : "high speed chase") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "highSpeedChase",
+										(obstruction : "house fire") when situationRecord.situation_record_type == "GeneralObstruction"	and situationRecord.obstruction.general_obstruction.general_obstruction_type == "houseFire",
+										(obstruction : "industrial accident") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "industrialAccident",
+										(obstruction : "object on roadway") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "objectOnTheRoad",
+										(obstruction : "objects falling from moving vehicle") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "objectsFallingFromMovingVehicle",
+										(obstruction : "people on roadway") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "peopleOnRoadway",
+										(obstruction : "rail crash") when situationRecord.situation_record_type == "GeneralObstruction"	and situationRecord.obstruction.general_obstruction.general_obstruction_type == "railCrash",
+										(obstruction : "reckless driver") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "recklessDriver",
+										(obstruction : "rescue and recovery work") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "rescueAndRecoveryWork",
+										(obstruction : "frost jacking") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "severeFrostDamagedRoadway",
+										(obstruction : "shed load") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "shedLoad",
+										(obstruction : "spillage from moving vehicle") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "spillageOccurringFromMovingVehicle",
+										(obstruction : "spillage on roadway") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "spillageOnTheRoad",
+										(obstruction : "unprotected accident area") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "unprotectedAccidentArea",
+										(obstruction : "other") when situationRecord.situation_record_type == "GeneralObstruction" and situationRecord.obstruction.general_obstruction.general_obstruction_type == "other",
+										(obstruction : "burst pipe") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "burstPipe",
+										(obstruction : "broken water main") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "burstWaterMain",
+										(obstruction : "collapsed sewer") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "collapsedSewer",
+										(obstruction : "damaged bridge") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedBridge",
+										(obstruction : "damaged crash barrier") when situationRecord.situation_record_type == "InfrastructureDamageObstruction"	and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedCrashBarrier",
+										(obstruction : "damaged gantry") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedGantry",
+										(obstruction : "damaged road surface") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedRoadSurface",
+										(obstruction : "damaged tunnel") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedTunnel",
+										(obstruction : "damaged viaduct") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "damagedViaduct",
+										(obstruction : "downed power cables") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "fallenPowerCables",
+										(obstruction : "gas leak") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "gasLeak",
+										(obstruction : "weak bridge") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "weakBridge",
+										(obstruction : "other infrastructure") when situationRecord.situation_record_type == "InfrastructureDamageObstruction" and situationRecord.obstruction.infrastructure_damage_obstruction.infrastructure_damage_obstruction_type == "other",
+										(obstruction : "abandoned vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "bandonedVehicle",
+										(obstruction : "broken down bus") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "brokenDownBus",
+										(obstruction : "broken down heavy lorry") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "brokenDownHeavyLorry",
+										(obstruction : "broken down vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "brokenDownVehicle",
+										(obstruction : "convoy") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "convoy",
+										(obstruction : "damaged vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "damagedVehicle",
+										(obstruction : "emergency vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "emergencyVehicle",
+										(obstruction : "overheight vehicle") when situationRecord.situation_record_type == "VehicleObstruction"	and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "overheightVehicle",
+										(obstruction : "prohibited vehicle on the roadway") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "prohibitedVehicleOnTheRoadway",
+										(obstruction : "slow vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "slowVehicle",
+										(obstruction : "snow plough") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "snowplough",
+										(obstruction : "unlit vehicle on the road") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "unlitVehicleOnTheRoad",
+										(obstruction : "vehicle on fire") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "vehicleOnFire",
+										(obstruction : "vehicle carrying hazardous materials") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "vehicleCarryingHazardousMaterials",
+										(obstruction : "vehicle on wrong carrageway") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "vehicleOnWrongCarriageway",
+										(obstruction : "vehicle stuck under bridge") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "vehicleStuckUnderBridge",
+										(obstruction : "vehicle with overwide load") when situationRecord.situation_record_type == "VehicleObstruction"	and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "vehicleWithOverwideLoad",
+										(obstruction : "other vehicle") when situationRecord.situation_record_type == "VehicleObstruction" and situationRecord.obstruction.vehicle_obstruction.vehicle_obstruction_type == "other"			
+									}
+								},
+								(event-element-details : {
+									event-element-detail : {
+										(
+											event-locations : {
+												(situationRecord.*situation_record_location map {
+													event-location : {
+														location-on-link : {
+															link-ownership : $.situation_record_location_type,
+															link-designator : $.index,
+															second-link-designator : $.part_of_alternative_route,
+															primary-location : {
+																geo-location @(xsi#type : 'tmdd:GeoLocationCharm') : {
+																	latitude : $.point_location_for_display_wgs84.display_latitude,
+																	longitude : $.point_location_for_display_wgs84.display_longitude,
+																	(position-bps-code : $.point_location_for_display_bps) when $.point_location_for_display_bps != null,
+																	(carriageway : $.linear_supplementory_pos_description.carriageway) when $.linear_supplementory_pos_description != null,
+																	(length : $.linear_supplementory_pos_description.length_affected) when $.linear_supplementory_pos_description != null and $.linear_supplementory_pos_description.length_affected != null,
+																	(lane-list : {
+																		($.linear_supplementory_pos_description.*lane map {
+																			specific-lane : $
+																		})
+																	}) when $.linear_supplementory_pos_description != null and $.linear_supplementory_pos_description.*lane != null
+																}
+															},
+															(alternate-designations : {
+																alternate-designation : {
+																	primary-location : {
+																		geo-location @(xsi#type : 'tmdd:GeoLocationCharm') : {
+																			latitude : $.linear_coordinates_start_point_wgs84.start_latitude,
+																			longitude : $.linear_coordinates_start_point_wgs84.start_longitude,
+																			(position-bps-code : $.linear_coordinates_start_point_bps) when $.linear_coordinates_start_point_bps != null
+																		}
+																	},
+																	(secondary-location : {
+																		geo-location @(xsi#type : 'tmdd:GeoLocationCharm') : {
+																			latitude : $.linear_coordinates_end_point_wgs84.end_latitude,
+																			longitude : $.linear_coordinates_end_point_wgs84.end_longitude,
+																			(position-bps-code : $.linear_coordinates_end_point_bps) when $.linear_coordinates_end_point_bps != null
+																		}
+																	}) when $.linear_coordinates_end_point_wgs84 != null
+																}
+															}) when $.linear_coordinates_start_point_wgs84 != null
+														}
+													}
+												})
+											}
+										) when situationRecord.*situation_record_location != null,
+										(event-times : {
+											update-time : toDateAndTime(situationRecord.version_date),
+											(valid-period : {
+												estimated-duration : situationRecord.impact.delays.delay_time
+											}) when situationRecord.impact != null or situationRecord.impact.delays != null,
+											start-time : toDateAndTime(situationRecord.validity.start_date),
+											expected-end-time : toDateAndTime(situationRecord.validity.end_date)
+										})  when situationRecord.validity != null,
+										(event-lanes : {
+											event-lane : {
+												lanes-total-original : situationRecord.impact.number_lanes_total,
+												lanes-total-affected : situationRecord.impact.number_lanes_restricted
+											}
+										}) when situationRecord.impact != null
+									} 
+								})  when situationRecord.*situation_record_location != null or situationRecord.validity != null
+										or situationRecord.impact != null,
+								(event-comments : {
+									event-comment : situationRecord.cause.non_managed_cause.description
+								}) when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null 
+									 and situationRecord.cause.non_managed_cause.description != null),
+								(conditions-type : "passable with care") when (situationRecord.situation_record_type == "PoorEnvironmentConditions"
+									or situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" or situationRecord.situation_record_type == "WeatherRelatedRoadConditions")
+									 and (situationRecord.conditions.conditions_type != null) and (situationRecord.conditions.conditions_type == "passableWithCare"),
+								(conditions-type : "very hazardous") when (situationRecord.situation_record_type == "PoorEnvironmentConditions"
+									or situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" or situationRecord.situation_record_type == "WeatherRelatedRoadConditions")
+									 and (situationRecord.conditions.conditions_type != null) and (situationRecord.conditions.conditions_type == "veryHazardous"),
+								(conditions-type : "winter conditions") when (situationRecord.situation_record_type == "PoorEnvironmentConditions"
+									or situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" or situationRecord.situation_record_type == "WeatherRelatedRoadConditions")
+									 and (situationRecord.conditions.conditions_type != null) and (situationRecord.conditions.conditions_type == "winterConditions"),
+								(conditions-type : situationRecord.conditions.conditions_type) when (situationRecord.situation_record_type == "PoorEnvironmentConditions"
+									or situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions" or situationRecord.situation_record_type == "WeatherRelatedRoadConditions")
+									and (situationRecord.conditions.conditions_type != null) and (situationRecord.conditions.conditions_type == "impossible" 
+									or situationRecord.conditions.conditions_type == "hazardous" or situationRecord.conditions.conditions_type == "normal"
+									or situationRecord.conditions.conditions_type == "other"),
+								(compliance-option : situationRecord.network_management.compliance_option) when situationRecord.network_management != null,
+								(signed-rerouting : situationRecord.network_management.rerouting_management.signed_rerouting) when situationRecord.network_management != null and 
+									situationRecord.network_management.rerouting_management != null and situationRecord.network_management.rerouting_management.signed_rerouting != null,
+								(vehicle-involved-with-hazardous-goods : {
+									(situationRecord.accident.*vehicle_involved_with_hazardous_goods map {
+										list-item : $.chemical_name	
+									})
+								}) when situationRecord.accident != null and situationRecord.accident.*vehicle_involved_with_hazardous_goods != null,
+								(animal-alive : situationRecord.obstruction.animal_presence_obstruction.alive) when situationRecord.situation_record_type == "AnimalPresenceObstruction",
+								(rerouting-itinerary-description : situationRecord.network_management.rerouting_management.rerouting_itinerary_description) when situationRecord.network_management != null and 
+									situationRecord.network_management.rerouting_management != null and situationRecord.network_management.rerouting_management.rerouting_itinerary_description != null,
+								(non-managed-cause-type : "accident") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "accident"),
+								(non-managed-cause-type : "congestion") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "congestion"),
+								(non-managed-cause-type : "earlier accident") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "earlierAccident"),
+								(non-managed-cause-type : "earlier event") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "earlierEvent"),
+								(non-managed-cause-type : "excessive heat") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "excessiveHeat"),
+								(non-managed-cause-type : "frost") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "frost"),
+								(non-managed-cause-type : "holiday traffic") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "holidayTraffic"),
+								(non-managed-cause-type : "infrastructure failure") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "infrastructureFailure"),
+								(non-managed-cause-type : "large number of visitors") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "largeNumbersOfVisitors"),
+								(non-managed-cause-type : "obstruction") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "obstruction"),
+								(non-managed-cause-type : "pollution alert") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "pollutionAlert"),
+								(non-managed-cause-type : "poor weather") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "poorWeather"),
+								(non-managed-cause-type : "problems at border post") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "problemsAtBorderPost"),
+								(non-managed-cause-type : "problems at border post") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "problemsOnLocalRoads"),
+								(non-managed-cause-type : "roadside event") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "roadsideEvent"),
+								(non-managed-cause-type : "rubber necking") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "rubberNecking"),
+								(non-managed-cause-type : "security incident") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "securityIncident"),
+								(non-managed-cause-type : "shear weight of traffic") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "shearWeightOfTraffic"),
+								(non-managed-cause-type : "technical problems") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "technicalProblems"),
+								(non-managed-cause-type : "terrorism") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "terrorism"),
+								(non-managed-cause-type : "other") when (situationRecord.cause != null and situationRecord.cause.non_managed_cause != null) 
+									and (situationRecord.cause.non_managed_cause.non_managed_cause_type == "other"),
+								(situation-record-type : "road or carriageway or lane management") when situationRecord.situation_record_type == "RoadOrCarriagewayOrLaneManagement",
+								(situation-record-type : "rerouting management") when situationRecord.situation_record_type == "ReroutingManagement",
+								(situation-record-type : "accident") when situationRecord.situation_record_type == "Accident",
+								(situation-record-type : "abnormal traffic") when situationRecord.situation_record_type == "AbnormalTraffic",
+								(situation-record-type : "activity") when situationRecord.situation_record_type == "Activity",
+								(situation-record-type : "authority operation") when situationRecord.situation_record_type == "AuthorityOperation",
+								(situation-record-type : "disturbance activity") when situationRecord.situation_record_type == "DisturbanceActivity",
+								(situation-record-type : "public event") when situationRecord.situation_record_type == "PublicEvent",
+								(situation-record-type : "poor environment conditions") when situationRecord.situation_record_type == "PoorEnvironmentConditions",
+								(situation-record-type : "non weather related road conditions") when situationRecord.situation_record_type == "NonWeatherRelatedRoadConditions",
+								(situation-record-type : "weather related road conditions") when situationRecord.situation_record_type == "WeatherRelatedRoadConditions",
+								(situation-record-type : "animal presence obstruction") when situationRecord.situation_record_type == "AnimalPresenceObstruction",
+								(situation-record-type : "environmental obstruction") when situationRecord.situation_record_type == "EnvironmentalObstruction",
+								(situation-record-type : "general obstruction") when situationRecord.situation_record_type == "GeneralObstruction",
+								(situation-record-type : "infrastructure damage obstruction") when situationRecord.situation_record_type == "InfrastructureDamageObstruction",
+								(situation-record-type : "vehicle obstruction") when situationRecord.situation_record_type == "VehicleObstruction"
+							}
+						}))
+					}
+				}
+			}
+		)
+	}) when payload.situation_info_reply.*situation_publish != null
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+
+    </sub-flow>
+
+</mule>

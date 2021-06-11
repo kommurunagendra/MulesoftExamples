@@ -1,0 +1,73 @@
+<tmdd:genericDeviceStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+  </c2cMsgAdmin>
+  <generic-status-item>
+    <device-status-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceStatusHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>wind-01</device-id>
+      <device-status>on</device-status>
+      <device-type>wind sensor</device-type>
+    </device-status-header>
+    <generic-device-list>
+      <generic-object>
+        <object-name>status</object-name>
+        <generic-element-list>
+          <generic-element>
+            <element-name>state</element-name>
+            <element-value>No connection with meetnet</element-value>
+          </generic-element>
+        </generic-element-list>
+      </generic-object>
+      <generic-object>
+        <object-name>advice</object-name>
+        <generic-element-list>
+          <generic-element>
+            <element-name>time</element-name>
+            <element-value>1970-01-01T00:00:00Z</element-value>
+          </generic-element>
+          <generic-element>
+            <element-name>Roompot</element-name>
+            <element-value>50</element-value>
+          </generic-element>
+        </generic-element-list>
+      </generic-object>
+    </generic-device-list>
+  </generic-status-item>
+  <generic-status-item>
+    <device-status-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceStatusHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>wind-02</device-id>
+      <device-status>on</device-status>
+      <device-type>wind sensor</device-type>
+    </device-status-header>
+    <generic-device-list>
+      <generic-object>
+        <object-name>status</object-name>
+        <generic-element-list>
+          <generic-element>
+            <element-name>state</element-name>
+            <element-value>No connection with meetnet</element-value>
+          </generic-element>
+        </generic-element-list>
+      </generic-object>
+      <generic-object>
+        <object-name>advice</object-name>
+        <generic-element-list>
+          <generic-element>
+            <element-name>time</element-name>
+            <element-value>1970-01-01T00:00:00Z</element-value>
+          </generic-element>
+          <generic-element>
+            <element-name>Roompot</element-name>
+            <element-value>50</element-value>
+          </generic-element>
+        </generic-element-list>
+      </generic-object>
+    </generic-device-list>
+  </generic-status-item>
+</tmdd:genericDeviceStatusUpdateMsg>

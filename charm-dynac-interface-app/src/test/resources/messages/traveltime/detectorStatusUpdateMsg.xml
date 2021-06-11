@@ -1,0 +1,21 @@
+<tmdd:detectorStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+  </c2cMsgAdmin>
+  <detector-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DetectorStatusCharm">
+    <detector-station-status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>traveltimeId1</device-id>
+      <device-status>on</device-status>
+      <last-comm-time>
+        <date>20011231</date>
+        <time>120000</time>
+      </last-comm-time>
+      <device-type>traveltime</device-type>
+      <duration>10</duration>
+    </detector-station-status-header>
+    <detector-list/>
+  </detector-status-item>
+</tmdd:detectorStatusUpdateMsg>

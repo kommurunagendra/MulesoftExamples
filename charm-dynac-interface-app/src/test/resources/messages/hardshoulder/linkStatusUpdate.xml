@@ -1,0 +1,62 @@
+<tmdd:linkStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<!--Optional: -->
+	<c2cMsgAdmin>
+		<!--Optional: -->
+		<informationalText>gero et</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+		<!--Optional: -->
+		<subscriptionName>quae divum incedo</subscriptionName>
+		<!--Optional: -->
+		<subscriptionFrequency>7</subscriptionFrequency>
+		<!--Optional: -->
+		<subscriptionCount>7</subscriptionCount>
+	</c2cMsgAdmin>
+	<!--Optional: -->
+	<link-status-list>
+		<link-status-item>
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<link-list>
+				<link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+					<network-id>hardshoulder1</network-id>
+					<link-id>hardshoulder1</link-id>
+					<!--Optional: -->
+					<link-name>hardshoulder name</link-name>
+					<link-status>partly open</link-status>
+					<last-update-time>
+                        <date>20061114</date>
+                        <time>181351</time>
+                     </last-update-time>
+                     <traffic-network-type>hard shoulder status</traffic-network-type>
+				</link>
+				<link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+					<network-id>segment1</network-id>
+					<link-id>segment1</link-id>
+					<!--Optional: -->
+					<link-name>segment name</link-name>
+					<link-status>open</link-status>
+					<last-update-time>
+                        <date>20061114</date>
+                        <time>181351</time>
+                     </last-update-time>
+					<alternate-link-name>hardshoulder1</alternate-link-name>
+					<traffic-network-type>hard shoulder status</traffic-network-type>
+				</link>
+				<link xsi:type="tmdd:LinkStatusListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+					<network-id>segment2</network-id>
+					<link-id>segment2</link-id>
+					<!--Optional: -->
+					<link-name>segment name2</link-name>
+					<link-status>open</link-status>
+					<last-update-time>
+                        <date>20061114</date>
+                        <time>181351</time>
+                     </last-update-time>
+					<alternate-link-name>hardshoulder1</alternate-link-name>
+					<traffic-network-type>hard shoulder status</traffic-network-type>
+				</link>
+			</link-list>
+		</link-status-item>
+	</link-status-list>
+</tmdd:linkStatusUpdateMsg>

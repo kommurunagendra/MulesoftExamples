@@ -1,0 +1,44 @@
+<tmdd:gateInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+  </c2cMsgAdmin>
+  <gate-inventory-item>
+    <device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceInventoryHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>grandbridge1</device-id>
+      <device-location>
+        <latitude>22.0</latitude>
+        <longitude>33.0</longitude>
+      </device-location>
+      <device-name>Grand Bridge</device-name>
+      <device-description>Grand Bridge over the canal</device-description>
+      <device-type>bridge</device-type>
+      <scan-on-off>true</scan-on-off>
+      <scan-interval>333</scan-interval>
+      <inventory-action>add</inventory-action>
+      <position-bps-code>position-bps-code</position-bps-code>
+      <data-owner>dynac</data-owner>
+    </device-inventory-header>
+  </gate-inventory-item>
+  <gate-inventory-item>
+    <device-inventory-header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:DeviceInventoryHeaderCharm">
+      <organization-information>
+        <organization-id>RWS</organization-id>
+      </organization-information>
+      <device-id>smallbridge1</device-id>
+      <device-location>
+        <latitude>55.0</latitude>
+        <longitude>553.0</longitude>
+      </device-location>
+      <device-name>Small Bridge</device-name>
+      <device-description>Small bridge over the canal</device-description>
+      <device-type>bridge</device-type>
+      <scan-on-off>false</scan-on-off>
+      <scan-interval>334</scan-interval>
+      <inventory-action>remove</inventory-action>
+      <data-owner>dynac</data-owner>
+    </device-inventory-header>
+  </gate-inventory-item>
+</tmdd:gateInventoryUpdateMsg>

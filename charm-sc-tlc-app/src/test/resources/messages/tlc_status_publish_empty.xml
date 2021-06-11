@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<tlc_status_publish xmlns="http://tlc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>6bc0be22-3d5b-4629-992f-82c2471aeadc</uuid>
+    </message_id>
+    <message_create_date>2017-04-10T11:21:14.719Z</message_create_date>
+  </meta>
+  <subscription_id>
+    <uuid>00000000-0000-0000-0000-000000000000</uuid>
+  </subscription_id>
+  <tlc_publish>
+    <tlc_id>
+      <id>id1</id>
+    </tlc_id>
+  </tlc_publish>
+</tlc_status_publish>

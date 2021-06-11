@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="demo-wsdlFlow" doc:id="d031686e-1262-43c0-8c68-593fe35334e0" >
+		<http:listener doc:name="Listener" doc:id="b0156f87-13cd-4ddc-a34a-dcc1682e3997" />
+		<apikit-soap:router doc:name="SOAP Router" doc:id="2bc10b3a-e447-4de1-95dc-6e5b3472b3dd" />
+	</flow>
+</mule>

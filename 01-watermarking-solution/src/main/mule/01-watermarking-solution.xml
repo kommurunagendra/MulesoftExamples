@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="aac8d5a5-9723-481c-a389-4972e0d3522d" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="muletrainingdb" />
+	</db:config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="37b81b06-61fb-4201-a6aa-a3b7e487d82e" >
+		<file:connection workingDir="C:\files" />
+	</file:config>
+	<flow name="WaterMarking" doc:id="0927c8c6-6d77-4993-9134-d2fbd4f6b302">
+		<db:listener table="product" doc:name="On Table Row" doc:id="d39d3cf2-6f39-4f50-ae2f-ec64565d246c" config-ref="Database_Config" watermarkColumn="product_id">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</db:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="5baf4836-e587-40d5-9d6d-7c9e225a15e3" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="0f43dc70-0ebc-4bd0-8da4-87b27b37315d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=false
+---
+[payload]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="d8d70abf-6e1f-42e7-a318-e538b2c14b49" config-ref="File_Config" path="output/products.csv" mode="APPEND"/>
+	</flow>
+</mule>

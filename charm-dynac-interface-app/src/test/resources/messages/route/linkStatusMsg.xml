@@ -1,0 +1,42 @@
+<tmdd:linkStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<link-status-item>
+		<organization-information>
+			<organization-id>RWS</organization-id>
+		</organization-information>
+		<link-list>
+			<link xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				xsi:type="tmdd:LinkStatusListCharm">
+				<network-id>text</network-id>
+				<link-id>id1</link-id>
+				<link-status>open</link-status>
+				<delay>0</delay>
+				<travel-time>0</travel-time>
+				<last-update-time>
+					<date>20011231</date>
+					<time>120000</time>
+				</last-update-time>
+				<timestamp-start-average>
+					<date>20011231</date>
+					<time>120000</time>
+				</timestamp-start-average>
+				<timestamp-measure-minute>
+					<date>20011231</date>
+					<time>120000</time>
+				</timestamp-measure-minute>
+				<traffic-jam-length>2.6</traffic-jam-length>
+				<traffic-jam-length-quality>true</traffic-jam-length-quality>
+				<travel-time-quality>true</travel-time-quality>
+				<travel-delay-quality>true</travel-delay-quality>
+				<traffic-averages>
+					<traffic-jam-length>2.6</traffic-jam-length>
+					<traffic-jam-length-quality>true</traffic-jam-length-quality>
+					<travel-time>0</travel-time>
+					<travel-time-quality>true</travel-time-quality>
+					<delay>0</delay>
+					<travel-delay-quality>true</travel-delay-quality>
+				</traffic-averages>
+				<traffic-network-type>route status</traffic-network-type>
+			</link>
+		</link-list>
+	</link-status-item>
+</tmdd:linkStatusMsg>

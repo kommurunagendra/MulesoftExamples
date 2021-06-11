@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/https http://www.mulesoft.org/schema/mule/https/3.5/mule-https.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/3.5/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/3.5/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/3.5/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.5/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/3.5/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/stdio http://www.mulesoft.org/schema/mule/stdio/3.5/mule-stdio.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/3.5/mule-file.xsd
+http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/3.5/mule-test.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:stdio="http://www.mulesoft.org/schema/mule/stdio"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:https="http://www.mulesoft.org/schema/mule/https"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:script="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:core="http://www.mulesoft.org/schema/mule/core"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:mule-xml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:test="http://www.mulesoft.org/schema/mule/test"
+	xmlns:uuid="java:java.util.UUID" xmlns:idm="http://idmap.mapping.cdm.hwn.rws.nl"
+	xmlns:mule="http://www.mulesoft.org/schema/mule/core" xmlns:tbr="http://interface.mtm2.hwn.\rws.nl"
+	xmlns:mi="http://mtm2interface.hwn.rws.nl" xmlns:fi="http://www.w3.org/2005/xpath-functions"
+	xmlns="http://www.mulesoft.org/schema/mule/core">
+	
+	<http:request-config name="HTTP_Request_Configuration"
+		host="${existdb.url.hostname}" port="${existdb.url.portnr}" basePath="/"
+		doc:name="HTTP Request Configuration">
+		<http:basic-authentication username="${existdb.url.username}"
+			password="${existdb.url.password}" />
+	</http:request-config>
+    <flow name="existdb.request">
+        <choice doc:name="Choice">
+            <when expression="${existdb.enabled} == 'true'">
+                <wire-tap>  
+                    <processor-chain> 
+                        <message-properties-transformer overwrite="true" scope="outbound"> 
+                            <add-message-property value="${existdb.collectionname}.inbound" key="RWS_APP"/>  
+                            <add-message-property value="#[groovy:(new Date()).time]" key="RWS_DATE"/> 
+                        </message-properties-transformer>  
+                        <flow-ref name="flow_write_to_existdb"/> 
+                    </processor-chain> 
+                </wire-tap>
+            </when>
+            <otherwise>
+				<!-- REMARK: no-action-transformer is deprecated, it should no
+					longer be used -->
+                <test:no-action-transformer></test:no-action-transformer>
+            </otherwise>
+        </choice>
+    </flow>
+
+	<flow name="existdb.response" >
+		<choice doc:name="Choice">
+			<when expression="${existdb.enabled} == 'true'">
+				<wire-tap>
+					<processor-chain>
+						<message-properties-transformer
+							overwrite="true" scope="outbound">
+							<add-message-property value="${existdb.collectionname}.outbound"
+								key="RWS_APP" />
+							<add-message-property value="#[groovy:(new Date()).time]"
+								key="RWS_DATE" />
+						</message-properties-transformer>
+						<flow-ref name="flow_write_to_existdb" />
+					</processor-chain>
+				</wire-tap>
+			</when>
+			<otherwise>
+				<!-- REMARK: no-action-transformer is deprecated, it should no
+					longer be used -->
+				<test:no-action-transformer />
+			</otherwise>
+		</choice>
+	 </flow>
+	<flow name="flow_write_to_existdb">
+		<mule-xml:xml-prettyprinter-transformer
+			mimeType="text/xml" returnClass="java.lang.String" />
+		<set-property propertyName="Content-Type" value="text/xml"
+			doc:name="Property" />
+        <async doc:name="Async">
+            <http:request config-ref="HTTP_Request_Configuration" path="exist/rest/db/apps/${existdb.collectionname}/#[groovy:(new Date()).time]-#[message:id]" method="PUT" doc:name="HTTP"></http:request>
+        </async>	
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="Existdb is down" level="ERROR"  doc:name="Logger"/>
+        </catch-exception-strategy>			
+  </flow>
+</mule>

@@ -1,0 +1,13 @@
+<tmdd:organizationInformationMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <organization-information-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:OrganizationInformationCharm">
+    <organization-id>id0</organization-id>
+    <organization-name>gotham_otmc</organization-name>
+    <web-service-url>http://www.gotham.nl/otmc_access_url</web-service-url>
+    <timeout>30000</timeout>
+    <scan-on-off>true</scan-on-off>
+    <description>Our nr. 1 otmc client in the whole NL</description>
+    <alive-period>60000</alive-period>
+    <acknowledge-timeout-period>3000</acknowledge-timeout-period>
+    <organization-information-type>otmc-inbound information</organization-information-type>
+  </organization-information-item>
+</tmdd:organizationInformationMsg>

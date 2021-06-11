@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="0660254b-aa93-4037-bb67-f8b099ee2c0d" basePath="/rest" >
+		<http:request-connection host="localhost" port="7070" />
+	</http:request-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="68fa15fb-459b-4f95-bcca-862cf558ce8a" >
+		<wsc:connection wsdlLocation="products.wsdl" service="ProductServicePortService" port="ProductServicePortSoap11" address="http://localhost:6060/soap/ws" />
+	</wsc:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="87a6b424-5bc9-4c72-a61f-37c2a0a144eb" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="muletrainingdb" />
+	</db:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="73d28954-1be8-474d-9bc2-6e9e93b806e3" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="rest-getallproducts" doc:id="5e9186ff-e382-413e-afb3-cd88c1d6066a" >
+		<http:request method="GET" doc:name="Request" doc:id="3c5b28f6-9350-4188-9363-0a311b71c696" config-ref="HTTP_Request_configuration" path="/products"/>
+		<ee:transform doc:name="Transform Message" doc:id="be3eb532-0981-4739-b8d3-55e7cf230585" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="27c121e2-544b-4cd5-8fe9-7cc22790f557" message="rest ---- #[payload]"/>
+	</flow>
+	<flow name="soap-getallproducts" doc:id="1d039391-64c7-42df-ad71-2b9d15a4a3fe" >
+		<wsc:consume operation="getAllProducts" doc:name="Consume" doc:id="65630ea2-0267-4bac-97b9-cdb5c971d3a8" config-ref="Web_Service_Consumer_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="a09674fd-9407-4fae-ae4b-36f0501aa06a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload.body.getAllProductsResponse.products.*product]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="41e4dbb1-bfc3-456e-bae1-0996f95ea025" message="soap ----- #[payload]"/>
+	</flow>
+	<flow name="db-getallproducts" doc:id="3e960fb4-632f-4899-ad61-b981dcb1335d" >
+		<db:select doc:name="Select" doc:id="08bd080d-5f97-46a4-98ba-1d9b67e99b11" config-ref="Database_Config">
+			<db:sql >select * from product</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="d0a043c7-3267-468b-8169-d9b8480293ec" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="831dc9ca-fa08-4488-a386-af5d3408329b" message="db---- #[payload]"/>
+	</flow>
+</mule>

@@ -1,0 +1,24 @@
+ <ns7:detectorDataUpdateMsg xmlns:ns7="http://www.tmdd.org/3/messages" xmlns:ns6="http://bridge.cdm.charm.cgi.com" xmlns:ns5="http://detector.cat.cdm.charm.cgi.com" xmlns:ns2="http://drip.cdm.charm.cgi.com" xmlns:ns4="http://detector.si.cdm.charm.cgi.com" xmlns:ns3="http://bermdrip.cdm.charm.cgi.com">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000004</subscriptionID>
+  </c2cMsgAdmin>
+  <detector-data-item>
+    <organization-information>
+      <organization-id>RWS</organization-id>
+    </organization-information>
+    <detector-list>
+      <detector-data-detail xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns7:DetectorDataDetailCharm">
+        <station-id>os1</station-id>
+        <detector-id>detector1</detector-id>
+        <detection-time-stamp>
+          <date>20011231</date>
+          <time>120000</time>
+        </detection-time-stamp>
+        <vehicle-count>0</vehicle-count>
+        <vehicle-occupancy>0</vehicle-occupancy>
+        <vehicle-speed>0</vehicle-speed>
+        <site-id>fep1</site-id>
+      </detector-data-detail>
+    </detector-list>
+  </detector-data-item>
+</ns7:detectorDataUpdateMsg>

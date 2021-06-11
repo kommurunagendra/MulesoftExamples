@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="mycsv" format="csv">
+      <types:shape format="weave" example="examples/sales.csv"><![CDATA[%dw 2.0
+type mycsv = Array<{|
+  Transaction_date: String, 
+  Product: String, 
+  Price: String, 
+  Payment_Type: String, 
+  Name: String, 
+  City: String, 
+  State: String, 
+  Country: String, 
+  Account_Created: String, 
+  Last_Login: String, 
+  Latitude: String, 
+  Longitude: String
+|}> {"MetadataFormat": "csv"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+        <types:property name="separator" value=","/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#3efe42eb-279e-474b-ae18-1138d98e6b87"/>
+</types:mule>

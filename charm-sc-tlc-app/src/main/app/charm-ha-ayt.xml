@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+	<spring:beans>
+		<context:component-scan base-package="com.cgi.charm.common.ha.util" />
+	</spring:beans>
+	<context:property-placeholder location="classpath:mule-app.properties,classpath:charm-sc-tlc-app.properties,classpath:charm-sc-tlc-app.override.properties" ignore-resource-not-found="true" />
+
+	<configuration doc:name="Configuration">
+		<expression-language>
+			<global-functions><![CDATA[      
+       def getUUID(){
+         return java.util.UUID.randomUUID().toString();
+       }
+       
+       def getCurrentInstant(){
+         return java.time.Instant.now().toString();
+       }
+      ]]>
+			</global-functions>
+		</expression-language>
+	</configuration>
+
+
+	<flow name="charm-ha-ayt-request-response" processingStrategy="synchronous"
+		initialState="stopped">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="1000" />
+			<scripting:component doc:name="Script">
+				<scripting:script engine="Groovy"><![CDATA[registry.get('haUtil').pollMessage(registry['Active_MQ_Temp'],'${ayt.queue.name}')]]></scripting:script>
+			</scripting:component>
+		</poll>
+
+		<expression-filter expression="#[payload.size() &gt; 0]"
+			doc:name="Expression" />
+
+		<set-variable value="#[server.ip]" variableName="serverIp"
+			doc:name="Setting serverIp" />
+		<set-variable value="${instance.name}" variableName="instanceName" doc:name="Setting instanceName" />
+		<set-variable value="${instance.role}" variableName="instanceRole" doc:name="Setting instanceRole" />
+		
+		<foreach doc:name="For Each">
+			<async doc:name="Async">
+				<processor-chain doc:name="Processor Chain">
+					<logger level="DEBUG"
+						message="Received Message : #[payload] : JMSMsgId : #[payload.getJMSMessageID()]" />
+
+					<scripting:component doc:name="Script">
+						<scripting:script engine="Groovy"><![CDATA[
+                flowVars.message = registry.get('haUtil').getTextMessage(payload)
+                
+                return message;
+                ]]></scripting:script>
+					</scripting:component>
+<logger level="TRACE"
+						message="Received Text Message : #[flowVars.message] : JMSMsgId : #[payload.getJMSMessageID()]" />
+					
+					<set-variable variableName="jmsMessageID"
+						value="#[payload.getJMSMessageID()]" doc:name="Setting jmsMessageID" />
+
+					<set-payload value="#[flowVars.message]"
+						doc:description="Setting the request xml to payload" doc:name="Set Payload" />
+
+					<dw:transform-message doc:name="Create ayt_reply based on ayt_request"
+						metadata:id="e6318d71-ae10-467a-9be6-c353564142c2">
+						<dw:input-payload mimeType="application/xml" />
+						<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+{
+   ns0#ayt_reply @(version: '1.0.0'): {
+      ns0#meta_reply: {
+         ns0#message_id: {
+            ns0#uuid: getUUID()
+         },
+         ns0#message_create_date: getCurrentInstant(),
+         ns0#request_id: {
+            ns0#uuid: payload.ns0#ayt_request.ns0#meta.ns0#message_id.ns0#uuid
+         }
+      },
+      ns0#ayt_spec: {
+         ns0#respondent_name: flowVars.instanceName,
+         ns0#respondent_role: flowVars.instanceRole,
+         ns0#respondent_ip: flowVars.serverIp
+      }
+   }
+}]]></dw:set-payload>
+						<dw:set-variable variableName="requestorName"><![CDATA[%dw 1.0
+%output application/java
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+payload.ns0#ayt_request.ns0#ayt_spec.ns0#requestor_name]]></dw:set-variable>
+						<dw:set-variable variableName="requestorRole"><![CDATA[%dw 1.0
+%output application/java
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+payload.ns0#ayt_request.ns0#ayt_spec.ns0#requestor_role]]></dw:set-variable>
+					</dw:transform-message>
+					<object-to-string-transformer
+						doc:name="Object to String" />
+
+						<logger level="TRACE"
+						message="Request : #[flowVars.message] responded with #[payload] : JMSMsgId : #[flowVars.jmsMessageID]" />
+					<choice doc:name="Choice">
+						<when expression="#[!flowVars.requestorRole.equals('${instance.role}')]">
+							<scripting:component doc:name="Script">
+								<scripting:script engine="Groovy"><![CDATA[
+                      registry.get('haUtil').consumeMessage(registry['Active_MQ_Temp'],'${ayt.queue.name}',flowVars.jmsMessageID, payload)
+                      return message;
+                      ]]></scripting:script>
+							</scripting:component>
+
+							<logger level="TRACE"
+								message="Requester role different #[flowVars.requestorRole] : ${instance.role}"
+								doc:name="Logger" />
+						</when>
+						<otherwise>
+							<!-- Will remove the message if the requestor role is same as this 
+								instance role -->
+							<scripting:component doc:name="Script">
+								<scripting:script engine="Groovy"><![CDATA[
+                      registry.get('haUtil').consumeMessageWithoutResponse(registry['Active_MQ_Temp'],'${ayt.queue.name}',flowVars.jmsMessageID, payload)
+                      return message;
+                      ]]></scripting:script>
+							</scripting:component>
+
+							<logger level="TRACE"
+								message="Requester role same #[flowVars.requestorRole] : ${instance.role}"
+								doc:name="Logger" />
+						</otherwise>
+					</choice>
+				</processor-chain>
+			</async>
+		</foreach>
+	</flow>
+</mule>

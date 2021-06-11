@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<drip_inventory_publish
+    xmlns="http://drip.cdm.charm.cgi.com" version="1.0.0">
+    <meta>
+        <message_id>
+            <uuid>c2c3947a-3114-48d0-86d8-84de8c147eba</uuid>
+        </message_id>
+        <message_create_date>2017-08-18T05:02:56Z</message_create_date>
+    </meta>
+    <subscription_id>
+        <uuid>00000000-0000-0000-0000-000000000010</uuid>
+    </subscription_id>
+    <inventory_config>
+        <full_sync>true</full_sync>
+        <inventory_id>
+            <uuid>00000000-0000-0000-0000-000000000010</uuid>
+        </inventory_id>
+        <drip_inventory>
+            <drip_id>
+                <id>deviceId1</id>
+            </drip_id>
+            <action>add</action>
+            <drip_inventory_attr>
+                <name>deviceName1</name>
+                <description>deviceDescription1</description>
+                <scan_enabled>true</scan_enabled>
+                <scan_interval>10</scan_interval>
+                <dms-sign-type>variable message sign VMS</dms-sign-type>
+                <protocol>udp-1.1</protocol>
+                <hostname>127.0.0.1</hostname>
+                <port>80</port>
+                <response_timeout>10</response_timeout>
+                <command_timeout>10</command_timeout>
+                <physical_mounting>gantryMounted</physical_mounting>
+                <vms_type>monochromeGraphic</vms_type>
+                <font_id>font_id_1</font_id>
+                <owner>dynac</owner>
+            </drip_inventory_attr>
+            <drip_location_attr>
+                <position_bps>bps-code</position_bps>
+                <position_wgs84>
+                    <latitude>1.1111</latitude>
+                    <longitude>1.1111</longitude>
+                </position_wgs84>
+            </drip_location_attr>
+        </drip_inventory>
+        <drip_inventory>
+            <drip_id>
+                <id>deviceId2</id>
+            </drip_id>
+            <action>add</action>
+            <drip_inventory_attr>
+                <name>deviceName2</name>
+                <description>deviceDescription2</description>
+                <scan_enabled>true</scan_enabled>
+                <scan_interval>20</scan_interval>
+                <dms-sign-type>variable message sign VMS</dms-sign-type>
+                <protocol>udp-2.2</protocol>
+                <hostname>127.0.0.2</hostname>
+                <port>80</port>
+                <response_timeout>20</response_timeout>
+                <command_timeout>20</command_timeout>
+                <physical_mounting>gantryMounted</physical_mounting>
+                <vms_type>monochromeGraphic</vms_type>
+                <font_id>font_id_1</font_id>
+                <owner>dynac</owner>
+            </drip_inventory_attr>
+            <drip_location_attr>
+                <position_bps>bps-code</position_bps>
+                <position_wgs84>
+                    <latitude>2.2222</latitude>
+                    <longitude>2.2222</longitude>
+                </position_wgs84>
+            </drip_location_attr>
+        </drip_inventory>
+    </inventory_config>
+</drip_inventory_publish>

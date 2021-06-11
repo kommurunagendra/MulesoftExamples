@@ -1,0 +1,27 @@
+<tmdd:gateControlRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+    <authentication>
+        <user-id>unknonw</user-id>
+        <password>unknonw</password>
+        <!--Optional:-->
+        <operator-id>unknonw</operator-id>
+    </authentication>
+    <device-control-request-header xsi:type="tmdd:DeviceControlRequestHeaderCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <authentication>
+            <user-id>unknonw</user-id>
+            <password>unknonw</password>
+            <!--Optional:-->
+            <operator-id>unknonw</operator-id>
+        </authentication>
+        <organization-requesting>
+            <organization-id>baseline</organization-id>
+        </organization-requesting>
+        <device-id>grandbridge1</device-id>
+        <request-id>123456</request-id>
+        <command-request-time>
+            <date>20150917</date>
+            <time>084811222</time>
+        </command-request-time>
+        <device-type>bridge</device-type>
+    </device-control-request-header>
+    <gate-control>closed</gate-control>
+</tmdd:gateControlRequestMsg>

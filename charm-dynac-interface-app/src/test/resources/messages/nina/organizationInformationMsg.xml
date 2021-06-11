@@ -1,0 +1,16 @@
+<tmdd:organizationInformationMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<organization-information-item xsi:type="tmdd:OrganizationInformationCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<organization-id>organization-id-1</organization-id>
+		<organization-name>CBW_Device_1</organization-name>
+		<organization-function>server</organization-function>
+		<alert-port>10051</alert-port>
+		<organization-information-type>nina information</organization-information-type>
+	</organization-information-item>
+	<organization-information-item xsi:type="tmdd:OrganizationInformationCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<organization-id>organization-id-2</organization-id>
+		<organization-name>CBW_Device_2</organization-name>
+		<organization-function>client</organization-function>
+		<alert-port>10052</alert-port>
+		<organization-information-type>nina information</organization-information-type>
+	</organization-information-item>
+</tmdd:organizationInformationMsg>

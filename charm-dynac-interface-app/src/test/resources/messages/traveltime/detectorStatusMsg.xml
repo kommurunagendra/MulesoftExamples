@@ -1,0 +1,21 @@
+<ns2:detectorStatusMsg xmlns:ns2="http://www.tmdd.org/3/messages"
+	xmlns:ns3="http://www.ntcip.org/c2c-message-administration">
+	<detector-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="ns2:DetectorStatusCharm">
+		<detector-station-status-header
+			xsi:type="ns2:DeviceStatusHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>traveltimeId1</device-id>
+			<device-status>on</device-status>
+			<last-comm-time>
+				<date>20011231</date>
+				<time>120000</time>
+			</last-comm-time>
+			<device-type>traveltime</device-type>
+			<duration>10</duration>
+		</detector-station-status-header>
+		<detector-list />
+	</detector-status-item>
+</ns2:detectorStatusMsg>

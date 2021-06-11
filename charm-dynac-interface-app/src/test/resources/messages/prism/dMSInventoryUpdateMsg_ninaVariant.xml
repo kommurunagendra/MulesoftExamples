@@ -1,0 +1,58 @@
+ <tmdd:dMSInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <c2cMsgAdmin>
+            <informationalText>FULLSYNC</informationalText>
+            <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+         </c2cMsgAdmin>
+         <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <device-id>prism_id_1</device-id>
+               <device-location>
+                  <latitude>1.111</latitude>
+                  <longitude>2.222</longitude>
+               </device-location>
+               <device-name>name_1</device-name>
+               <device-description>description_1</device-description>
+               <device-type>cms sign</device-type>
+               <scan-on-off>true</scan-on-off>
+               <scan-interval>1</scan-interval>
+               <inventory-action>add</inventory-action>
+               <parent-device-id>outstation_id_1</parent-device-id>
+               <parent-device-id2>fep_id_1</parent-device-id2>
+               <station-line-number>1</station-line-number>
+               <station-line-position>1</station-line-position>
+               <position-bps-code>111</position-bps-code>
+               <data-owner>dynac</data-owner>
+            </device-inventory-header>
+            <dms-sign-type>variable message sign VMS</dms-sign-type>
+            <prism-type-id>prism_type_id_1</prism-type-id>
+         </dms-inventory-item>
+         <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <device-id>prism_id_2</device-id>
+               <device-location>
+                  <latitude>3.333</latitude>
+                  <longitude>4.444</longitude>
+               </device-location>
+               <device-name>name_2</device-name>
+               <device-description>description_2</device-description>
+               <device-type>cms sign</device-type>
+               <scan-on-off>true</scan-on-off>
+               <scan-interval>2</scan-interval>
+               <inventory-action>remove</inventory-action>
+               <parent-device-id>outstation_id_2</parent-device-id>
+               <parent-device-id2>fep_id_2</parent-device-id2>
+               <station-line-number>2</station-line-number>
+               <station-line-position>2</station-line-position>
+               <position-bps-code>222</position-bps-code>
+               <data-owner>dynac</data-owner>
+            </device-inventory-header>
+            <dms-sign-type>variable message sign VMS</dms-sign-type>
+            <prism-type-id>prism_type_id_2</prism-type-id>
+         </dms-inventory-item>
+      </tmdd:dMSInventoryUpdateMsg>

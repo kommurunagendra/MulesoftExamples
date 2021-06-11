@@ -1,0 +1,31 @@
+<tmdd:organizationInformationUpdateMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID>
+	</c2cMsgAdmin>
+	<organization-list>
+		<organization-information-item xsi:type="tmdd:OrganizationInformationCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-id>organization-id-1</organization-id>
+			<organization-name>CBW_Device_1</organization-name>
+			<organization-function>client</organization-function>
+			<alert-port>10051</alert-port>
+			<inventory-action>add</inventory-action>
+			<scan-on-off>true</scan-on-off>
+			<hostname>hostname-1</hostname>
+			<organization-information-type>nina information</organization-information-type>
+		</organization-information-item>
+		<organization-information-item xsi:type="tmdd:OrganizationInformationCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-id>organization-id-2</organization-id>
+			<organization-name>CBW_Device_2</organization-name>
+			<organization-function>client</organization-function>
+			<alert-port>10052</alert-port>
+			<inventory-action>remove</inventory-action>
+			<scan-on-off>false</scan-on-off>
+			<hostname>hostname-2</hostname>
+			<organization-information-type>nina information</organization-information-type>
+		</organization-information-item>
+	</organization-list>
+</tmdd:organizationInformationUpdateMsg>

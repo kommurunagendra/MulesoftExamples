@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><tmdd:eSSObservationReportUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID>
+  </c2cMsgAdmin>
+  <ess-observation-report-item>
+    <organization-information>
+      <organization-id>RWS</organization-id>
+    </organization-information>
+    <device_type>environmental sensor station</device_type>
+    <station-id>id-1</station-id>
+    <ess-sensor-list>
+      <ess-sensor xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:ESSObservationReportDetailCharm">
+        <ess-sensor-id>id-1</ess-sensor-id>
+        <ess-observation-timestamp>
+          <date>20060504</date>
+          <time>181351000</time>
+        </ess-observation-timestamp>
+        <ess-observation-type>
+          <pavement-data>
+            <surface-temperature>0</surface-temperature>
+            <pavement-temperature>0</pavement-temperature>
+          </pavement-data>
+        </ess-observation-type>
+        <ess-data-set-file-name>filename</ess-data-set-file-name>
+        <ess-data-set-file-directory-path>path</ess-data-set-file-directory-path>
+      </ess-sensor>
+    </ess-sensor-list>
+  </ess-observation-report-item>
+</tmdd:eSSObservationReportUpdateMsg>

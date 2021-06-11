@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wind_info_reply version="1.0.0" xmlns="http://wind.cdm.charm.cgi.com">
+	<meta_reply>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2001-12-31T12:00:00Z</message_create_date>
+		<request_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</request_id>
+	</meta_reply>
+	<message_ref>
+		<property>
+			<key>key</key>
+			<value>value</value>
+		</property>
+	</message_ref>
+	<subscription_config>
+		<subscription_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</subscription_id>
+		<subscription_ref>
+			<property>
+				<key>key</key>
+				<value>value</value>
+			</property>
+		</subscription_ref>
+		<subscription_attr>
+			<subscription_name>subscription_name</subscription_name>
+			<subscription_type>inventory</subscription_type>
+		</subscription_attr>
+		<wps_spec>
+			<wps_id>
+				<id>id</id>
+			</wps_id>
+		</wps_spec>
+	</subscription_config>
+	<wps_publish>
+		<wps_id>
+			<id>deviceId1</id>
+		</wps_id>
+		<wps_status_attr>
+			<status_attr>
+				<time>1970-01-01T00:00:00Z</time>
+				<state>No connection with meetnet</state>
+			</status_attr>
+
+		</wps_status_attr>
+	</wps_publish>
+</wind_info_reply>

@@ -1,0 +1,17 @@
+<tmdd:centerActiveUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+  </c2cMsgAdmin>
+  <center-active-update xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="tmdd:CenterActiveInformation">
+    <organization-information>
+      <organization-id>RWS</organization-id>
+    </organization-information>
+    <center-id>id0</center-id>
+    <center-name>OTMC Name</center-name>
+    <last-comm-time>
+      <date>20060504</date>
+      <time>181351</time>
+    </last-comm-time>
+    <center-comm-status>operational</center-comm-status>
+  </center-active-update>
+</tmdd:centerActiveUpdateMsg>

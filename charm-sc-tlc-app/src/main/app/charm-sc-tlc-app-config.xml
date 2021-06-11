@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.7.3"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd 
+http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd 
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd 
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd 
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd 
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd 
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+
+	<context:property-placeholder
+		location="classpath:charm-sc-tlc-app.properties, classpath:charm-sc-tlc-app.override.properties"
+		ignore-resource-not-found="true" />
+
+	<tcp:connector name="tlcReceiverConnector"
+		validateConnections="true" sendBufferSize="100000" receiveBufferSize="100000"
+		clientSoTimeout="10000" serverSoTimeout="10000" doc:name="TCP"
+		keepSendSocketOpen="true" keepAlive="true" reuseAddress="true">
+		<reconnect count="3" />
+		<service-overrides
+			messageReceiver="com.cgi.charm.sc.tlc.tcp.TlcCustomTcpMessageReceiver" />
+		<tcp:custom-protocol
+			class="com.cgi.charm.sc.tlc.tcp.TlcCustomStreamingProtocol"
+			rethrowExceptionOnRead="true" />
+
+
+	</tcp:connector>
+
+
+	<vm:connector name="tlcVmConnector" validateConnections="true"
+		doc:name="VM" queueTimeout="10000">
+	</vm:connector>
+
+	<custom-connector name="TCP"
+		class="com.cgi.charm.sc.tlc.helper.TlcTcpConnector">
+		<spring:property name="dispatcherFactory" ref="tlcTcpDispatcherFactory" />
+		<spring:property name="tcpProtocol" ref="protocol" />
+		<spring:property name="keepAlive" value="true" />
+		<spring:property name="keepSendSocketOpen" value="true" />
+		<spring:property name="reuseAddress" value="true" />
+	</custom-connector>
+
+	<tcp:endpoint exchange-pattern="request-response" host="#[flowVars.host]"
+		port="#[flowVars.port]" connector-ref="TCP" name="tcpendpoint"
+		responseTimeout="10000" doc:name="TCP" />
+
+	<jms:activemq-connector name="tlclocalbroker"
+		brokerURL="${activemq.host}" persistentDelivery="true" specification="1.1"
+		maxRedelivery="2" password="${activemq.password}" username="${activemq.username}"
+		validateConnections="true" doc:name="Active MQ">
+		<reconnect-forever />
+	</jms:activemq-connector>
+
+	<message-properties-transformer name="rm_property_content-type"
+		encoding="UTF-8" doc:name="Message Properties">
+		<delete-message-property key="Content-Type" />
+	</message-properties-transformer>
+
+	<mulexml:jaxb-context name="tlc" packageNames="com.cgi.charm.cdm.tlc"
+		doc:name="JAXB Context" />
+	<mulexml:namespace-manager>
+		<mulexml:namespace prefix="tlc"
+			uri="http://tlc.cdm.charm.cgi.com" />
+	</mulexml:namespace-manager>
+
+	<jms:endpoint name="sync_outbound_cdm" connector-ref="tlclocalbroker"
+		queue="${tlc.sync.outbound.queue}" doc:name="JMS" exchange-pattern="request-response">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="async_outbound_cdm" connector-ref="tlclocalbroker"
+		queue="${tlc.async.outbound.queue}" doc:name="JMS" exchange-pattern="one-way">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+	<jms:endpoint name="tlc_inbound_cdm_async" connector-ref="tlclocalbroker"
+		queue="${tlc.inbound.async.queue}" doc:name="JMS" exchange-pattern="one-way">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+	<jms:endpoint name="tlc_inbound_cdm_sync" connector-ref="tlclocalbroker"
+		queue="${tlc.inbound.sync.queue}" doc:name="JMS" exchange-pattern="request-response">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="exception_queue" connector-ref="tlclocalbroker"
+		queue="${tlc.outbound.exception.queue}" doc:name="JMS"
+		exchange-pattern="one-way">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<spring:beans>
+		<context:component-scan base-package="com.cgi.charm.sc.tlc" />
+		<spring:import resource="classpath:tlc.cfg.xml" />
+		<spring:bean id="protocol"
+			class="org.mule.transport.tcp.protocols.DirectProtocol" />
+		<spring:bean id="datastore"
+			class="com.cgi.charm.datastore.datastoreimpl.DatastoreManagerImpl">
+			<spring:constructor-arg name="type" value="tlc" />
+			<spring:constructor-arg name="member"
+				value="${clustermemeber}" />
+		</spring:bean>
+		<spring:bean id="schemaErrorHanlder"
+			class="com.cgi.charm.common.filter.CharmSchemaErrorHandler" />
+		<util:constant id="DEVICE_PREFIX"
+			static-field="com.cgi.charm.sc.tlc.constants.TlcConstants.TLC_DEVICE_KEY_PREFIX" />
+
+		<util:constant id="SUBSCRIPTION_PREFIX"
+			static-field="com.cgi.charm.sc.tlc.constants.TlcConstants.TLC_SUBSCRIPTION_KEY_PREFIX" />
+
+	</spring:beans>
+
+
+	<quartz:connector name="QuartzConnector" doc:name="QuartzConnector">
+		<receiver-threading-profile doThreading="true"
+			maxBufferSize="50" maxThreadsActive="30" />
+	</quartz:connector>
+
+	<quartz:connector name="StatusSubscriptionQuartzConnector"
+		validateConnections="true" doc:name="StatusSubscriptionQuartzConnector">
+		<receiver-threading-profile
+			maxThreadsActive="1" />
+	</quartz:connector>
+
+
+	<!-- REMARK: Why is a custom filter build for this purpose? Mule provides 
+		its own schema filter, so there seems to be no need for this. -->
+	<custom-filter name="schema"
+		class="com.cgi.charm.common.filter.CharmSchemaFilter">
+		<spring:property name="schemaLocations" value="xsd/tlc/flat_tlc_interface.xsd" />
+		<spring:property name="returnResult" value="false" />
+		<spring:property name="errorHandler" ref="schemaErrorHanlder" />
+	</custom-filter>
+
+
+	<sub-flow name="schema-filter">
+		<choice doc:name="Check schema validation from properties file">
+			<when expression="${default.schema.validation}">
+				<message-filter throwOnUnaccepted="true"
+					doc:name="CDM Schema validation">
+					<filter ref="schema" />
+				</message-filter>
+			</when>
+			<otherwise>
+				<logger message="Schema validation in properties file is turned off"
+					level="TRACE" category="charm-sc-tlc-app" doc:name="Logger schema validation property" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+</mule>

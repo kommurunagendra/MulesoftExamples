@@ -1,0 +1,15 @@
+<otmc_info_request xmlns="http://otmc.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>908e4ba9-4c06-4648-ab65-e63e7bc6a758</uuid>
+    </message_id>
+    <message_create_date>2018-02-08T11:36:23Z</message_create_date>
+  </meta>
+  <info_spec>
+    <inventory>false</inventory>
+    <status>false</status>
+    <organisation>true</organisation>
+  </info_spec>
+  <all_otmcs>true</all_otmcs>
+  <all_subscriptions>false</all_subscriptions>
+</otmc_info_request>

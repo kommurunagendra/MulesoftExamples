@@ -1,0 +1,31 @@
+<tmdd:genericDeviceInventoryUpdateMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+	</c2cMsgAdmin>
+	<dms-inventory-item>
+		<device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id1</device-id>
+			<device-location>
+				<latitude>22.0</latitude>
+				<longitude>33.0</longitude>
+			</device-location>
+			<device-name>name1</device-name>
+			<device-description>device_description</device-description>
+			<device-url>/device/url/test</device-url>
+			<device-type>TDI</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>10</scan-interval>
+			<inventory-action>add</inventory-action>
+			<hostname>localhost</hostname>
+			<port>8989</port>
+			<fep-lines>9192</fep-lines>
+			<position-bps-code>position_bps</position-bps-code>
+		</device-inventory-header>
+	</dms-inventory-item>
+</tmdd:genericDeviceInventoryUpdateMsg>

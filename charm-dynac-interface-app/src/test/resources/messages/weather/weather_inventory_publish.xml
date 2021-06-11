@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<weather_inventory_publish xmlns="http://weather.cdm.charm.cgi.com" version="1.0.0">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2015-10-22T08:48:11Z</message_create_date>
+	</meta>
+	<subscription_id>
+		<uuid>00000000-0000-0000-0000-000000000000</uuid>
+	</subscription_id>
+	<inventory_config>
+		<full_sync>true</full_sync>
+		<inventory_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</inventory_id>
+		<weather_inventory>
+			<action>add</action>
+			<weather_id>
+				<id>id-01</id>
+			</weather_id>
+			<weather_inventory_attr>
+				<name>deviceName1</name>
+				<description>deviceDescription1</description>
+				<address>10.20.178.193</address>
+				<port>22</port>
+				<path>/home/asb/New folder</path>
+				<username>asb</username>
+				<password>asb</password>
+				<scan_enabled>true</scan_enabled>
+				<scan_interval>1000</scan_interval>
+			</weather_inventory_attr>
+		</weather_inventory>
+	</inventory_config>
+</weather_inventory_publish>

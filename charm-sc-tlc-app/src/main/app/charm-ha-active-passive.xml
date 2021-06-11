@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+   xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+   xmlns:spring="http://www.springframework.org/schema/beans" 
+   xmlns:context="http://www.springframework.org/schema/context"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+   <spring:beans>
+      <context:component-scan base-package="com.cgi.charm.common.ha.util" />
+    </spring:beans>
+    <quartz:connector name="check-other-instance-ha-quartz" validateConnections="true" doc:name="Quartz"/>
+    <jms:activemq-connector name="Active_MQ_Temp" username="${activemq.broker.username}" password="${activemq.broker.password}" brokerURL="${activemq.broker.url}" validateConnections="true" doc:name="Active MQ"/>
+    <configuration doc:name="Configuration">
+      <expression-language>
+         <global-functions><![CDATA[      
+       def getUUID(){
+         return java.util.UUID.randomUUID().toString();
+       }
+       def getCurrentInstant(){
+         return java.time.Instant.now().toString();
+       }
+      ]]>
+         </global-functions>
+      </expression-language>
+   </configuration>
+    <flow name="charm-ha-check-other-instance" processingStrategy="synchronous">
+        <quartz:inbound-endpoint jobName="check-other-instance-ha-job" repeatInterval="${ayt.queue.response.timeout}" connector-ref="check-other-instance-ha-quartz" doc:name="Quartz">
+            <quartz:event-generator-job groupName="check-other-instance-ha-job-group" jobGroupName="check-other-instance-ha-job-group"/>
+        </quartz:inbound-endpoint>
+        <logger level="INFO" message="App has been started in 'init' mode" category="com.charm.ha" doc:name="Logger"/>
+        <set-variable value="#[server.ip]" variableName="serverIp" doc:name="Setting serverIp" />
+		<set-variable value="${instance.name}" variableName="instanceName" doc:name="Setting instanceName" />
+		<set-variable value="${instance.role}" variableName="instanceRole" doc:name="Setting instanceRole" />
+        <dw:transform-message doc:name="Transform Message" metadata:id="f8276f43-0a14-4c97-a14c-d53fb687e63c">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+{
+   ns0#ayt_request: {
+      ns0#meta: {
+         ns0#message_id: {
+            ns0#uuid: getUUID()
+         },
+         ns0#message_create_date: getCurrentInstant()
+      },
+      ns0#ayt_spec: {
+         ns0#requestor_name: flowVars.instanceName,
+         ns0#requestor_role: flowVars.instanceRole,
+         ns0#requestor_ip: flowVars.serverIp
+      }
+   }
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<set-variable value="#[payload]" variableName="requestMsg" doc:name="Setting requestMsg" />
+		<logger level="TRACE" message="Request #[flowVars.requestMsg] sent to AYT Queue ${ayt.queue.name}" category="com.charm.ha" doc:name="Logger"/>
+        <jms:outbound-endpoint exchange-pattern="request-response" queue="${ayt.queue.name}" connector-ref="Active_MQ_Temp" doc:name="JMS" responseTimeout="${ayt.queue.response.timeout}"/>
+        
+      <logger level="TRACE" message="AYT Queue ${ayt.queue.name} Received Response: #[payload] for request #[flowVars.requestMsg]" category="com.charm.ha" doc:name="Logger"/>
+      
+      <choice doc:name="Choice">
+         <when expression="#[payload != null]">
+                <dw:transform-message doc:name="Transform Message" metadata:id="e4eb5be7-bbd2-4d7a-8fa1-7403274f192b">
+                    <dw:input-payload mimeType="application/xml"/>
+                    <dw:set-variable variableName="respondentName"><![CDATA[%dw 1.0
+%output application/java
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+payload.ns0#ayt_reply.ns0#ayt_spec.ns0#respondent_name]]></dw:set-variable>
+                    <dw:set-variable variableName="respondentRole"><![CDATA[%dw 1.0
+%output application/java
+%namespace ns0 http://diag.cdm.charm.cgi.com
+---
+payload.ns0#ayt_reply.ns0#ayt_spec.ns0#respondent_role]]></dw:set-variable>
+                </dw:transform-message>
+            
+            <logger level="INFO" message="Already another instance is up and running with role(#[flowVars.respondentRole]) and name(#[flowVars.respondentName])...." category="com.charm.ha" doc:name="Logger"/>     
+         </when>
+         <otherwise>
+            <set-variable variableName="jobName" value="#['check-other-instance-ha-job']" doc:name="Setting jobName"/>
+                <set-variable variableName="action" value="#['pause']" doc:name="Variable"/>
+                <flow-ref name="pauseOrResumeQuartzJob-ha" doc:name="pauseOrResumeQuartzJob-ha"/>
+            <expression-component doc:name="Expression">
+               app.registry.get('haUtil').startFlow(app.registry.'charm-ha-ayt-request-response');
+               app.registry.get('haUtil').changeAppStateToRunMode();
+            </expression-component>
+         </otherwise>
+      </choice>
+    </flow>
+    
+      <sub-flow name="pauseOrResumeQuartzJob-ha"
+      doc:description="Common flow to pause/resume a given quartz job. Pass 'action' and 'jobName' as flow variables to the flow. Payload is not altered after execution of the flow.">
+      <scripting:component doc:name="Groovy">
+         <scripting:script engine="Groovy"><![CDATA[
+import java.util.Set
+import org.mule.transport.quartz.QuartzConnector
+import org.quartz.JobKey
+import org.quartz.Scheduler
+import org.quartz.impl.matchers.GroupMatcher
+
+def action = message.getInvocationProperty('action')
+def jobName = 'quartz://' + message.getInvocationProperty('jobName')
+
+Scheduler quartzScheduler = ((QuartzConnector) eventContext.getMuleContext().getRegistry().lookupConnector('check-other-instance-ha-quartz')).getQuartzScheduler()
+Set<JobKey> jobs = quartzScheduler.getJobKeys(GroupMatcher.jobGroupEquals('check-other-instance-ha-job-group'))
+for (JobKey job : jobs) {
+   if(job.getName().equals(jobName)){
+      if ('pause'.equalsIgnoreCase(action)) {
+         quartzScheduler.pauseJob(job)
+      } else if ('resume'.equalsIgnoreCase(action)) {
+         quartzScheduler.resumeJob(job)
+      }
+   }
+}
+return payload]]>
+         </scripting:script>
+      </scripting:component>
+      <logger
+         message="Action #[flowVars.action] has been executed on quartz job #[flowVars.jobName]"
+         level="DEBUG" category="ndw-interface-avg-app" doc:name="Logger" />
+   </sub-flow>
+  
+</mule>

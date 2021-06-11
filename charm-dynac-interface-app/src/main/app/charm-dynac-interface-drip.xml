@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+
+	<sub-flow name="drip-inventory-subscription">
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare dMSInventorySubscriptionMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#dMSInventorySubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	organization-information: {
+		organization-id : p('organization_information.organization_id')
+	},
+	device-type: 'text dms',
+	
+	device-information-type : 'device inventory',
+	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.drip_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.drip_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 1
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="drip-inventory-publish">
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare drip-inventory-publish  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+drip_inventory_publish @(xmlns: "http://drip.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.dMSInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.dMSInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.dMSInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.dMSInventoryUpdateMsg.*dms-inventory-item map {
+				drip_inventory : {
+					drip_id : {
+						id : $.device-inventory-header.device-id
+						},
+					action : $.device-inventory-header.inventory-action,
+					drip_inventory_attr : {
+						name : $.device-inventory-header.device-name,
+						description : $.device-inventory-header.device-description,
+						scan_enabled : $.device-inventory-header.scan-on-off,
+						scan_interval : $.device-inventory-header.scan-interval,
+						dms-sign-type : $.dms-sign-type,
+						protocol : $.device-inventory-header.protocol,
+						hostname : $.device-inventory-header.hostname,
+						port : $.device-inventory-header.port,
+						response_timeout : $.device-inventory-header.response-timeout,
+						command_timeout : $.device-inventory-header.command-timeout,
+						
+						
+						(physical_mounting : "gantryMounted" when $.physical-mounting == "gantry" otherwise {}),
+						(physical_mounting : "roadsideMounted" when $.physical-mounting == "roadside" otherwise {}),
+						(physical_mounting : "trailerMounted" when $.physical-mounting == "trailer" otherwise {}),
+						(physical_mounting : "vehicleMounted" when $.physical-mounting == "vehicle" otherwise {}),
+						
+						vms_type : $.vms-type,
+						font_id : 'font_id_1',
+						owner : 'dynac'
+					},
+					drip_location_attr : {						
+							(position_bps : $.device-inventory-header.position-bps-code) when $.device-inventory-header.position-bps-code != null ,
+							position_wgs84 : {
+								latitude : $.device-inventory-header.device-location.latitude,
+								longitude : $.device-inventory-header.device-location.longitude
+							}						
+					}
+				}
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="drip-status-subscription">
+		<flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare drip_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+drip_status_subscription @(xmlns: "http://drip.cdm.charm.cgi.com", version:"1.0.0") : {	
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		
+		(
+			all_drips : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								drip_spec : {
+									drip_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		),
+		return_address : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.returnAddress
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>		
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>		
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+	
+		<sub-flow name="drip-status-publish">
+		<!-- TODO handle optionality of dripImageAttr -->
+
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_status_publish.xsl"
+			doc:name="construct ntcip dms status update">
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="ntcip_client" doc:name="send to dynac" />
+	</sub-flow>
+	
+	<sub-flow name="drip-info-request-inventory">
+        <set-variable variableName="organizationid" value="#[xpath3('/tmdd:dMSInventoryRequestMsg/organization-information/organization-id')]" doc:name="OrganizationId"/>
+		<!-- workaround to store organization_id to reply back with response -->
+
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_info_request_inventory.xsl"
+			doc:name="construct drip info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis"
+				value="#[System.currentTimeMillis()]" />
+			<mulexml:context-property key="message_uuid"
+				value="#[function:uuid]" />
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_info_reply_inventory.xsl"
+			doc:name="reply to ntcip response" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="organization_id"
+				value="#[organizationid]" />
+		</mulexml:xslt-transformer>
+	</sub-flow>
+	
+	<sub-flow name="drip-info-request-status">
+        <set-variable variableName="organizationid" value="#[xpath3('/tmdd:dMSStatusRequestMsg/organization-information/organization-id')]" doc:name="OrganizationId"/>
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_info_request_status.xsl"
+			doc:name="construct drip info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis"
+				value="#[System.currentTimeMillis()]" />
+			<mulexml:context-property key="message_uuid"
+				value="#[function:uuid]" />
+		</mulexml:xslt-transformer>
+        <flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+
+
+		<!-- TODO handle optionality of dripImageAttr -->
+
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_info_reply_status.xsl"
+			doc:name="reply to ntcip response" maxActiveTransformers="5" maxIdleTransformers="2">
+            <mulexml:context-property key="organization_id" value="#[organizationid]"/>
+		</mulexml:xslt-transformer>
+
+	</sub-flow>
+	
+	<sub-flow name="drip-control-request">
+
+		<!-- workaround to store organization_id to reply back with response -->
+		<set-variable
+			value="#[xpath3('/tmdd:dMSControlRequestMsg/device-control-request-header/organization-requesting/organization-id')]"
+			variableName="organizationid" doc:name="Organization Id" />
+		<set-variable
+			value="#[xpath3('/tmdd:dMSControlRequestMsg/device-control-request-header/request-id')]"
+			variableName="requestid" doc:name="Request Id" />
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_control_request.xsl"
+			doc:name="construct subscription" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis"
+				value="#[System.currentTimeMillis()]" />
+			<mulexml:context-property key="message_uuid"
+				value="#[function:uuid]" />
+			<!--<mulexml:context-property key="drip_image_attr" value="#[dripImageAttr]"/> -->
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+
+		<mulexml:xslt-transformer xsl-file="xslt/drip/drip_control_reply.xsl"
+			doc:name="reply to ntcip response">
+			<mulexml:context-property key="organization_id"
+				value="#[organizationid]" />
+			<mulexml:context-property key="request_id"
+				value="#[requestid]" />
+		</mulexml:xslt-transformer>
+	</sub-flow>
+
+</mule>

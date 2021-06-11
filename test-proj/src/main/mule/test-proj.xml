@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="203cfba2-6f51-44c8-8519-0785fc5f83fa" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<sftp:config name="SFTP_Config" doc:name="SFTP Config" doc:id="7e79d989-f2c4-429c-9103-49975b1eea3c" >
+		<sftp:connection workingDir="dfs" host="localhost" />
+	</sftp:config>
+	<flow name="test-projFlow" doc:id="f7467fb0-c0eb-4080-b713-fcbc971c95e6" >
+		<http:listener doc:name="Listener" doc:id="0ee23dfc-98f6-4278-ae97-250b24d84e18" config-ref="HTTP_Listener_config" path="/" />
+		<logger level="INFO" doc:name="Logger" doc:id="d1fbadd7-f576-43ec-bae1-03db1ca23736" message="project start" />
+		<flow-ref doc:name="Flow Reference" doc:id="802388fe-ff03-4cc9-8b5a-2bdf4dc3a0eb" name="test-projSub_Flow"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2730a82d-0c73-424e-8c2f-3fc973a085e2" message="Endflow"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6b167b23-4d8d-4f9a-80a5-96713f55b5a0" >
+				<logger level="INFO" doc:name="Logger" doc:id="8a483e05-c236-4ce5-bef4-d499c9bfe4d4" message="in error message"/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<sub-flow name="test-projSub_Flow" doc:id="82383709-1a63-4444-aec0-a4e0b53c2f18" >
+		<logger level="INFO" doc:name="Logger" doc:id="b16cf2d5-2072-4679-94ef-9ec0558bf950" message="in subflow"/>
+	</sub-flow>
+</mule>

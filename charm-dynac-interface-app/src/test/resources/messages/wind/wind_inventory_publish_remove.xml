@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wind_inventory_publish version="1.0.0" xmlns="http://wind.cdm.charm.cgi.com">
+  <meta>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </message_id>
+    <message_create_date>2016-08-30T14:01:51Z</message_create_date>
+  </meta>
+  <subscription_id>
+	<uuid>00000000-0000-0000-0000-000000000000</uuid>
+	</subscription_id>
+   <inventory_config>
+    <full_sync>true</full_sync>
+    <inventory_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </inventory_id>
+    <wps_inventory>
+      <action>remove</action>
+      <wps_id>
+       <id>id</id>
+       </wps_id>
+      <wps_inventory_attr>
+        <name>name</name>
+        <description>description</description>
+        <scan_enabled>true</scan_enabled>
+        <address>address</address>
+        <port>0</port>
+      </wps_inventory_attr>
+      <wps_location_attr>
+       <position_wgs84>
+      <latitude>0.0</latitude>
+      <longitude>0.0</longitude>
+       </position_wgs84>
+      </wps_location_attr>
+    </wps_inventory>
+  </inventory_config>
+</wind_inventory_publish>

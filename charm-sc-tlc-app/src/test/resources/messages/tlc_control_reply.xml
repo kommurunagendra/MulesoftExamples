@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tlc_control_reply xmlns="http://tlc.cdm.charm.cgi.com" version="1.0.0">
+  <metareply>
+    <message_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </message_id>
+    <message_create_date>2016-12-19T11:07:12.894Z</message_create_date>
+    <request_id>
+      <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </request_id>
+  </metareply>
+  <tlc_control_mutations>
+    <processed>true</processed>
+    <tlc_control>
+      <tlc_id>
+        <id>id1</id>
+      </tlc_id>
+      <tlc_control_attr>
+        <control_timestamp>2001-12-31T12:00:00</control_timestamp>
+        <ivera_object>
+          <name>vristat</name>
+          <displayname>displayname</displayname>
+          <parameters>
+            <parameter>
+              <key>0</key>
+              <value>3</value>
+            </parameter>
+          </parameters>
+        </ivera_object>
+      </tlc_control_attr>
+    </tlc_control>
+  </tlc_control_mutations>
+</tlc_control_reply>

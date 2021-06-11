@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:test="http://www.mulesoft.org/schema/mule/test"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	
+ 	<jms:endpoint name="test_outbound_backbone_sync" connector-ref="localbroker"
+		queue="${outbound.backbone.sync.queue}" doc:name="JMS SYNC">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+
+	<jms:endpoint name="test_outbound_backbone_async"
+		connector-ref="localbroker" queue="${outbound.backbone.async.queue}"
+		doc:name="JMS ASYNC">
+		<transformer ref="rm_property_content-type" />
+	</jms:endpoint>
+	
+	<flow name="cdm-mock">
+		<composite-source doc:name="Composite Source">
+			<inbound-endpoint doc:name="CDM messages" ref="outbound_backbone_sync"/>
+		</composite-source>
+ <logger category="test" message="&gt; #[message.payloadAs(java.lang.String)]"
+			doc:name=" log" level="INFO" />
+		<test:component/>
+	</flow>
+    <flow name="async-cdm-mock">
+        <inbound-endpoint ref="outbound_backbone_async" doc:name="ASYNC CDM messages"/>
+        <test:component></test:component>
+        <logger category="test" message=" test_outbound_backbone_async &gt; #[message.payloadAs(java.lang.String)]"
+			doc:name=" log" level="INFO" />
+    </flow>
+    
+   
+</mule>

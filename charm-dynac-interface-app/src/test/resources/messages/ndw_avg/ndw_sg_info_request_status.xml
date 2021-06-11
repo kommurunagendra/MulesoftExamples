@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ndw_avg_info_request xmlns="http://avg.ndw.cdm.charm.cgi.com" version="1.0.0">
+  <meta>
+    <message_id>
+      <uuid>fd80683f-d4e9-440f-ae62-1fb4a2d3428a</uuid>
+    </message_id>
+    <message_create_date>2017-11-17T02:01:06Z</message_create_date>
+  </meta>
+  <info_spec>
+    <inventory>false</inventory>
+    <status>true</status>
+  </info_spec>
+  <ndw_spec>
+    <ndw_id>
+      <id>ndw1</id>
+    </ndw_id>
+  </ndw_spec>
+  <ndw_spec>
+    <ndw_id>
+      <id>ndw2</id>
+    </ndw_id>
+  </ndw_spec>
+  <all_subscriptions>false</all_subscriptions>
+</ndw_avg_info_request>

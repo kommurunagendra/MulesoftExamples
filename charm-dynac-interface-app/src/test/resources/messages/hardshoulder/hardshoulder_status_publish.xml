@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hardshoulder_status_publish
+    xmlns="http://hardshoulder.cdm.charm.cgi.com" version="1.0.0">
+    <meta>
+        <message_id>
+            <uuid>5f0e34d0-840c-11e7-987e-18dbf23de98f</uuid>
+        </message_id>
+        <message_create_date>2017-08-18T11:57:12.717Z</message_create_date>
+    </meta>
+    <subscription_id>
+        <uuid>00000000-0000-0000-0000-000000000000</uuid>
+    </subscription_id>
+    <hardshoulder_publish>
+        <hardshoulder_id>
+            <id>hardshoulder1</id>
+        </hardshoulder_id>
+        <hardshoulder_status_attr>
+            <timestamp>2006-11-14T18:13:51Z</timestamp>
+            <status>partly_open</status>
+            <segment_status>
+                <segment_id>
+                    <id>segment1</id>
+                </segment_id>
+                <segment_status_attr>
+                    <timestamp>2006-11-14T18:13:51Z</timestamp>
+                    <status>open</status>
+                </segment_status_attr>
+            </segment_status>
+            <segment_status>
+                <segment_id>
+                    <id>segment2</id>
+                </segment_id>
+                <segment_status_attr>
+                    <timestamp>2006-11-14T18:13:51Z</timestamp>
+                    <status>open</status>
+                </segment_status_attr>
+            </segment_status>
+        </hardshoulder_status_attr>
+    </hardshoulder_publish>
+</hardshoulder_status_publish>

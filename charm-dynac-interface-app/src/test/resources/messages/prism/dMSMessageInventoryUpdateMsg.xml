@@ -1,0 +1,60 @@
+<tmdd:dMSMessageInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <c2cMsgAdmin>
+            <informationalText>FULLSYNC</informationalText>
+            <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+         </c2cMsgAdmin>
+         <dms-message-inventory-item xsi:type="tmdd:DMSMessageInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <organization-information>
+               <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>id_1</device-id>
+            <message-memory-type>1</message-memory-type>
+            <message-number>1</message-number>
+            <message>prism_state_mnemonic_1</message>
+            <message-owner-organization-information>
+               <organization-id>msiowner_1</organization-id>
+            </message-owner-organization-information>
+            <enable-beacon-flag>no</enable-beacon-flag>
+            <message-run-time-priority>1</message-run-time-priority>
+            <message-status>1</message-status>
+            <description>prism_type_description_1</description>
+            <inventory-action>add</inventory-action>
+            <device-type>cms sign</device-type>
+         </dms-message-inventory-item>
+         <dms-message-inventory-item xsi:type="tmdd:DMSMessageInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <organization-information>
+               <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>id_1</device-id>
+            <message-memory-type>1</message-memory-type>
+            <message-number>2</message-number>
+            <message>prism_state_mnemonic_2</message>
+            <message-owner-organization-information>
+               <organization-id>msiowner_1</organization-id>
+            </message-owner-organization-information>
+            <enable-beacon-flag>no</enable-beacon-flag>
+            <message-run-time-priority>1</message-run-time-priority>
+            <message-status>1</message-status>
+            <description>prism_type_description_1</description>
+            <inventory-action>add</inventory-action>
+            <device-type>cms sign</device-type>
+         </dms-message-inventory-item>
+         <dms-message-inventory-item xsi:type="tmdd:DMSMessageInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <organization-information>
+               <organization-id>RWS</organization-id>
+            </organization-information>
+            <device-id>id_2</device-id>
+            <message-memory-type>1</message-memory-type>
+            <message-number>3</message-number>
+            <message>prism_state_mnemonic_3</message>
+            <message-owner-organization-information>
+               <organization-id>msiowner_1</organization-id>
+            </message-owner-organization-information>
+            <enable-beacon-flag>no</enable-beacon-flag>
+            <message-run-time-priority>1</message-run-time-priority>
+            <message-status>1</message-status>
+            <description>prism_type_description_1</description>
+            <inventory-action>add</inventory-action>
+            <device-type>cms sign</device-type>
+         </dms-message-inventory-item>
+      </tmdd:dMSMessageInventoryUpdateMsg>

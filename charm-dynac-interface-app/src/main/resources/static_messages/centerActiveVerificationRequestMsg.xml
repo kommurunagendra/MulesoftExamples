@@ -1,0 +1,11 @@
+<tmdd:centerActiveVerificationRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>unknown</user-id>
+		<password>unknown</password>
+	</authentication>
+	<organization-requesting>
+		<organization-id>123</organization-id>
+	</organization-requesting>
+	<user-id>ss</user-id>
+	<password>test</password>
+</tmdd:centerActiveVerificationRequestMsg>

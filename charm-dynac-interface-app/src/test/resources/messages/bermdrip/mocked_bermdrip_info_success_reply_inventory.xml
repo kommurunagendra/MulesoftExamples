@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bermdrip_info_reply xmlns="http://bermdrip.cdm.charm.cgi.com" version="1.0.0">
+	<meta_reply>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+		<request_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</request_id>
+	</meta_reply>
+	<bermdrip_publish>
+		<bermdrip_id>
+			<id>B-A20-4,222</id>
+		</bermdrip_id>
+		<bermdrip_inventory_attr>
+			<name>BERMDRIP A20 4,222</name>
+			<description>Bermdrip ter hoogte van afslag A20-Rotterdam West</description>
+			<owner>dynac</owner>
+			<scan_enabled>true</scan_enabled>
+			<scan_interval>2000</scan_interval>
+			<dms_sign_type>variable message sign VMS</dms_sign_type>
+			<protocol>tcp-1</protocol>
+			<hostname>10.2.2.2</hostname>
+			<port>3333</port>
+			<response_timeout>2000</response_timeout>
+			<command_timeout>1000</command_timeout>
+			<physical_mounting>gantryMounted</physical_mounting>
+			<vms_type>colourGraphic</vms_type>
+		</bermdrip_inventory_attr>
+		<bermdrip_location_attr>
+		<position_bps>position-bps-code</position_bps>
+			<position_wgs84>
+				<latitude>5.332</latitude>
+				<longitude>2.333</longitude>
+			</position_wgs84>
+		</bermdrip_location_attr>
+	</bermdrip_publish>
+</bermdrip_info_reply>

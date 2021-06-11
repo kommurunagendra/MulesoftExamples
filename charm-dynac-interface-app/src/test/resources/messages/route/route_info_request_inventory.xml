@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<route_info_request version="1.0.0" xmlns="http://rs.cdm.charm.cgi.com">
+	<meta>
+		<message_id>
+			<uuid>00767d19-ca89-4451-af9c-537d25f6a369</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+	</meta>
+	<info_spec>
+		<inventory>true</inventory>
+		<status>false</status>
+	</info_spec>
+	<route_spec>
+		<route_id>
+			<id>id-01</id>
+		</route_id>
+	</route_spec>
+	<all_subscriptions>false</all_subscriptions>
+</route_info_request>

@@ -1,0 +1,56 @@
+<tmdd:dMSMessageInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+    <c2cMsgAdmin>
+        <informationalText>FULLSYNC</informationalText>
+        <subscriptionID>00000000-0000-0000-0000-000000000001</subscriptionID>
+    </c2cMsgAdmin>
+    <dms-message-inventory-item xsi:type="tmdd:DMSMessageInventoryCharm"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <organization-information>
+            <organization-id>Dynac 1</organization-id>
+        </organization-information>
+        <device-id>00000000-0000-0000-0000-000000000001</device-id>
+        <message-memory-type>11</message-memory-type>
+        <message-number>1</message-number>
+        <message>NO</message>
+        <message-owner-organization-information>
+            <organization-id>msiowner1</organization-id>
+        </message-owner-organization-information>
+        <enable-beacon-flag>no</enable-beacon-flag>
+        <message-run-time-priority>11</message-run-time-priority>
+        <message-status>11</message-status>
+        <description>image message 1</description>
+        <inventory-action>add</inventory-action>
+        <image-codes>
+            <!--You have a CHOICE of the next 3 items at this level-->
+            <group-code>1</group-code>
+            <!--<legend-code>1</legend-code>-->
+            <!--<variation-code>1</variation-code>-->
+        </image-codes>
+        <device-type>msi</device-type>
+    </dms-message-inventory-item>
+    <dms-message-inventory-item xsi:type="tmdd:DMSMessageInventoryCharm"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <organization-information>
+            <organization-id>Dynac 2</organization-id>
+        </organization-information>
+        <device-id>00000000-0000-0000-0000-000000000001</device-id>
+        <message-memory-type>22</message-memory-type>
+        <message-number>2</message-number>
+        <message>YES</message>
+        <message-owner-organization-information>
+            <organization-id>msiowner2</organization-id>
+        </message-owner-organization-information>
+        <enable-beacon-flag>yes</enable-beacon-flag>
+        <message-run-time-priority>22</message-run-time-priority>
+        <message-status>22</message-status>
+        <description>image message 2</description>
+        <inventory-action>remove</inventory-action>
+        <image-codes>
+            <!--You have a CHOICE of the next 3 items at this level-->
+            <!--<group-code>2</group-code>-->
+            <legend-code>2</legend-code>
+            <!--<variation-code>2</variation-code>-->
+        </image-codes>
+        <device-type>msi</device-type>
+    </dms-message-inventory-item>
+</tmdd:dMSMessageInventoryUpdateMsg>

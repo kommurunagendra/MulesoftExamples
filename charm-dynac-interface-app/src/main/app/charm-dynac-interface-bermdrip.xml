@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+    <spring:beans>
+        <spring:bean id="Bean" name="multiToCdmBermdripConverterService" class="com.cgi.charm.dynac.bermdrip.multi.MultiToCdmBermdripConverterService"/>
+    </spring:beans>
+
+<auto-transformer returnClass="java.lang.String"></auto-transformer>
+	
+	<sub-flow name="bermdrip-inventory-publish">
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_inventory_publish.xsl" doc:name="construct inventory publish" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<logger message="=== Bermdrip inventory publish message incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<logger message="#[payload]" level="DEBUG" category="dynac-interface-app" doc:name="Logger"/>
+
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+		
+	</sub-flow>
+
+	<sub-flow name="bermdrip-control-request">
+		<logger message="=== Bermdrip control request incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        		<!-- workaround to store organization_id to reply back with response -->	
+		<set-variable
+			value="#[xpath3('/tmdd:dMSControlRequestMsg/device-control-request-header/organization-requesting/organization-id')]"
+			variableName="organizationid" doc:name="Organization Id" />
+		<set-variable
+			value="#[xpath3('/tmdd:dMSControlRequestMsg/device-control-request-header/request-id')]"
+			variableName="requestid" doc:name="Request Id" />
+
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_control_request.xsl" doc:name="construct control" returnClass="java.lang.String" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_control_reply.xsl" doc:name="reply to ntcip response" returnClass="java.lang.String">
+			<mulexml:context-property key="organization_id"
+				value="#[organizationid]" />
+			<mulexml:context-property key="request_id"
+				value="#[requestid]" />
+		</mulexml:xslt-transformer>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+	</sub-flow>
+
+	<sub-flow name="bermdrip-status-subscription">
+		<logger message="=== Bermdrip status subscription incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_status_subscription.xsl" doc:name="construct subscription" returnClass="java.lang.String" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+           <mulexml:context-property key="return_address" value="${dynac_interface.return_address}"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="to cdm"/>
+
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+
+	<sub-flow name="bermdrip-status-publish">
+		<logger message="=== Bermdrip status publish outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<!-- TODO handle optionality of dripImageAttr  -->
+		<enricher target="#[variable:multiMessages]" doc:name="Unparse CDM to Multi">
+			<processor-chain doc:name="Processor Chain">
+				<transformer ref="cdm_xml_to_object" doc:name="Transformer Reference"/>
+				
+				<component doc:name="Java">
+					<spring-object bean="multiToCdmBermdripConverterService"/>
+				</component>
+								
+				<transformer ref="cdm_object_to_xml" doc:name="Transformer Reference"/>
+
+			</processor-chain>
+		</enricher>
+
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_status_publish.xsl" doc:name="construct ntcip dms status update"/>
+	
+ 		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="bermdrip-inventory-subscription">
+		<logger message="=== Bermdrip inventory subscription outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/bermdrip/bermdrip_inventory_subscription.xsl" doc:name="XSLT" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="return_address" value="${dynac_interface.return_address}"/>
+            <mulexml:context-property key="userId" value="${user_id}"/>
+            <mulexml:context-property key="password" value="${password}"/>
+            <mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+
+	<sub-flow name="bermdrip-info-request-status">
+		<logger message="=== Bermdrip info request status incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_info_request_status.xsl" doc:name="construct bermdrip info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<logger message="=== Bermdrip info reply outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		
+		<enricher target="#[variable:multiMessages]" doc:name="Unparse CDM to Multi">
+            <processor-chain doc:name="Processor Chain">
+                <transformer ref="cdm_xml_to_object" doc:name="Transformer Reference"/>
+                <component doc:name="Java">
+                    <spring-object bean="multiToCdmBermdripConverterService"/>
+                </component>
+                <transformer ref="cdm_object_to_xml" doc:name="Transformer Reference"/>
+
+            </processor-chain>
+        </enricher>
+        
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_info_reply_status.xsl" doc:name="reply to ntcip response"  returnClass="java.lang.String">
+            <mulexml:context-property key="multi_messages" value="#[multiMessages]"/>
+        </mulexml:xslt-transformer>
+	</sub-flow>
+	
+	<sub-flow name="bermdrip-info-request-inventory">
+		<logger message="=== Bermdrip info request inventory incoming ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<set-variable
+			value="#[xpath3('/tmdd:dMSInventoryRequestMsg/organization-information/organization-id')]"
+			variableName="organizationid" doc:name="Organization Id" />
+	
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_info_request_inventory.xsl" doc:name="construct bermdrip info request" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<logger message="=== Bermdrip info reply outgoing ===" level="INFO" category="dynac-interface-app" doc:name="Logger"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+		
+		<mulexml:xslt-transformer xsl-file="xslt/bermdrip/bermdrip_info_reply_inventory.xsl" doc:name="reply to ntcip response">
+			<mulexml:context-property key="organization_id" value="#[organizationid]" />
+		</mulexml:xslt-transformer>
+
+	</sub-flow>
+  
+</mule>

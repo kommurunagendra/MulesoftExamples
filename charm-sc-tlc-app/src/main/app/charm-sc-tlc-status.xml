@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:jersey="http://www.mulesoft.org/schema/mule/jersey"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:mule-xml="http://www.mulesoft.org/schema/mule/xml" xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/jersey http://www.mulesoft.org/schema/mule/jersey/current/mule-jersey.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd">
+
+	<flow name="tlc-app_status_subscription_otmcServices_outbound">
+		<quartz:inbound-endpoint responseTimeout="${tlc.quartz.responsetimeout}"
+			doc:name="Status Subscription Quartz to otmc services" connector-ref="StatusSubscriptionQuartzConnector"
+			jobName="tlcStatusSubcriptionOtmcServices" repeatInterval="${quartz.repeatinterval}">
+			<quartz:event-generator-job jobGroupName="statusSubscriptionJobGroup"
+				groupName="statusSubscriptionJobGroup">
+				<quartz:payload>otmcServices</quartz:payload>
+			</quartz:event-generator-job>
+		</quartz:inbound-endpoint>
+		<flow-ref name="tlc-app_status_subscription_outbound"
+			doc:name="tlc-app_status_subscription_outbound" />
+	</flow>
+
+	<flow name="tlc-app_status_subscription_otmcInbound_outbound">
+		<quartz:inbound-endpoint responseTimeout="${tlc.quartz.responsetimeout}"
+			doc:name="Status Subscription Quartz" connector-ref="StatusSubscriptionQuartzConnector"
+			jobName="tlcStatusSubcriptionOtmcInboundApp" repeatInterval="${quartz.repeatinterval}">
+			<quartz:event-generator-job jobGroupName="statusSubscriptionJobGroup"
+				groupName="statusSubscriptionJobGroup">
+				<quartz:payload>otmcInbound</quartz:payload>
+			</quartz:event-generator-job>
+		</quartz:inbound-endpoint>
+		<flow-ref name="tlc-app_status_subscription_outbound"
+			doc:name="tlc-app_status_subscription_outbound" />
+	</flow>
+
+	<sub-flow name="tlc-app_status_subscription_outbound">
+		<invoke object-ref="tlcStatusSubscriptionOutboundHandler"
+			method="handle" methodArgumentTypes="java.lang.String"
+			methodArguments="#[payload]" name="tlcStatusSubscriptionBuilder" />
+		<mulexml:jaxb-object-to-xml-transformer
+			returnClass="java.lang.String" jaxbContext-ref="tlc"
+			doc:name="tlcStatusSubscription to XML" />
+		<logger
+			message="Sent #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="charm-sc-tlc-app" doc:name="Logger Request MsgId" />
+		<logger message="#[payload]" level="INFO" category="charm-sc-tlc-app"
+			doc:name="Logger Payload" />
+		<flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" />
+	</sub-flow>
+
+
+	<sub-flow name="charm-tlc-status-subscription">
+		<mulexml:jaxb-xml-to-object-transformer
+			jaxbContext-ref="tlc" doc:name="XML to JAXB Object" />
+		<component doc:name="Java_TlcStatusSubscriptionInbundHandler"
+			class="com.cgi.charm.sc.tlc.handler.TlcStatusSubscriptionInbundHandler">
+		</component>
+		<logger message="status subscription is successfully processed"
+			level="INFO" category="charm-sc-tlc-app" doc:name="status subscription store" />
+		<expression-filter expression="#[payload!=null]"
+			doc:name="Expression" />
+		<async doc:name="Async">
+			<flow-ref name="charm-sc-tlc-status-publish-flow" doc:name="charm-sc-tlc-status-publish-flow" />
+		</async>
+	</sub-flow>
+
+	<sub-flow name="charm-tlc-status-publish-inbound">
+		<flow-ref name="charm-sc-tlc-status-publish_inbound_Flow"
+			doc:name="charm-sc-tlc-status-publish_inbound_Flow" />
+		<mule-xml:jaxb-xml-to-object-transformer
+			jaxbContext-ref="tlc" doc:name="XML to JAXB Object" />
+		<component
+			class="com.cgi.charm.sc.tlc.handler.TlcStatusPublishInboundHandler"
+			doc:name="Status Publish Hander for subscription" />
+		<expression-filter expression="#[payload!=null]"
+			doc:name="Expression" />
+		<foreach doc:name="For Each">
+			<mule-xml:jaxb-object-to-xml-transformer
+				returnClass="java.lang.String" jaxbContext-ref="tlc" doc:name="JAXB Object to XML" />
+			<flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" />
+		</foreach>
+	</sub-flow>
+
+	<sub-flow name="charm-sc-tlc-status-publish_inbound_Flow">
+		<set-variable value="${otmc.services.status.subscription.id}"
+			variableName="otmcServicesSubscriptionId" doc:name="subscriptionidFirst" />
+		<set-variable value="${otmc.inbound.status.subscription.id}"
+			variableName="otmcInboundSubscriptionId" doc:name="subscriptionidSecond" />
+		<choice doc:name="Choice">
+			<when
+				expression="xpath3('/tlc:tlc_status_publish/tlc:subscription_id/tlc:uuid') == flowVars.otmcServicesSubscriptionId">
+				<logger
+					message="Receive #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+					level="INFO" category="charm-sc-tlc-app" doc:name="Logger status Publish" />
+				<logger message="#[payload]" level="DEBUG" category="charm-sc-tlc-app"
+					doc:name="Logger Payload" />
+				<mulexml:jaxb-xml-to-object-transformer
+					jaxbContext-ref="tlc" doc:name="XML to JAXB Object" />
+				<set-variable variableName="tlcSubscriptionPublish"
+					value="#[payload]" doc:name="tlcSubscriptionPublish" />
+				<flow-ref name="pause_statusSubscriptionOtmcServices_timer"
+					doc:name="pause_statusSubscriptionOtmcServices_timer" />
+			</when>
+			<when
+				expression="xpath3('/tlc:tlc_status_publish/tlc:subscription_id/tlc:uuid') == flowVars.otmcInboundSubscriptionId">
+				<logger
+					message="Receive #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+					level="INFO" category="charm-sc-tlc-app" doc:name="Logger Status Publish" />
+				<logger message="#[payload]" level="DEBUG" category="charm-sc-tlc-app"
+					doc:name="Logger Payload" />
+				<mulexml:jaxb-xml-to-object-transformer
+					jaxbContext-ref="tlc" doc:name="XML to JAXB Object" />
+				<set-variable variableName="tlcSubscriptionPublish"
+					value="#[payload]" doc:name="tlcSubscriptionPublish" />
+				<flow-ref name="pause_statusSubscriptionOtmcInboundApp_timer"
+					doc:name="pause_statusSubscriptionOtmcInboundApp_timer" />
+			</when>
+			<otherwise>
+				<logger message="Unknown subscription Id Received" level="INFO"
+					category="charm-sc-bermdrip-app" doc:name="Unknown subscription Id Received" />
+				<set-payload doc:name="Set Payload" value="null" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="charm-sc-tlc-status-publish-flow">
+		<component class="com.cgi.charm.sc.tlc.handler.TlcStatusPublishHandler"
+			doc:name="Status Publish Hander for subscription" />
+		<expression-filter expression="#[payload != null]"
+			doc:name="Expression" />
+		<mule-xml:jaxb-object-to-xml-transformer
+			jaxbContext-ref="tlc" doc:name="prepare status publish xml"
+			returnClass="java.lang.String" />
+		<flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" />
+	</sub-flow>
+
+	<flow name="charm-sc-tlc-statusFlow">
+		<vm:inbound-endpoint exchange-pattern="one-way"
+			path="processInboundRequests" connector-ref="tlcVmConnector"
+			doc:name="VM" />
+		<set-variable variableName="triggerCode"
+			value="#[payload.substring(payload.indexOf(&quot;=&quot;) + 1).trim()]"
+			doc:name="Variable" />
+		<invoke object-ref="prepareCommand" method="getdeviceInfo"
+			methodArguments="#[message.inboundProperties.MULE_REMOTE_CLIENT_ADDRESS]"
+			methodArgumentTypes="java.lang.String" name="InvokeprepareCommand" />
+
+		<expression-filter expression="#[payload!=null]"
+			doc:name="Expression" />
+		<message-properties-transformer scope="invocation"
+			doc:name="Message Properties">
+			<add-message-property key="deviceInfo" value="#[payload]" />
+			<add-message-property key="host"
+				value="#[payload.getIpnrVri()]" />
+			<add-message-property key="port"
+				value="#[payload.getPortnumberClient()]" />
+		</message-properties-transformer>
+		<flow-ref name="StatusAttrCommands" doc:name="StatusAttrCommands" />
+		<set-variable variableName="iveraObjectList" value="#[[]]"
+			doc:name="Variable" />
+		<flow-ref name="vriLBIveraObjectFlow" doc:name="vriLBIveraObjectFlow" />
+		<flow-ref name="parLbIveraObjectFlow" doc:name="parLbIveraObjectFlow" />
+		<expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setIveraObject(flowVars.iveraObjectList);
+payload=flowVars.deviceInfo;]]></expression-component>
+		<invoke object-ref="tlcMulStatusPublishHandler" method="handle"
+			methodArguments="#[payload]"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo"
+			name="InvokeS" />
+		<foreach doc:name="For Each">
+			<mule-xml:jaxb-object-to-xml-transformer
+				returnClass="java.lang.String" jaxbContext-ref="tlc" doc:name="JAXB Object to XML" />
+			<flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" />
+		</foreach>
+		<!-- <set-variable variableName="host" value="localhost" doc:name="Variable"/> 
+			<set-variable variableName="port" value="9192" doc:name="Variable"/> <set-variable 
+			variableName="deviceInfo" value="#[app.registry.get(&quot;tlcDeviceDatastore&quot;).getDatastore(&quot;id1&quot;)]" 
+			doc:name="Variable"/> -->
+		<!-- <invoke object-ref="prepareCommand" method="getReadCommand" methodArguments="#[flowVars.deviceInfo],PAR.LB" 
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" 
+			doc:name="Invoke"/> <flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow"/> -->
+
+	</flow>
+	
+	<sub-flow name="vriLBIveraObjectFlow">
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],VRI.LB"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String"
+			name="InvokeVriLBIveraObjectFlow" />
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<invoke object-ref="prepareCommand" method="test"
+			methodArguments="#[payload],#[flowVars.triggerCode]"
+			methodArgumentTypes="java.lang.String,java.lang.String" name="InvokePreparecommand" />
+<foreach doc:name="For Each">
+			<invoke object-ref="vriLbIveraObjectMapping" method="map"
+				methodArguments="#[payload]" methodArgumentTypes="java.lang.String" name="vriLbIveraObjectMappings"/>
+			<expression-component doc:name="Expression"><![CDATA[flowVars.iveraObjectList.add(payload);]]></expression-component>
+		</foreach>
+	</sub-flow>
+	
+	<sub-flow name="parLbIveraObjectFlow">
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],PAR.LB"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String"
+			name="InvokeParLbIveraObjectFlow" />
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<invoke object-ref="prepareCommand" method="partest"
+			methodArguments="#[payload]" methodArgumentTypes="java.lang.String"
+			name="InvokePrepareCommand" />
+		<foreach doc:name="For Each">
+			<invoke object-ref="parLbIveraObjectMapping" method="map"
+				methodArguments="#[payload]" methodArgumentTypes="java.lang.String"
+				name="InvokeParLbIveraObjectMappings" />
+			<expression-component doc:name="Expression"><![CDATA[flowVars.iveraObjectList.add(payload);]]></expression-component>
+		</foreach>
+	</sub-flow>
+	<!-- <sub-flow name="charm-sc-tlc-statusSub_Flow"> <invoke object-ref="tlcMulStatusPublishHandler" 
+		method="handle" doc:name="Invoke" methodArgumentTypes="TlcDeviceInfo" methodArguments="#[payload]" 
+		/> <foreach doc:name="For Each"> <mule-xml:jaxb-object-to-xml-transformer 
+		jaxbContext-ref="tlc" doc:name="JAXB Object to XML" returnClass="java.lang.String" 
+		/> <flow-ref name="charm-sc-tlc-outgoing-wirelog" doc:name="charm-sc-tlc-outgoing-wirelog" 
+		/> <flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" 
+		/> </foreach> </sub-flow> -->
+</mule>

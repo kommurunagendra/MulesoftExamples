@@ -1,0 +1,53 @@
+<drip_control_reply xmlns="http://drip.cdm.charm.cgi.com" version="1.0.0">
+    <meta_reply>
+        <message_id>
+            <uuid>11111111-0000-0000-0000-000000000001</uuid>
+        </message_id>
+        <message_create_date>2015-09-19T13:12:00Z</message_create_date>
+        <request_id>
+            <uuid>11111111-0000-0000-0000-000000000000</uuid>
+        </request_id>
+    </meta_reply>
+    <drip_control_mutations>
+        <processed>true</processed>
+        <drip_id>
+            <id>D-A20-2,244</id>
+        </drip_id>
+        <drip_image_attr>
+            <duration>-1</duration>
+            <text>
+                <line>
+                    <text_alignment>center</text_alignment>
+                    <text_specific>tot A4 aansl Leiderdorp</text_specific>
+                    <text_generic>abc</text_generic>
+                </line>
+                <line>
+                    <text_alignment>left</text_alignment>
+                    <text_specific>&lt;- via A12/A4 27 min</text_specific>
+                    <text_generic>abc</text_generic>
+                </line>
+                <line>
+                    <text_alignment>right</text_alignment>
+                    <text_specific>via N11 16 min -></text_specific>
+                    <text_generic>abc</text_generic>
+                </line>
+            </text>
+            <pictogram>
+                <pictogram_number>4</pictogram_number>
+                <pictogram_index>0</pictogram_index>
+            </pictogram>
+            <pictogram>
+                <pictogram_number>5</pictogram_number>
+                <pictogram_index>1</pictogram_index>
+            </pictogram>
+        </drip_image_attr>
+        <drip_control_attr>
+            <control_timestamp>2015-09-19T13:12:00Z</control_timestamp>
+            <operation_mode>reset</operation_mode>
+            <dim_status>
+                <dim_mode>automatic</dim_mode>
+                <dim_state>2</dim_state>
+            </dim_status>
+        </drip_control_attr>
+    </drip_control_mutations>
+</drip_control_reply>

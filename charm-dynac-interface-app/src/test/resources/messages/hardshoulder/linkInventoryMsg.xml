@@ -1,0 +1,64 @@
+<tmdd:linkInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages"
+	xmlns:ns3="http://www.ntcip.org/c2c-message-administration">
+	<link-inventory-item>
+		<organization-information>
+			<organization-id>RWS</organization-id>
+		</organization-information>
+		<link-list>
+			<link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+				<network-id>id1</network-id>
+				<link-id>id1</link-id>
+				<link-name>hardshoulder</link-name>
+				<link-type>unknown</link-type>
+				<link-begin-node-id>0</link-begin-node-id>
+				<link-begin-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-begin-node-location>
+				<link-end-node-id>0</link-end-node-id>
+				<link-end-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-end-node-location>
+				<link-description>description</link-description>
+				<network-info-type>hard shoulder inventory</network-info-type>
+			</link>
+			<link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+				<network-id>segmentid1</network-id>
+				<link-id>segmentid1</link-id>
+				<link-name>segmentinventory1</link-name>
+				<link-type>unknown</link-type>
+				<link-begin-node-id>0</link-begin-node-id>
+				<link-begin-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-begin-node-location>
+				<link-end-node-id>0</link-end-node-id>
+				<link-end-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-end-node-location>
+				<link-description>hardshoulder</link-description>
+				<network-info-type>hard shoulder inventory</network-info-type>
+			</link>
+			<link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+				<network-id>segmentid1</network-id>
+				<link-id>segmentid1</link-id>
+				<link-name>segmentinventory2</link-name>
+				<link-type>unknown</link-type>
+				<link-begin-node-id>0</link-begin-node-id>
+				<link-begin-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-begin-node-location>
+				<link-end-node-id>0</link-end-node-id>
+				<link-end-node-location>
+					<latitude>1.051732</latitude>
+					<longitude>1.051732</longitude>
+				</link-end-node-location>
+				<link-description>hardshoulder</link-description>
+				<network-info-type>hard shoulder inventory</network-info-type>
+			</link>
+		</link-list>
+	</link-inventory-item>
+</tmdd:linkInventoryMsg>

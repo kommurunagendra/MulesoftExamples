@@ -1,0 +1,19 @@
+<tmdd:organizationInformationUpdateMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID>
+	</c2cMsgAdmin>
+	<organization-list>
+		<organization-information-item xsi:type="tmdd:OrganizationInformationCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-id>NdwId1</organization-id>
+			<organization-name>NDW</organization-name>
+			<organization-function>server</organization-function>
+			<inventory-action>add</inventory-action>
+			<scan-on-off>true</scan-on-off>
+			<description>description</description>
+			<organization-information-type>ndw sg information</organization-information-type>
+		</organization-information-item>
+	</organization-list>
+</tmdd:organizationInformationUpdateMsg>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wind_inventory_subscription xmlns="http://wind.cdm.charm.cgi.com" version="1.0.0">
+  <meta> 
+    <message_id> 
+      <uuid>83bddbf0-e150-11e6-b2c0-ecf4bb6ecbe5</uuid> 
+    </message_id>  
+    <message_create_date>2017-01-23T15:14:20Z</message_create_date> 
+  </meta>  
+  <subscription_config> 
+    <subscription_id> 
+      <uuid>00000000-0000-0000-0000-000000000000</uuid> 
+    </subscription_id>  
+    <subscription_attr> 
+      <subscription_name>subscription_name</subscription_name>  
+      <subscription_type>inventory</subscription_type>
+    </subscription_attr>  
+    <all_wpss>true</all_wpss> 
+  </subscription_config> 
+</wind_inventory_subscription>

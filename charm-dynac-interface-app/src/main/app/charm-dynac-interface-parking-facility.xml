@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+
+	<sub-flow name="parking_facility_inventory_subscription">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare DeviceInformationSubscriptionMsg">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8", skipNullOn="everywhere"
+%namespace tmdd http://www.tmdd.org/3/messages
+---
+tmdd#deviceInformationSubscriptionMsg: {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	
+	organization-information : {
+		organization-id : p('organization_information.organization_id')
+	},
+	
+	device-type : 'parking',
+	
+	device-information-type: 'device inventory',
+		
+	(device-filter : {
+		device-id-list : {
+		(payload.parking_facility_inventory_subscription.subscription_config.*parking_facility_spec  map
+			device-id  : $.parking_facility_id.id
+		)
+		}
+	}) when payload.parking_facility_inventory_subscription.subscription_config.*parking_facility_spec != null,
+	 	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'	
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.parking_facility_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.parking_facility_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 2
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+	</sub-flow>
+
+	<sub-flow name="Parking-facility-inventory-publish-NTCIP-To-CDM">
+		<logger message="#[payload]" level="INFO" category="demo123"
+			doc:name="Logger" />
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID"/>
+		<logger message="#[message.payload]" level="INFO" category="honey123"
+			doc:name="Logger" />
+		<dw:transform-message
+			doc:name="Prepare Parking_facility_inventory_publish Message">
+			<dw:input-payload doc:sample="sample_data\empty_19.xml" />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+---
+parking_facility_inventory_publish @(xmlns: "http://parkingfacility.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	subscription_id: {
+		uuid : payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	inventory_config: {
+		full_sync : true when payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		inventory_id : {
+			uuid : payload.anyTypeInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+		},
+		(payload.anyTypeInventoryUpdateMsg.tmdd-object-list.*tmdd-object map {
+			parking_facility_inventory : {
+				parking_facility_id: {
+					id: $.inventory-header.device-id
+				},
+				action : $.inventory-header.inventory-action,
+				parking_facility_inventory_attr : {
+				name : $.inventory-header.device-name,
+				(description :  $.inventory-header.device-description) when  $.inventory-header.device-description != null,	
+				scan_enabled :  $.inventory-header.scan-on-off,
+				owner : $.inventory-header.data-owner
+			 	
+			},
+			parking_facility_location_attr : {
+				(position_bps : $.inventory-header.position-bps-code) when  $.inventory-header.position-bps-code != null,
+				position_wgs84 : {
+							(latitude : $.inventory-header.device-location.latitude when $.inventory-header.device-location.latitude != null otherwise 0.00),
+							(longitude : $.inventory-header.device-location.longitude when $.inventory-header.device-location.longitude != null otherwise 0.00)
+						},
+			 	(direction : $.inventory-header.link-direction)when $.inventory-header.link-direction !=null
+			}
+			}
+		})
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+
+
+	<sub-flow name="parking-facility-status-subscription">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID" />
+		<dw:transform-message
+			doc:name="Prepare parking_facility_status_subscription Message"
+			metadata:id="f2c6c252-8a48-4152-826f-6925c206655e">
+			<dw:input-payload doc:sample="sample_data\empty_4.xml" />
+			<dw:input-variable variableName="uuid" />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+parking_facility_status_subscription @(xmlns: "http://parkingfacility.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		
+		(
+			all_parking_facilities : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								parking_facility_spec : {
+									parking_facility_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		)	
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+
+
+	<sub-flow name="parking-facility-status-publish">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare anyTypeStatusUpdate Message">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeStatusUpdateMsg : {
+	tmdd-object-list @(xsi#schemaLocation : 'http://www.tmdd.org/3/messages'): {
+		(
+			payload.parking_facility_status_publish.*parking_facility_publish map {
+				tmdd-object @(xsi#type : 'tmdd:Parking-facility'): {
+					status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.parking_facility_id.id,
+						last-comm-time : toDateAndTime($.parking_facility_status_attr.timestamp),
+						(otmc-parameters : {
+						        available : $.otmc_device_status.available,
+						        device-state : $.otmc_device_status.device-state,
+								deployed-by-list : {
+								(object : {
+									(id : $.otmc_device_status.deployed_by.service_ref.otmc_object_id)when $.otmc_device_status.deployed_by.service_ref !=null  ,
+									(object-type : "traffic light controller") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+									(object-type : "ramp metering controller") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "RAMP_METERING_CONTROLLER",
+									(object-type : "variable message sign") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+									(object-type : "parking facility") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "PARKING_FACILITY",
+									(object-type : "video camera") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "VIDEO_CAMERA",
+									(object-type : "rotary panel") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "ROTARY_PANEL",
+									(object-type : "specific service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "SPECIFIC_SERVICE",
+									(object-type : "traffic service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "TRAFFIC_SERVICE",
+									(object-type : "information service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "INFORMATION_SERVICE",
+									(object-type : "rerouting service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "REROUTING_SERVICE",
+									system-id : $.otmc_device_status.deployed_by.system_id
+								}) when $.otmc_device_status.deployed_by != null
+							},
+							availability-explanation : $.otmc_device_status.parameters.encoded_parameters,
+							state-source-description : $.otmc_device_status.parameters.state-source-description,
+							state-explanation : $.otmc_device_status.parameters.state-explanation,
+							encoded-parameters : $.otmc_device_status.parameters.encoded_parameters
+						}) when $.parking_facility_publish.otmc_device_status != null							
+					},
+					parking-state : $.parking_facility_status_attr.parking_state,
+						capacity : $.parking_facility_status_attr.capacity,
+						parking-spaces :  $.parking_facility_status_attr.parking_spaces
+						
+				}
+			} when payload.parking_facility_status_publish.*parking_facility_publish != null otherwise {}
+		)
+	},
+	c2cMsgAdmin : {
+		subscriptionID : payload.parking_facility_status_publish.subscription_id.uuid
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+	</sub-flow>
+	<sub-flow name="parking-facility-info-request-inventory">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID" />
+		<dw:transform-message
+			doc:name="Prepare parking_facility_info_request Inventory Message">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+parking_facility_info_request @(xmlns: "http://parkingfacility.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	info_spec : {
+		inventory : true when payload.anyTypeInventoryRequestMsg.device-information-type == "device inventory"
+				otherwise false,
+		status : false
+	},
+	(all_parking_facilities : true when payload.anyTypeInventoryRequestMsg.device-filter.device-id-list == null
+		otherwise {
+			(payload.anyTypeInventoryRequestMsg.device-filter.device-id-list.*device-id map {
+				parking_facility_spec : {
+					parking_facility_id : {
+						id : $
+					}
+				}
+			})
+		}),
+	all_subscriptions : false
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare anyTypeInventoryMsg Message">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+---
+tmdd#anyTypeInventoryMsg : {
+	tmdd-object-list @(xsi#schemaLocation : 'http://www.tmdd.org/3/messages'): {
+		(
+			payload.parking_facility_info_reply.*parking_facility_publish map {
+				tmdd-object @(xsi#type : 'tmdd:Parking-facility'): {
+					inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.parking_facility_id.id,
+						device-location: {
+						(latitude : $.parking_facility_location_attr.position_wgs84.latitude) when $.parking_facility_location_attr.position_wgs84.latitude !=null,
+				       (longitude :$.parking_facility_location_attr.position_wgs84.longitude) when $.parking_facility_location_attr.position_wgs84.longitude !=null
+				       },
+						device-name : $.parking_facility_inventory_attr.name,
+				
+						
+						(device-description : $.parking_facility_inventory_attr.description) when $.parking_facility_inventory_attr.description != null,
+						(link-direction : $.parking_facility_location_attr.direction)when $.parking_facility_location_attr.direction !=null,
+						scan-on-off : $.parking_facility_inventory_attr.scan_enabled,
+												(position-bps-code : $.parking_facility_location_attr.position_bps) when $.parking_facility_location_attr.position_bps !=null,
+						
+						(scan-interval : $.parking_facility_inventory_attr.scan_interval) when $.parking_facility_inventory_attr.scan_interval !=null,
+						
+						data-owner : $.parking_facility_inventory_attr.owner
+				       
+				
+					}
+				}
+			} when payload.parking_facility_info_reply.*parking_facility_publish != null otherwise {}
+		)
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+	</sub-flow>
+
+	<sub-flow name="parking-facility-info-request-status">
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<flow-ref name="generateUUID" doc:name="generateUUID" />
+		<dw:transform-message
+			doc:name="Prepare parking-facility_info_request Status Message">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+parking_facility_info_request @(xmlns: "http://parkingfacility.cdm.charm.cgi.com", version:"1.0.0") : {
+	meta: {
+		message_id: {
+			uuid:flowVars.uuid
+		},
+		message_create_date: timeZone
+	},
+	info_spec: {
+		inventory: false,
+		status: true when payload.anyTypeStatusRequestMsg.device-information-type == "device status"
+				otherwise false
+	},
+	(
+	all_parking_facilities: true when payload.anyTypeStatusRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.anyTypeStatusRequestMsg.device-filter.device-id-list.*device-id map {
+			parking_facility_spec:{
+				parking_facility_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+		<flow-ref name="outbound_cdm_backbone_request_response"
+			doc:name="outbound_cdm_backbone_request_response" />
+		<flow-ref name="transformToXML" doc:name="transformToXML" />
+		<dw:transform-message doc:name="Prepare anyTypeStatusMsg Message">
+			<dw:input-payload />
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+
+---
+tmdd#anyTypeStatusMsg : {
+	tmdd-object-list @(xsi#schemaLocation : 'http://www.tmdd.org/3/messages'): {
+		(
+			payload.parking_facility_info_reply.*parking_facility_publish map {
+				tmdd-object @(xsi#type : 'tmdd:Parking-facility'): {
+					status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : $.parking_facility_id.id,
+						device-status : "off",
+						(last-comm-time : toDateAndTime($.parking_facility_status_attr.timestamp))when $.parking_facility_status_attr.timestamp !=null ,
+						
+						(otmc-parameters : {
+							(availability-explanation : $.otmc_device_status.parameters.availability_explanation) when $.otmc_device_status.parameters.availability_explanation != null,
+							(state-source-description : $.otmc_device_status.parameters.state_source_description) when $.otmc_device_status.parameters.state_source_description != null,
+							(state-explanation : $.otmc_device_status.parameters.state_explanation) when $.otmc_device_status.parameters.state_explanation != null,
+							(deployed-by-list : {
+								(object : {
+									(id : $.otmc_device_status.deployed_by.service_ref.otmc_object_id)when $.otmc_device_status.deployed_by.service_ref !=null ,
+									(object-type : "traffic light controller") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "TRAFFIC_LIGHT_CONTROLLER",
+									(object-type : "ramp metering controller") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "RAMP_METERING_CONTROLLER",
+									(object-type : "variable message sign") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "VARIABLE_MESSAGE_SIGN",
+									(object-type : "parking facility") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "PARKING_FACILITY",
+									(object-type : "video camera") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "VIDEO_CAMERA",
+									(object-type : "rotary panel") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "ROTARY_PANEL",
+									(object-type : "specific service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "SPECIFIC_SERVICE",
+									(object-type : "traffic service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "TRAFFIC_SERVICE",
+									(object-type : "information service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "INFORMATION_SERVICE",
+									(object-type : "rerouting service") when $.otmc_device_status.deployed_by.service_ref.otmc_object_type == "REROUTING_SERVICE",
+									system-id : $.otmc_device_status.deployed_by.system_id
+								})when $.otmc_device_status.deployed_by != null
+							})when $.otmc_device_status.deployed_by != null,
+					      (available: "available") when $.otmc_device_status.availability == "AVAILABLE",
+					      (available : "unavailable") when $.otmc_device_status.availability == "UNAVAILABLE",
+							(encoded-parameters : $.otmc_device_status.parameters.encoded_parameters) when $.otmc_device_status.parameters.encoded_parameters !=null
+						})when $.otmc_device_status.parameters !=null
+							
+					} ,
+				(capacity : $.parking_facility_status_attr.capacity)when $.parking_facility_status_attr.capacity !=null,
+					(parking-spaces:$.parking_facility_status_attr.parking_spaces)when $.parking_facility_status_attr.parking_spaces !=null,
+					(parking-state : "available") when $.parking_facility_status_attr.parking_state == "AVAILABLE",
+					(parking-state : "full") when $.parking_facility_status_attr.parking_state == "FULL",
+			     	(parking-state : "closed") when $.parking_facility_status_attr.parking_state == "CLOSED"
+					
+				}
+			}
+		)
+	}
+}]]></dw:set-payload>
+		</dw:transform-message>
+
+		<byte-array-to-string-transformer
+			doc:name="Byte Array to String" />
+	</sub-flow>
+</mule>

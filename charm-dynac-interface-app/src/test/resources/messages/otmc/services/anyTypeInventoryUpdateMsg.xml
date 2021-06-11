@@ -1,0 +1,38 @@
+<tmdd:anyTypeInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<tmdd-object-list xsi:schemaLocation="http://www.tmdd.org/3/messages"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<tmdd-object xsi:type="tmdd:OTMC">
+			<inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+				<organization-information>
+					<organization-id>RWS</organization-id>
+				</organization-information>
+				<device-id>id1</device-id>
+				<device-location>
+					<latitude>1</latitude>
+					<longitude>1.1</longitude>
+				</device-location>
+				<device-name>device1</device-name>
+				<last-update-time>
+					<date>20060504</date>
+					<time>181351</time>
+				</last-update-time>
+				<link-direction>1</link-direction>
+				<device-type>otmc service</device-type>
+				<inventory-action>add</inventory-action>
+				<data-owner>otmc</data-owner>
+				<otmc-info>
+					<object-type>rotary panel</object-type>
+					<cdm-type>drip</cdm-type>
+					<encoded-parameters>F0FF</encoded-parameters>
+				</otmc-info>
+			</inventory-header>
+			<otmc-authorization-list>
+				<list-item>3</list-item>
+			</otmc-authorization-list>
+			<owner>Dynac</owner>
+		</tmdd-object>
+	</tmdd-object-list>
+	<c2cMsgAdmin>
+		<subscriptionID>00000000-0000-0000-0000-000000000001</subscriptionID>
+	</c2cMsgAdmin>
+</tmdd:anyTypeInventoryUpdateMsg>

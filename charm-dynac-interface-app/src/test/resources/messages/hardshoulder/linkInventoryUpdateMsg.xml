@@ -1,0 +1,83 @@
+<tmdd:linkInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <c2cMsgAdmin>
+            <informationalText>FULLSYNC</informationalText>
+            <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+         </c2cMsgAdmin>
+         <link-inventory-list>
+            <link-inventory-item>
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <link-list>
+                  <link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                     <network-id>hardshoulder1</network-id>
+                     <network-name>hardshoulder1</network-name>
+                     <link-id>hardshoulder1</link-id>
+                     <link-name>hardshoulder1 name</link-name>
+                     <link-route-designator>qui foedere</link-route-designator>
+                     <secondary-link-route-designator>atris hoc metuens</secondary-link-route-designator>
+                     <link-type>unknown</link-type>
+                     <link-begin-node-id>link_begin_node_id_1</link-begin-node-id>
+                     <link-begin-node-location>
+                        <latitude>1.11</latitude>
+                        <longitude>1.22</longitude>
+                     </link-begin-node-location>
+                     <link-end-node-id>link_end_node_id_1</link-end-node-id>
+                     <link-end-node-location>
+                        <latitude>1.33</latitude>
+                        <longitude>1.44</longitude>
+                     </link-end-node-location>
+                     <inventory-action>add</inventory-action>
+                     <link-description>description_1</link-description>
+                     <network-info-type>hard shoulder inventory</network-info-type>
+                  </link>
+                  <link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                     <network-id>segment1</network-id>
+                     <network-name>segment1</network-name>
+                     <link-id>segment1</link-id>
+                     <link-name>segment1 name</link-name>
+                     <alternate-link-name>hardshoulder1</alternate-link-name>
+                     <link-route-designator>qui foedere</link-route-designator>
+                     <secondary-link-route-designator>atris hoc metuens</secondary-link-route-designator>
+                     <link-type>unknown</link-type>
+                     <link-begin-node-id>link_begin_node_id_1</link-begin-node-id>
+                     <link-begin-node-location>
+                        <latitude>2.11</latitude>
+                        <longitude>2.22</longitude>
+                     </link-begin-node-location>
+                     <link-end-node-id>link_end_node_id_1</link-end-node-id>
+                     <link-end-node-location>
+                        <latitude>2.33</latitude>
+                        <longitude>2.44</longitude>
+                     </link-end-node-location>
+                     <inventory-action>remove</inventory-action>
+                     <link-description>description_1</link-description>
+                     <network-info-type>hard shoulder inventory</network-info-type>
+                  </link>
+                   <link xsi:type="tmdd:LinkInventoryListCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                     <network-id>segment2</network-id>
+                     <network-name>segment2</network-name>
+                     <link-id>segment2</link-id>
+                     <link-name>segment2</link-name>
+                     <alternate-link-name>hardshoulder1</alternate-link-name>
+                     <link-route-designator>qui foedere</link-route-designator>
+                     <secondary-link-route-designator>atris hoc metuens</secondary-link-route-designator>
+                     <link-type>unknown</link-type>
+                     <link-begin-node-id>link_begin_node_id_1</link-begin-node-id>
+                     <link-begin-node-location>
+                        <latitude>2.11</latitude>
+                        <longitude>2.22</longitude>
+                     </link-begin-node-location>
+                     <link-end-node-id>link_end_node_id_1</link-end-node-id>
+                     <link-end-node-location>
+                        <latitude>2.33</latitude>
+                        <longitude>2.44</longitude>
+                     </link-end-node-location>
+                     <inventory-action>remove</inventory-action>
+                     <link-description>description_1</link-description>
+                     <network-info-type>hard shoulder inventory</network-info-type>
+                  </link>
+               </link-list>
+            </link-inventory-item>
+         </link-inventory-list>
+      </tmdd:linkInventoryUpdateMsg>

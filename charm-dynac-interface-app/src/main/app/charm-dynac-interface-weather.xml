@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    
+    <sub-flow name="weather-inventory-subscription">
+		<mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/weather/weather_inventory_subscription.xsl" doc:name="XSLT" maxActiveTransformers="5" maxIdleTransformers="2">
+			<mulexml:context-property key="return_address" value="${dynac_interface.return_address}"/>
+            <mulexml:context-property key="userId" value="${user_id}"/>
+            <mulexml:context-property key="password" value="${password}"/>
+            <mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+    <sub-flow name="weather-inventory-publish">
+		<mulexml:xslt-transformer xsl-file="xslt/weather/weather_inventory_publish.xsl" doc:name="construct inventory publish" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+	</sub-flow>
+    <sub-flow name="weather-status-subscription">
+        <mulexml:xslt-transformer xsl-file="xslt/weather/weather_status_subscription.xsl" doc:name="construct subscription" returnClass="java.lang.String">
+			<mulexml:context-property key="current_time_in_millis" value="#[System.currentTimeMillis()]"/>
+			<mulexml:context-property key="message_uuid" value="#[function:uuid]"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway"/>
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml"/>
+		</static-component>
+    </sub-flow>
+    <sub-flow name="weather-status-publish">
+		<mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="xslt/weather/weather_status_publish.xsl" doc:name="XSLT">
+		 	<mulexml:context-property key="organizationId" value="${organization_information.organization_id}"/>
+		</mulexml:xslt-transformer>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+</mule>

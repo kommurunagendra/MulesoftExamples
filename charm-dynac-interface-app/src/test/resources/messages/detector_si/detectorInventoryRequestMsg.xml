@@ -1,0 +1,20 @@
+<tmdd:detectorInventoryRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<organization-information>
+		<organization-id>RWS</organization-id>
+	</organization-information>
+	<organization-requesting>
+		<organization-id>RWS</organization-id>
+	</organization-requesting>
+	<device-type>detector-si</device-type>
+	<device-information-type>device inventory</device-information-type>
+	<device-filter>
+		<device-id-list>
+			<device-id>detectorId1</device-id>
+			<device-id>detectorId2</device-id>
+		</device-id-list>
+	</device-filter>
+</tmdd:detectorInventoryRequestMsg>

@@ -1,0 +1,37 @@
+<tmdd:gateStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <c2cMsgAdmin>
+            <subscriptionID>00000000-0000-0000-0000-000000000010</subscriptionID>
+         </c2cMsgAdmin>
+         <gate-status-item>
+            <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <device-id>grandbridge1</device-id>
+               <device-status>on</device-status>
+               <last-comm-time>
+                  <date>20150917</date>
+                  <time>084811</time>
+               </last-comm-time>
+               <device-type>bridge</device-type>
+               <data-owner>dynac</data-owner>
+            </device-status-header>
+            <gate-status>gate open</gate-status>
+         </gate-status-item>
+         <gate-status-item>
+            <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <device-id>grandbridge1</device-id>
+               <device-status>on</device-status>
+               <last-comm-time>
+                  <date>20150917</date>
+                  <time>084811</time>
+               </last-comm-time>
+               <device-type>bridge</device-type>
+               <data-owner>ndw</data-owner>
+            </device-status-header>
+            <gate-status>gate closed</gate-status>
+         </gate-status-item>
+      </tmdd:gateStatusUpdateMsg>

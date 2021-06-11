@@ -1,0 +1,15 @@
+<ns2:organizationInformationMsg
+	xmlns:ns2="http://www.tmdd.org/3/messages" xmlns:ns3="http://www.ntcip.org/c2c-message-administration">
+	<organization-information-item
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns2:OrganizationInformationCharm">
+		<organization-id>444</organization-id>
+		<organization-name>gotham_otmc</organization-name>
+		<web-service-url>http://www.gotham.nl/otmc_access_url</web-service-url>
+		<timeout>30000</timeout>
+		<scan-on-off>true</scan-on-off>
+		<description>Our nr. 1 otmc client in the whole NL...</description>
+		<alive-period>70000</alive-period>
+		<acknowledge-timeout-period>3000</acknowledge-timeout-period>
+		<organization-information-type>otmc-outbound information</organization-information-type>
+	</organization-information-item>
+</ns2:organizationInformationMsg>

@@ -1,0 +1,41 @@
+<tmdd:genericDeviceControlRequestMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<device-control-request-header xsi:type="tmdd:DeviceControlRequestHeaderCharm"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<authentication>
+			<user-id>dummy</user-id>
+			<password>test</password>
+		</authentication>
+		<organization-requesting>
+			<organization-id>organization-id</organization-id>
+		</organization-requesting>
+		<device-id>device-id</device-id>
+		<request-id>request-id</request-id>
+		<command-request-time>
+			<date>20060504</date>
+			<time>181351</time>
+		</command-request-time>
+		<device-type>otmc service</device-type>
+		<object-type>parking facility</object-type>
+	</device-control-request-header>
+	<generic-object-list>
+		<generic-object>
+			<object-name>objectName1</object-name>
+			<display-name>displayName1</display-name>
+			<generic-element-list>
+				<generic-element>
+					<element-name>1</element-name>
+					<element-value>0FB9</element-value>
+				</generic-element>
+				<generic-element>
+					<element-name>2</element-name>
+					<element-value>0FB8</element-value>
+				</generic-element>
+			</generic-element-list>
+		</generic-object>
+	</generic-object-list>
+</tmdd:genericDeviceControlRequestMsg>

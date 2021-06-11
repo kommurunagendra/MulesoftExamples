@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a8593bf9-c210-4d0d-a66c-524e7e85f24d" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="demo-scatterFlow" doc:id="fdfbdb29-457c-44f0-84bd-f0278c9da67f" >
+		<http:listener doc:name="Listener" doc:id="b45fbe4c-bc1e-42dd-9316-d493838c4689" config-ref="HTTP_Listener_config" path="/demo"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f3fcec3c-06ed-4a74-8fae-443c3b0ab74c" message="before scatter"/>
+		<set-payload value='{"message": "payload before scater and gather"}' doc:name="Set Payload" doc:id="99c3433d-d203-4696-bed1-74641d5c5277" />
+		<scatter-gather doc:name="Scatter-Gather" doc:id="4887e088-f7e0-43e6-aaf8-7a29b9708dd8" >
+			<route >
+				<logger level="INFO" doc:name="Logger" doc:id="1225dad2-c95b-43d6-974d-d1b97f04d9cb" message="in scatter 1.0"/>
+				<logger level="INFO" doc:name="Logger" doc:id="14bab1c3-e7cf-413c-aec9-51bce53477a8" message="in sactter 1.1"/>
+				<set-payload value='{"message": "payload inside scater and gather flow1"}' doc:name="Set Payload" doc:id="b1edc245-fe9f-4583-8ab6-1ef84a6b85c7" />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger" doc:id="32faf472-a21d-4f4c-98cc-c28d52dfe027" message="in sactter 2.0"/>
+				<logger level="INFO" doc:name="Logger" doc:id="73a48ece-cb08-446b-98c5-c900b49ad540" message="in sactter 2.1"/>
+				<set-payload value='{"message": "payload inside scater and gather flow2"}' doc:name="Set Payload" doc:id="afb7e3c1-db1b-450c-91ff-4e99ec4c1e9a" />
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="Logger" doc:id="3b3e6608-f450-4075-95c5-3b22d98889c0" message="after scatter"/>
+	</flow>
+</mule>

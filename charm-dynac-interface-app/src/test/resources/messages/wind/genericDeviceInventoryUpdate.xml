@@ -1,0 +1,54 @@
+      <tmdd:genericDeviceInventoryUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <!--Optional:-->
+         <c2cMsgAdmin>
+            <!--Optional:-->
+            <informationalText>FULLSYNC</informationalText>
+            <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+            <!--Optional:-->
+            <subscriptionFrequency>7</subscriptionFrequency>
+            <!--Optional:-->
+            <subscriptionCount>7</subscriptionCount>
+         </c2cMsgAdmin>
+         <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+               <organization-information>
+                  <organization-id>dynac-1</organization-id>
+                  <organization-name>dynac</organization-name>
+               </organization-information>
+               <device-id>deviceId1</device-id>
+               <device-location>
+                  <latitude>1.1111</latitude>
+                  <longitude>1.1111</longitude>
+               </device-location>
+               <device-name>deviceName1</device-name>
+               <device-description>deviceDescription1</device-description>
+               <device-type>wind sensor</device-type>
+               <scan-on-off>true</scan-on-off>
+               <scan-interval>10</scan-interval>
+               <inventory-action>add</inventory-action>
+               <hostname>127.0.0.1</hostname>
+               <port>80</port>
+            </device-inventory-header>
+         </dms-inventory-item>
+         <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm">
+               <organization-information>
+                  <organization-id>dynac-1</organization-id>
+                  <organization-name>dynac</organization-name>
+               </organization-information>
+               <device-id>deviceId2</device-id>
+               <device-location>
+                  <latitude>1.1111</latitude>
+                  <longitude>1.1111</longitude>
+               </device-location>
+               <device-name>deviceName2</device-name>
+               <device-description>deviceDescription2</device-description>
+               <device-type>wind sensor</device-type>
+               <scan-on-off>true</scan-on-off>
+               <scan-interval>10</scan-interval>
+               <inventory-action>add</inventory-action>
+               <hostname>127.0.0.1</hostname>
+               <port>80</port>
+            </device-inventory-header>
+         </dms-inventory-item>         
+      </tmdd:genericDeviceInventoryUpdateMsg>

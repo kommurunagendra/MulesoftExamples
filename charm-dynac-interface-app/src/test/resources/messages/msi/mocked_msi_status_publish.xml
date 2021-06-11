@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<msi_status_publish xmlns="http://msi.cdm.charm.cgi.com" version="1.0.0">  
+  <meta> 
+    <message_id> 
+      <uuid>12345678-0000-0000-0000-000000000000</uuid> 
+    </message_id>  
+    <message_create_date>2001-12-31T12:00:00Z</message_create_date> 
+  </meta>  
+  <subscription_id> 
+    <uuid>00000000-0000-0000-0000-000000000000</uuid> 
+  </subscription_id>  
+  <subscription_ref> 
+    <property> 
+      <key>source</key>  
+      <value>msi-app</value> 
+    </property>  
+    <property> 
+      <key>destination</key>  
+      <value>dynac-interface-app</value> 
+    </property> 
+  </subscription_ref>  
+  <msi_publish> 
+    <msi_id> 
+      <id>msi_id_1</id> 
+    </msi_id>  
+    <msi_status_attr> 
+      <last_status_update>2001-11-11T11:11:11Z</last_status_update>
+      <msi_status_information> 
+        <image_mnemonic>image_mnemonic_1</image_mnemonic>  
+        <image_status>ok</image_status>  
+        <msi_state>fatal</msi_state>
+      </msi_status_information>  
+      <msi_status_data> 
+        <local_mode>1</local_mode>  
+        <group_code>1</group_code>  
+        <legend_code>1</legend_code>  
+        <variation_code>1</variation_code>  
+        <state>1</state>  
+        <general_state>1</general_state>  
+        <lamp_state>lamp_state_1</lamp_state> 
+      </msi_status_data>
+    </msi_status_attr>  
+    <msi_error> 
+      <error_class>system</error_class>  
+      <error_subclass>library</error_subclass>  
+      <error_code>1000</error_code>  
+      <error_description>library is missing</error_description> 
+    </msi_error>  
+    <msi_error> 
+      <error_class>system</error_class>  
+      <error_subclass>library</error_subclass>  
+      <error_code>1000</error_code>  
+      <error_description>library is missing</error_description> 
+    </msi_error> 
+  </msi_publish> 
+  <msi_publish> 
+    <msi_id> 
+      <id>msi_id_2</id> 
+    </msi_id>  
+    <msi_status_attr> 
+      <last_status_update>2002-12-12T12:12:12Z</last_status_update>
+      <msi_status_information> 
+        <image_mnemonic>image_mnemonic_2</image_mnemonic>  
+        <image_status>not_found</image_status>  
+        <msi_state>no_specification</msi_state>
+      </msi_status_information>  
+      <msi_status_data> 
+        <local_mode>2</local_mode>  
+        <group_code>2</group_code>  
+        <legend_code>1</legend_code>  
+        <variation_code>1</variation_code>  
+        <state>1</state>  
+        <general_state>1</general_state>  
+        <lamp_state>lamp_state_1</lamp_state>
+      </msi_status_data> 
+    </msi_status_attr>  
+    <msi_error> 
+      <error_class>system</error_class>  
+      <error_subclass>library</error_subclass>  
+      <error_code>1000</error_code>  
+      <error_description>library is missing</error_description> 
+    </msi_error>  
+    <msi_error> 
+      <error_class>system</error_class>  
+      <error_subclass>library</error_subclass>  
+      <error_code>1000</error_code>  
+      <error_description>library is missing</error_description> 
+    </msi_error> 
+  </msi_publish> 
+</msi_status_publish>

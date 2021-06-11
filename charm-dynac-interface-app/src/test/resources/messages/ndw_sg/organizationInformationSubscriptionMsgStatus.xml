@@ -1,0 +1,24 @@
+<tmdd:organizationInformationSubscriptionMsg xmlns:tmdd="http://www.tmdd.org/3/messages">  
+  <organization-requesting> 
+    <organization-id>Dynac</organization-id> 
+  </organization-requesting>  
+  <organization-information-type>ndw sg information</organization-information-type>  
+  <organization-id>DASB</organization-id>  
+  <center-id-list> 
+    <center-id>NdwId-01</center-id>  
+    <center-id>NdwId-02</center-id> 
+  </center-id-list>  
+  <c2cMsgAdmin> 
+    <returnAddress>http://localhost:41082/</returnAddress>  
+    <subscriptionAction> 
+      <subscriptionAction-item>newSubscription</subscriptionAction-item>
+    </subscriptionAction>  
+    <subscriptionType> 
+      <subscriptionType-item>onChange</subscriptionType-item> 
+    </subscriptionType>  
+    <subscriptionID>00767d19-ca89-4451-af9c-537d25f6a369</subscriptionID>  
+    <subscriptionName>subscription-name</subscriptionName>  
+    <subscriptionFrequency>1</subscriptionFrequency> 
+  </c2cMsgAdmin> 
+</tmdd:organizationInformationSubscriptionMsg>
+

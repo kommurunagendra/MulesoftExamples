@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" 
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    
+	<sub-flow name="traveltime-inventory-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare deviceInformationSubscriptionMsg Message">
+            <dw:input-payload />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8", skipNullOn="everywhere"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+---
+tmdd#deviceInformationSubscriptionMsg @(xsi#schemaLocation : 'http://www.tmdd.org/3/messages') : {
+	authentication: {
+		user-id: p('user_id'),
+		password: p('password')
+	},
+	
+	organization-information : {
+		organization-id : p('organization_information.organization_id')
+		
+	},
+	
+	device-type : 'traveltime',
+	
+	device-information-type: 'device inventory',
+		
+	device-filter @(xsi#type : 'tmdd:DeviceInformationRequestFilterCharm') : {
+		(device-id-list : {
+		(payload.traveltime_inventory_subscription.subscription_config.*traveltime_spec  map
+			device-id  : $.traveltime_id.id
+		)}) when payload.traveltime_inventory_subscription.subscription_config.*traveltime_spec != null,
+		data-owner : "dynac"
+	},
+		 	
+	c2cMsgAdmin: {
+		returnAddress: p('dynac_interface.return_address'),
+		subscriptionAction: {
+			subscriptionAction-item: 'replaceSubscription'
+		},
+		subscriptionType: {
+			subscriptionType-item: 'onChange'
+		},
+		subscriptionID: payload.traveltime_inventory_subscription.subscription_config.subscription_id.uuid,
+		subscriptionName: payload.traveltime_inventory_subscription.subscription_config.subscription_attr.subscription_name,
+		subscriptionFrequency: 2
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+    </sub-flow>
+    
+    <sub-flow name="traveltime-inventory-subscription-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare detector-inventory-subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+traveltime_inventory_subscription @(xmlns: "http://traveltime.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type: 'inventory'
+		},
+		 
+		(
+			all_traveltimes : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								traveltime_spec : {
+									traveltime_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		)		
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="traveltime-inventory-publish">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorInventoryUpdateMsg  Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},
+	time: data  as :localdatetime  as :string {format : "HHmmss"}
+}
+
+---
+tmdd#detectorInventoryUpdateMsg : {	
+	
+	c2cMsgAdmin: {
+		(informationalText:  'FULLSYNC' when payload.traveltime_inventory_publish.inventory_config.full_sync == 'true'
+		otherwise {}
+		),
+		subscriptionID : payload.traveltime_inventory_publish.subscription_id.uuid
+		},			
+				
+		((payload.traveltime_inventory_publish.inventory_config.*traveltime_inventory map {
+			 detector-inventory-item @(xsi#type : 'tmdd:TravelTimeInventory') : {
+			 	detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+			 		
+			 		device-id : $.traveltime_id.id,
+			 		
+			 		device-name : $.traveltime_inventory_attr.name,
+			 		
+			 		(device-description : $.traveltime_inventory_attr.description) when $.traveltime_inventory_attr.description != null,
+					
+					device-type : "traveltime",
+									 		
+			 		scan-on-off : $.traveltime_inventory_attr.scan_enabled,			 		
+			 		
+			 		inventory-action : $.action,			 	
+			 					 		
+			 		(data-owner : $.traveltime_inventory_attr.owner) when $.traveltime_inventory_attr.owner != null
+			 	},
+			 	detector-list : {
+			 		detector  @(xsi#type : 'tmdd:DetectorInventoryDetailsCharm'): {
+			 			detector-inventory-header  @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 				organization-information : {
+			 					organization-id : p('organization_information.organization_id')
+			 				},
+			 				
+			 				device-id : $.traveltime_id.id,
+			 				
+			 				device-name : $.traveltime_inventory_attr.name
+			 			},
+			 			detector-type : "unknown",
+			 			
+			 			measure-site-table : {
+			 				id : $.measure_site_table.id,
+			 				version : $.measure_site_table.version,
+			 				site-record-id : $.measure_site_table.measure_site_record.id,
+			 				site-record-version : $.measure_site_table.measure_site_record.version,
+			 				site-record-version-time : toDateAndTime($.measure_site_table.measure_site_record_version_time),
+			 				computation-method : $.measure_site_table.computation_method,
+			 				(measurement-site-name : $.measure_site_table.measurement_site_name) when $.measure_site_table.measurement_site_name != null,
+			 				measurement-site-number-of-lanes : $.measure_site_table.measurement_site_number_of_lanes,
+			 				(measurement-side : $.measure_site_table.measurement_side) when $.measure_site_table.measurement_side != null,
+			 				measurement-specific-characteristics-list : {
+			 					measurement-specific-characteristic : {
+			 						measure-type : $.measure_site_table.measurement_specific_characteristics.measure_value_type,
+			 						accuracy : $.measure_site_table.measurement_specific_characteristics.measurement_specific.accuracy,
+			 						period : $.measure_site_table.measurement_specific_characteristics.measurement_specific.period,
+			 						specific-lane : $.measure_site_table.measurement_specific_characteristics.measurement_specific.lane,
+			 						(vehicle-characteristics-list : {
+			 							($.measure_site_table.measurement_specific_characteristics.measurement_specific.*vehicle_characteristics map {
+			 								vehicle-characteristic : {
+			 									vc-code : $.vc_code,
+			 									comparison : $.comparison,
+			 									length : $.length
+			 								}
+			 							})
+			 						}) when $.measure_site_table.measurement_specific_characteristics.measurement_specific.vehicle_no_characteristics == null
+			 							and $.measure_site_table.measurement_specific_characteristics.measurement_specific.*vehicle_characteristics != null,
+			 						index : $.measure_site_table.measurement_specific_characteristics.index
+			 					}
+			 				}
+			 			}
+			 		}
+			 		},
+			 		
+			 		geolocation-list : {
+			 			($.*traveltime_location_attr map {
+			 				geo-location @(xsi#type : 'tmdd:GeoLocationCharm'): {
+			 					latitude : $.position_wgs84.latitude,
+			 					longitude : $.position_wgs84.longitude,
+			 					(position-bps-code : $.position_bps) when $.position_bps != null
+			 				}
+			 			})
+			 		},
+			 				 		
+			 		carriageway : $.measure_site_table.measure_site_location.position_extension.carriageway,
+			 		
+			 		(measurement-equipment-ref : $.measure_site_table.measurement_equipment_reference) when $.measure_site_table.measurement_equipment_reference != null,
+			 		
+    				(measurement-equipment-type : $.measure_site_table.measurement_equipment_type_used) when $.measure_site_table.measurement_equipment_type_used != null,
+    				
+    				traveltime-related-detector-list : {
+    					($.*traveltime_detector_attr map {
+    						list-item : $.detector_id.id
+    					})
+    				}
+			 }
+		})  when payload.traveltime_inventory_publish.inventory_config.*traveltime_inventory != null otherwise {
+			
+		}) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client" />
+    </sub-flow>
+    
+    <sub-flow name="traveltime-inventory-publish-NTCIP-To-CDM">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare traveltime_inventory_publish Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%var dateTimeToTimeStamp = (data1, data2) ->  data1[0..3] ++ "-" ++ data1[4..5] ++ "-" ++ data1[6..7] ++ "T" ++  data2[0..1] ++  ":" ++  data2[2..3] ++  ":" ++  data2[4..5] ++ "Z"
+
+---
+traveltime_inventory_publish @(xmlns: "http://traveltime.cdm.charm.cgi.com", version:"1.0.0") : {	
+	
+	meta: {
+		message_id: { 
+			uuid : flowVars.uuid
+		},
+		message_create_date: timeZone 
+	},
+	
+	subscription_id: {
+		uuid : payload.detectorInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+	},
+	
+	inventory_config: {
+			full_sync : true when payload.detectorInventoryUpdateMsg.c2cMsgAdmin.informationalText == "FULLSYNC"
+			otherwise false,
+		
+			inventory_id : {
+				uuid : payload.detectorInventoryUpdateMsg.c2cMsgAdmin.subscriptionID
+			},
+		
+			(payload.detectorInventoryUpdateMsg.*detector-inventory-item map {
+				traveltime_inventory : {
+					action : $.detector-station-inventory-header.inventory-action,
+					traveltime_id : {
+						id : $.detector-station-inventory-header.device-id
+					},
+					traveltime_inventory_attr : {
+						name : $.detector-station-inventory-header.device-name,
+						description : $.detector-station-inventory-header.device-description,
+						scan_enabled : $.detector-station-inventory-header.scan-on-off,
+						owner : $.detector-station-inventory-header.data-owner
+					},
+					($.geolocation-list.*geo-location map {
+						traveltime_location_attr : {
+							(position_bps : $.position-bps-code) when $.position-bps-code != null,
+						position_wgs84 : {
+							latitude : $.latitude,
+							longitude : $.longitude
+						}
+					}
+					}),
+					($.traveltime-related-detector-list.*list-item map {
+						traveltime_detector_attr : {
+							detector_id : {
+								id : $
+							}
+						}	
+					}),
+					measure_site_table : {
+						id : $.detector-list.detector.measure-site-table.id,
+						version : $.detector-list.detector.measure-site-table.version,
+						measure_site_record : {
+							id : $.detector-list.detector.measure-site-table.site-record-id,
+							version :$.detector-list.detector.measure-site-table.site-record-version
+						},
+						measure_site_record_version_time : dateTimeToTimeStamp($.detector-list.detector.measure-site-table.site-record-version-time.date,  $.detector-list.detector.measure-site-table.site-record-version-time.time),
+						computation_method : $.detector-list.detector.measure-site-table.computation-method,
+						(measurement_equipment_reference : $.measurement-equipment-ref) when $.measurement-equipment-ref != null,
+						(measurement_equipment_type_used : $.measurement-equipment-type) when $.measurement-equipment-type != null,
+						measurement_site_name : $.detector-list.detector.measure-site-table.measurement-site-name,
+						measurement_site_number_of_lanes : $.detector-list.detector.measure-site-table.measurement-site-number-of-lanes,
+						measurement_side : $.detector-list.detector.measure-site-table.measurement-side,
+						measurement_specific_characteristics : {
+							index : $.detector-list.detector.measure-site-table.measurement-specific-characteristics-list.measurement-specific-characteristic.index,
+							measure_value_type : $.detector-list.detector.measure-site-table.measurement-specific-characteristics-list.measurement-specific-characteristic.measure-type,
+							measurement_specific : {
+								accuracy : $.detector-list.detector.measure-site-table.measurement-specific-characteristics-list.measurement-specific-characteristic.accuracy,
+								period : $.detector-list.detector.measure-site-table.measurement-specific-characteristics-list.measurement-specific-characteristic.period,
+								lane : $.detector-list.detector.measure-site-table.measurement-specific-characteristics-list.measurement-specific-characteristic.specific-lane,
+								vehicle_no_characteristics : true
+							}
+						},
+						($.geolocation-list.*geo-location map { 
+                            measure_site_location : { 
+                                position_wgs84 : { 
+                                    latitude : $.latitude, 
+                                    longitude : $.longitude 
+                                }, 
+                                position_extension : { 
+                                    (carriageway : $.carriageway when $.carriageway != null otherwise "connectingCarriageway"), 
+                                    (length_affected : $.length as :number as :string {format: "0"} as :number) when $.length != null 
+                                } 
+                            } 
+                        })
+					}
+				}				
+			})
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="traveltime-status-subscription">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare traveltime_status_subscription Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+traveltime_status_subscription @(xmlns: "http://traveltime.cdm.charm.cgi.com", version:"1.0.0") : {	
+	meta :{
+		message_id : {
+			uuid : flowVars.uuid
+		},
+		message_create_date : timeZone
+	},
+	
+	subscription_config : {
+		subscription_id : {
+			uuid : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionID
+		},
+		
+		subscription_attr : {
+			subscription_name : payload.deviceInformationSubscriptionMsg.c2cMsgAdmin.subscriptionName,
+			subscription_type : 'status'
+		},
+		
+		(
+			all_traveltimes : {
+				(payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id map {
+								traveltime_spec : {
+									traveltime_id : {
+										id : $.device-id
+									}
+								}
+							})
+			} when payload.deviceInformationSubscriptionMsg.device-filter.device-id-list.*device-id != null
+			  otherwise true
+		)	
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_oneway" doc:name="outbound_cdm_backbone_oneway" />
+		<static-component>
+			<return-data file="static_messages/c2cMessageReceipt_ok.xml" />
+		</static-component>
+	</sub-flow>
+	
+	<sub-flow name="traveltime-status-publish">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorStatusUpdateMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding="UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+---
+tmdd#detectorStatusUpdateMsg : {	
+	c2cMsgAdmin: {
+		subscriptionID : payload.traveltime_status_publish.subscription_id.uuid
+		},			
+				
+		((payload.traveltime_status_publish.*traveltime_publish map {
+			detector-status-item @(xsi#type : 'tmdd:DetectorStatusCharm') : {
+			 	detector-station-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},		
+			 			 		
+			 		device-id : $.traveltime_id.id,		
+			 			 		
+			 		(device-status : 'on') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "ok",				
+					(device-status : 'marginal') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "downgraded",	
+					(device-status : 'failed') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "defect",	
+					(device-status : 'unavailable') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "not_found",	
+						
+			 		("":{last-comm-time : toDateAndTime($.traveltime_status_attr.traveltime_status_information.last_status_update)} when $.traveltime_status_attr.traveltime_status_information.last_status_update != null otherwise {}),
+			 		
+			 		device-type : "traveltime",
+			 		
+			 		duration : $.traveltime_status_attr.traveltime_status_information.traveltime_duration
+			 	},
+			 	detector-list : {}			
+			 }
+		})  when payload.traveltime_status_publish.*traveltime_publish != null otherwise {})
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<flow-ref name="ntcip_client" doc:name="ntcip_client"/>
+	</sub-flow>
+	
+	<sub-flow name="traveltime-info-request-inventory">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare traveltime_info_request Inventory Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+traveltime_info_request @(xmlns: "http://traveltime.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},	
+	info_spec: {
+		inventory: true when payload.detectorInventoryRequestMsg.device-information-type == "device inventory"
+				otherwise false,
+		status: false
+	},
+	(
+	all_traveltimes: true when payload.detectorInventoryRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.detectorInventoryRequestMsg.device-filter.device-id-list.*device-id map {
+			traveltime_spec:{
+				traveltime_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorInventoryMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+---
+tmdd#detectorInventoryMsg : {			
+		((payload.traveltime_info_reply.*traveltime_publish map {
+			 detector-inventory-item @(xsi#type : 'tmdd:TravelTimeInventory') : {
+			 	detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+			 		
+			 		device-id : $.traveltime_id.id,			 		
+			 		
+			 		device-name : $.traveltime_inventory_attr.name,
+			 		
+			 		(device-description : $.traveltime_inventory_attr.description) when $.traveltime_inventory_attr.description != null,
+			 					
+					device-type : "traveltime",
+									 		
+			 		scan-on-off : $.traveltime_inventory_attr.scan_enabled,				 		
+			 					 		
+			 		(data-owner : $.traveltime_inventory_attr.owner) when $.traveltime_inventory_attr.owner != null
+			 	},
+			 	detector-list : {
+			 		detector  @(xsi#type : 'tmdd:DetectorInventoryDetailsCharm'): {
+			 			detector-inventory-header  @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm') : {
+			 				organization-information : {
+			 					organization-id : p('organization_information.organization_id')
+			 				},
+			 				
+			 				device-id : $.traveltime_id.id,
+			 				
+			 				device-name : $.traveltime_inventory_attr.name
+			 			},
+			 			detector-type : "unknown",
+			 			
+			 			measure-site-table : {
+			 				id : $.measure_site_table.id,
+			 				version : $.measure_site_table.version,
+			 				site-record-id : $.measure_site_table.measure_site_record.id,
+			 				site-record-version : $.measure_site_table.measure_site_record.version,
+			 				site-record-version-time : toDateAndTime($.measure_site_table.measure_site_record_version_time),
+			 				computation-method : $.measure_site_table.computation_method,
+			 				(measurement-site-name : $.measure_site_table.measurement_site_name) when $.measure_site_table.measurement_site_name != null,
+			 				measurement-site-number-of-lanes : $.measure_site_table.measurement_site_number_of_lanes,
+			 				(measurement-side : $.measure_site_table.measurement_side) when $.measure_site_table.measurement_side != null,
+			 				measurement-specific-characteristics-list : {
+			 					measurement-specific-characteristic : {
+			 						measure-type : $.measure_site_table.measurement_specific_characteristics.measure_value_type,
+			 						accuracy : $.measure_site_table.measurement_specific_characteristics.measurement_specific.accuracy,
+			 						period : $.measure_site_table.measurement_specific_characteristics.measurement_specific.period,
+			 						specific-lane : $.measure_site_table.measurement_specific_characteristics.measurement_specific.lane,
+			 						(vehicle-characteristics-list : {
+			 							($.measure_site_table.measurement_specific_characteristics.measurement_specific.*vehicle_characteristics map {
+			 								vehicle-characteristic : {
+			 									vc-code : $.vc_code,
+			 									comparison : $.comparison,
+			 									length : $.length
+			 								}
+			 							})
+			 						}) when $.measure_site_table.measurement_specific_characteristics.measurement_specific.vehicle_no_characteristics == null
+			 							and $.measure_site_table.measurement_specific_characteristics.measurement_specific.*vehicle_characteristics != null,
+			 						index : $.measure_site_table.measurement_specific_characteristics.index
+			 					}
+			 				}
+			 			}
+			 		}},
+			 		geolocation-list : {
+			 			($.*traveltime_location_attr map {
+			 				geo-location @(xsi#type : 'tmdd:GeoLocationCharm'): {
+			 					latitude : $.position_wgs84.latitude,
+			 					longitude : $.position_wgs84.longitude,
+			 					(position-bps-code : $.position_bps) when $.position_bps != null
+			 				}
+			 			})
+			 		},
+			 				 		
+			 		carriageway : $.measure_site_table.measure_site_location.position_extension.carriageway,
+			 		
+			 		(measurement-equipment-ref : $.measure_site_table.measurement_equipment_reference) when $.measure_site_table.measurement_equipment_reference != null,
+			 		
+    				(measurement-equipment-type : $.measure_site_table.measurement_equipment_type_used) when $.measure_site_table.measurement_equipment_type_used != null,
+    				
+    				traveltime-related-detector-list : {
+    					($.*traveltime_detector_attr map {
+    						list-item : $.detector_id.id
+    					})
+    				}
+			 }
+		})  when payload.traveltime_info_reply.*traveltime_publish != null otherwise {
+				"":{detector-inventory-item @(xsi#type : 'tmdd:TravelTimeInventory'):  {
+					detector-station-inventory-header @(xsi#type : 'tmdd:DeviceInventoryHeaderCharm'): {
+						organization-information : {
+							organization-id : p('organization_information.organization_id')
+						},
+						device-id : 0,
+						device-name : "dummy"								
+					},
+						detector-list : {
+							detector @(xsi#type : "tmdd:DetectorInventoryDetailsCharm") : {
+								detector-inventory-header @(xsi#type : "tmdd:DeviceInventoryHeaderCharm") : {
+									organization-information : {
+										organization-id : p('organization_information.organization_id')
+										},
+									device-id : 0,
+									device-name : "dummy"
+									},
+									detector-type : "laser"
+								}
+						}
+						                 		           		                 							
+				}}
+		
+		
+		
+		}) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+	
+	<sub-flow name="traveltime-info-request-status">
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <flow-ref name="generateUUID" doc:name="generateUUID"/>
+        <dw:transform-message doc:name="Prepare traveltime_info_request Status Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml encoding = "UTF-8"
+%var timeZone = now as :string {format: "yyyy-MM-dd"} ++ "T" ++ now as :string {format: "hh:mm:ss"} ++ "Z"
+---
+traveltime_info_request @(xmlns: "http://traveltime.cdm.charm.cgi.com", version:"1.0.0"): {
+	meta: {
+		message_id: {
+			uuid: flowVars.uuid
+		},
+		message_create_date: timeZone
+	},	
+	info_spec: {
+		inventory: false,
+		status: true when payload.deviceInformationRequestMsg.device-information-type == "device status"
+				otherwise false
+	},
+	(
+	all_traveltimes: true when payload.deviceInformationRequestMsg.device-filter.device-id-list == null
+		otherwise {(payload.deviceInformationRequestMsg.device-filter.device-id-list.*device-id map {
+			traveltime_spec:{
+				traveltime_id:{
+					id: $.device-id
+				}
+			}
+		})
+	}),
+	all_subscriptions: false
+}]]></dw:set-payload>
+        </dw:transform-message>
+		<byte-array-to-string-transformer doc:name="Byte Array to String"/>
+		<flow-ref name="outbound_cdm_backbone_request_response" doc:name="outbound_cdm_backbone_request_response"/>
+        <flow-ref name="transformToXML" doc:name="transformToXML"/>
+        <dw:transform-message doc:name="Prepare detectorStatusMsg Message">
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml  encoding="UTF-8"
+%namespace tmdd http://www.tmdd.org/3/messages
+%namespace xsi http://www.w3.org/2001/XMLSchema-instance
+
+%var toDateAndTime = (data) -> {
+	date: data  as :date as :string {format : "yyyyMMdd"},		
+	time: data  as :localdatetime  as :string {format : "HHmmss"}		
+}
+---
+tmdd#detectorStatusMsg : {
+	(payload.traveltime_info_reply.*traveltime_publish map {
+		detector-status-item @(xsi#type : 'tmdd:DetectorStatusCharm') : {
+			detector-station-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+		 		organization-information : {
+		 			organization-id : p('organization_information.organization_id')
+		 		},
+		 		device-id : $.traveltime_id.id,	
+				(device-status : 'on') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "ok",
+				(device-status : 'marginal') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "degraded",
+				(device-status : 'failed') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "unreliable",
+				(device-status : 'unavailable') when $.traveltime_status_attr.traveltime_status_information.traveltime_state == "nok",	
+				(device-status : "unavailable") when $.traveltime_status_attr == null,
+				("":{last-comm-time : toDateAndTime($.traveltime_status_attr.traveltime_status_information.last_status_update)} when $.traveltime_status_attr.traveltime_status_information.last_status_update != null otherwise {}),
+				device-type : "traveltime",
+				(duration : $.traveltime_status_attr.traveltime_status_information.traveltime_duration) when $.traveltime_status_attr.traveltime_status_information.traveltime_duration != null
+			},
+			detector-list : {}
+		}
+	} when payload.traveltime_info_reply.*traveltime_publish != null otherwise {
+		"":{detector-status-item @(xsi#type : 'tmdd:DetectorStatusCharm') : {
+			 	detector-station-status-header @(xsi#type : 'tmdd:DeviceStatusHeaderCharm') : {
+			 		
+			 		organization-information : {
+			 			organization-id : p('organization_information.organization_id')
+			 		},
+						device-id : 0,
+						device-status : "unknown"								
+					},
+						detector-list : {}
+						                 		           		                 							
+				}} 
+	}) 
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+	</sub-flow>
+</mule>

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/current/mule-quartz.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+
+	<asynchronous-processing-strategy name="executeTestsStrategy" maxThreads="${maxThreads}"  minThreads="1" doc:name="Asynchronous Processing Strategy"/>
+    <flow name="preprocess" processingStrategy="executeTestsStrategy">
+         <vm:inbound-endpoint exchange-pattern="one-way" path="preprocess" doc:name="VM"/> 
+        <message-properties-transformer scope="invocation" doc:name="Port-Host">
+            <add-message-property key="deviceInfo" value="#[payload]"/>
+            <add-message-property key="port" value="#[payload.getPortnumberClient()]"/>
+            <add-message-property key="host" value="#[payload.getIpnrVri()]"/>
+        </message-properties-transformer>
+        <invoke object-ref="prepareCommand" method="getReadCommand" methodArguments="#[payload],${tlc.ping}" methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="InvokeCommand"/>
+
+        <flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow"/>
+
+        <expression-filter expression="#[flowVars.deviceInfo.isDeviceDown()]" doc:name="Expression"/>
+        <set-payload value="#[flowVars.deviceInfo]" doc:name="Set Payload"/>
+        <flow-ref name="charm-sc-tlc-LoginFlow" doc:name="charm-sc-tlc-LoginFlow"/>
+        <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setDeviceDown(false);
+flowVars.deviceInfo.setLogin(true);
+flowVars.deviceInfo.setCommState("ONLINE");
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+payload=flowVars.deviceInfo;]]></expression-component>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+         <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.net.SocketException)]" logException="false">
+                <logger message="#[message.exception]" level="ERROR" category="charm-sc-tlc-app" doc:name="Logger"/>
+           <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setDeviceDown(true);
+flowVars.deviceInfo.setSequenceNumber(0);
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+payload=flowVars.deviceInfo;]]></expression-component>
+
+        </catch-exception-strategy> 
+         <catch-exception-strategy doc:name="Catch Exception Strategy" when="#[exception.causedBy(java.net.ConnectException)]" logException="false">
+                <logger message="#[message.exception]" level="ERROR" category="charm-sc-tlc-app" doc:name="Logger"/>
+           <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setDeviceDown(true);
+flowVars.deviceInfo.setSequenceNumber(0);
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);
+payload=flowVars.deviceInfo;]]></expression-component>
+        </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+    <flow name="charm-sc-tlc-inventorySubscription">
+		<quartz:inbound-endpoint doc:name="Quartz"
+			connector-ref="QuartzConnector" jobName="tlcInventorySubcription"
+			repeatInterval="${quartz.repeatinterval}">
+			<quartz:event-generator-job>
+				<quartz:payload>inventory subscription</quartz:payload>
+			</quartz:event-generator-job>
+		</quartz:inbound-endpoint>
+		<expression-filter
+			expression="#[app.registry.get(&quot;tlcQueryServiceImpl&quot;).getAllTlcs().size()==0 || null == app.registry.get(&quot;tlcInventoryPublishReceived&quot;)]"
+			doc:name="Expression" />
+		<set-payload value="${tlc.subscriptionId}" doc:name="Set Payload" />
+		<parse-template location="./tlc_inventory_subscription.xml"
+			doc:name="Parse Template" />
+		<flow-ref name="charm-sc-tlc-async-outbound" doc:name="charm-sc-tlc-async-outbound" />
+	</flow>
+    <sub-flow name="charm-sc-tlc-inventory-publish">
+		<mulexml:jaxb-xml-to-object-transformer
+			jaxbContext-ref="tlc" doc:name="XML to JAXB Object" />
+        <scripting:component doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[muleContext.registry.registerObject("tlcInventoryPublishReceived", new String("true"))
+					return payload]]></scripting:script>
+        </scripting:component>
+		<component 
+			doc:name="Tlc Inventory publish" >
+            <singleton-object class="com.cgi.charm.sc.tlc.handler.TlcInventoryPublishHandler"/>
+        </component>
+		<foreach doc:name="For Each">
+			<flow-ref name="removeConnectionFromDevice" doc:name="removeConnectionFromDevice" />
+		</foreach>
+		<invoke object-ref="establishConnection" method="handle"
+			 />
+		<foreach doc:name="For Each">
+			<flow-ref name="establishConnectionBySendingLoginCommand"
+				doc:name="establishConnectionBySendingLoginCommand" />
+            <flow-ref name="inventoryIveraCommands" doc:name="inventoryIveraCommands"/>
+		</foreach>
+	</sub-flow>
+    <sub-flow name="removeConnectionFromDevice">
+        <choice doc:name="Choice">
+            <when expression="#[payload !=null]">
+                <message-properties-transformer scope="invocation" doc:name="Port-Host">
+                    <add-message-property key="port" value="#[payload.getTlcInventory().getTlcInventoryAttr().getTlcCommunication().getPortnumberServerAsb()]"/>
+                    <add-message-property key="host" value="#[payload.getTlcInventory().getTlcInventoryAttr().getTlcCommunication().getIpnrVri()]"/>
+                    <add-message-property key="deviceInfo" value="null"/>
+                    <add-message-property key="host" value="#[payload.getIpnrVri()]"/>
+                    <add-message-property key="port" value="#[payload.getPortnumberClient()]"/>
+                </message-properties-transformer>
+                <invoke name="InvokePrepareCommands" object-ref="prepareCommand" method="getReadCommand" methodArguments="#[payload],${tlc.logout}" methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String"/>
+                <flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow"/>
+                <set-payload value="remove" doc:name="Set Payload"/>
+                <outbound-endpoint ref="tcpendpoint" doc:name="Generic"/>
+            </when>
+            <otherwise>
+                <logger message="There are no devices in the database" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+
+	</sub-flow>
+    <sub-flow name="establishConnectionBySendingLoginCommand">
+			<message-properties-transformer scope="invocation"
+			doc:name="Port-Host">
+			<add-message-property key="deviceInfo" value="#[payload]" />
+            <add-message-property key="host" value="#[payload.getIpnrVri()]"/>
+            <add-message-property key="port" value="#[payload.getPortnumberClient()]"/>
+            <add-message-property key="pin" value="#[payload.getPinCode()]"/>
+            
+		</message-properties-transformer>
+        <expression-filter expression="#[!flowVars.deviceInfo.isLogin()]" doc:name="Expression"/>
+
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[payload],LOGIN/#0=#[flowVars.pin]"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="Invoke12"/>
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+		<expression-filter expression="#[payload.contains(&quot;A&quot;)]"
+			doc:name="Expression" />
+        <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo.setLogin(true);
+flowVars.deviceInfo.setCommState("ONLINE");]]></expression-component>
+
+	</sub-flow>
+    <sub-flow name="inventoryIveraCommands">
+        <expression-filter expression="#[flowVars.deviceInfo.isLogin()]" doc:name="Expression"/>
+        <invoke object-ref="listOfIveraObjects" method="objectList" />
+        <foreach doc:name="For Each">
+            <flow-ref name="prepareIveraCommand" doc:name="prepareIveraCommand"/>
+            <invoke object-ref="tlcUpdateDeviceInfoWithIveraValues" method="updateDeviceInfo" methodArguments="#[flowVars.deviceInfo],#[flowVars.iveraObject],#[payload]" methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String,java.lang.String" />
+            <expression-component doc:name="Expression"><![CDATA[flowVars.deviceInfo=payload;]]></expression-component>
+        </foreach>
+        <expression-component doc:name="Expression"><![CDATA[   
+app.registry.get("tlcCommandServiceImpl").addTlcDevice(flowVars.deviceInfo);              ]]></expression-component>
+
+	</sub-flow>
+    <sub-flow name="prepareIveraCommand">
+		<set-variable variableName="iveraObject" value="#[payload]"
+			doc:name="IveraObject" />
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[flowVars.deviceInfo],#[flowVars.iveraObject]"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String" name="GetCommand"/>
+		<flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow" />
+	</sub-flow>
+	<flow name="charm-sc-tlc-PingFlow">
+		<quartz:inbound-endpoint jobName="keepAlive"
+			repeatInterval="5000" connector-ref="QuartzConnector"
+			responseTimeout="10000" doc:name="Quartz">
+			<quartz:event-generator-job />
+		</quartz:inbound-endpoint>
+
+		<component class="com.cgi.charm.sc.tlc.helper.EstablishConnection"
+			doc:name="Java" />
+		<expression-filter expression="#[payload.size()&gt;0]"
+			doc:name="Expression" />
+
+		<foreach doc:name="For Each">
+            <async doc:name="Async">
+                 <vm:outbound-endpoint exchange-pattern="one-way" path="preprocess" doc:name="VM"/> 
+               
+
+            </async>
+
+		</foreach>
+	</flow>
+    <flow name="charm-sc-tlc-GetConnection">
+        <quartz:inbound-endpoint jobName="GetDeviceConnection" repeatInterval="0" repeatCount="0" connector-ref="QuartzConnector" responseTimeout="10000" doc:name="Quartz" startDelay="3000">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <expression-component doc:name="Expression"><![CDATA[payload=app.registry.get("tlcQueryServiceImpl").getAllTlcs();]]></expression-component>
+        <expression-filter expression="#[payload.size()&gt;0]" doc:name="Expression"/>
+        <foreach doc:name="For Each">
+            <flow-ref name="charm-sc-tlc-LoginFlow" doc:name="charm-sc-tlc-LoginFlow"/>
+
+        </foreach>
+    </flow>
+    <sub-flow name="charm-sc-tlc-LoginFlow">
+            <message-properties-transformer scope="invocation"
+			doc:name="Port-Host">
+			<add-message-property key="deviceInfo" value="#[payload]" />
+            <add-message-property key="host" value="#[payload.getIpnrVri()]"/>
+            <add-message-property key="port" value="#[payload.getPortnumberClient()]"/>
+            <add-message-property key="pin" value="#[payload.getPinCode()]"/>
+            
+		</message-properties-transformer>
+		<invoke object-ref="prepareCommand" method="getReadCommand"
+			methodArguments="#[payload],LOGIN/#0=#[flowVars.pin]"
+			methodArgumentTypes="com.cgi.charm.sc.tlc.persistence.model.TlcDeviceInfo,java.lang.String"
+			 />
+            <flow-ref name="charm-sc-tlc-roadsideFlow" doc:name="charm-sc-tlc-roadsideFlow"/>
+    </sub-flow>
+</mule>

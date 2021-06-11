@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+	<sub-flow name="charm-sc-tlc-IndentTransformer">
+		<!-- REMARK: The way this is setup leads to the pretty printer transformer 
+			being called every time an xml message is built. If we would first use a 
+			choice to determine whether we would actually have to perform pretty printing 
+			performance would most likely improve. -->
+		<mulexml:xml-prettyprinter-transformer
+			name="MyXMLPrettyPrinter" indentEnabled="${tlc.default.indent}"
+			doc:name="Pretty Print indent transformer" newlines="${tlc.default.indent}"
+			returnClass="java.lang.String" mimeType="text/xml" />
+	</sub-flow>
+	<sub-flow name="charm-sc-tlc-incoming-wirelog">
+		<logger
+			message="Received #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="charm-sc-tlc-app" doc:name="Logger For Received MsgId" />
+		<flow-ref name="charm-sc-tlc-IndentTransformer" doc:name="charm-sc-tlc-IndentTransformer" />
+		<logger message="#[payload]" level="DEBUG" category="charm-sc-tlc-app"
+			doc:name="Logger Payload" />
+		<flow-ref name="existdb.request" doc:name="existdb.request" />
+	</sub-flow>
+	<sub-flow name="charm-sc-tlc-outgoing-wirelog">
+		<logger
+			message="Sent #[xpath3('local-name(/*)')]  MsgId:[ #[xpath3('//*:message_id/*:uuid')]]"
+			level="INFO" category="charm-sc-tlc-app" doc:name="Logger For Sent MsgId" />
+		<flow-ref name="charm-sc-tlc-IndentTransformer" doc:name="charm-sc-tlc-IndentTransformer" />
+		<logger message="#[payload]" level="DEBUG" category="charm-sc-tlc-app"
+			doc:name="Logger Payload" />
+		<flow-ref name="existdb.request" doc:name="existdb.request" />
+	</sub-flow>
+
+	<sub-flow name="charm-sc-tlc-sync-outbound">
+		<flow-ref name="charm-sc-tlc-outgoing-wirelog" doc:name="charm-sc-tlc-outgoing-wirelog" />
+		<choice doc:name="Choice">
+			<when expression="${validate.response}">
+				<flow-ref name="schema-filter" doc:name="schema-filter" />
+			</when>
+			<otherwise>
+				<logger
+					message="validate.response property set false, response is not validated"
+					level="DEBUG" category="charm-sc-tlc-app" doc:name="Logger" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+
+	<sub-flow name="charm-sc-tlc-async-outbound">
+		<flow-ref name="charm-sc-tlc-outgoing-wirelog" doc:name="charm-sc-tlc-outgoing-wirelog" />
+		<choice doc:name="Choice">
+			<when expression="${validate.response}">
+				<flow-ref name="schema-filter" doc:name="schema-filter" />
+			</when>
+			<otherwise>
+				<logger
+					message="validate.response property set false, response is not validated"
+					level="DEBUG" category="charm-sc-tlc-app" doc:name="Logger" />
+			</otherwise>
+		</choice>
+		<outbound-endpoint ref="async_outbound_cdm"
+			doc:name="Async_Outbound" />
+	</sub-flow>
+
+	<sub-flow name="handle_exception">
+		<logger category="charm-sc-tlc-app" level="ERROR"
+			message="Processing message exception!" doc:name="Logger" />
+		<logger level="DEBUG" doc:name="Logger" category="charm-sc-tlc-app"
+			message="#[payload]" />
+		<outbound-endpoint ref="exception_queue" doc:name="Generic">
+		</outbound-endpoint>
+	</sub-flow>
+
+	<choice-exception-strategy name="tlcExceptionStrategy" doc:name="Choice Exception Strategy">
+		<catch-exception-strategy
+			when="exception.causedBy(org.mule.api.routing.filter.FilterUnacceptedException)"
+			doc:name="Strategy for schema validation exception">
+			<parse-template location="./static_messages/invalid_cdm_template.xml"
+				doc:name="Invalid cdm template" />
+			<flow-ref name="handle_exception" doc:name="handle_exception" />
+		</catch-exception-strategy>
+		<catch-exception-strategy when="exception.causedBy(java.lang.Throwable)"
+			doc:name="Strategy for all other exceptions">
+			<set-variable variableName="errorMsg" value="processing failed for the request due to #[exception.getCause().toString()]"/>
+			<parse-template location="./static_messages/processing_failed_template.xml"
+				doc:name="Processing failed template" />
+			<flow-ref name="handle_exception" doc:name="handle_exception" />
+		</catch-exception-strategy>
+	</choice-exception-strategy>
+</mule>

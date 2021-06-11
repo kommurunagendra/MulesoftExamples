@@ -1,0 +1,25 @@
+<tmdd:genericDeviceInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <dms-inventory-item xsi:type="tmdd:DMSInventoryCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id1</device-id>
+			<device-location>
+				<latitude>22.0</latitude>
+				<longitude>33.0</longitude>
+			</device-location>
+			<device-name>device_name</device-name>
+			<device-description>device_description</device-description>
+			<device-url>/device/url/test</device-url>
+			<device-type>TDI</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>10</scan-interval>
+			<hostname>localhost</hostname>
+			<port>8989</port>
+			<fep-lines>9192</fep-lines>
+			<position-bps-code>position_bps</position-bps-code>
+		</device-inventory-header>
+         </dms-inventory-item>
+      </tmdd:genericDeviceInventoryMsg>

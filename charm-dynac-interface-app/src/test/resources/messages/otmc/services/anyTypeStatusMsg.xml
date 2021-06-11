@@ -1,0 +1,44 @@
+<tmdd:anyTypeStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <tmdd-object-list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <tmdd-object xsi:type="tmdd:OTMC-Service">
+      <status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+        <organization-information>
+          <organization-id>RWS</organization-id>
+        </organization-information>
+        <device-id>halt_traffic_service</device-id>
+        <device-status>off</device-status>
+        <device-comm-status>operational</device-comm-status>
+        <last-comm-time>
+          <date>20060504</date>
+          <time>181351</time>
+        </last-comm-time>
+        <device-type>otmc service</device-type>
+        <otmc-parameters>
+          <availability-explanation>this service was activated by a specific otmc</availability-explanation>
+          <state-source-description>willem</state-source-description>
+          <state-explanation>van der Plaat</state-explanation>
+          <deployed-by-list>
+            <object>
+              <system-id>otmc_12345</system-id>
+            </object>
+          </deployed-by-list>
+          <encoded-parameters>0FB8</encoded-parameters>
+        </otmc-parameters>
+      </status-header>
+      <otmc-service-device-list>
+        <service-device>
+          <id>12</id>
+          <availability>off</availability>
+          <deployed-by>
+            <object>
+              <id>halt_traffic_service</id>
+              <object-type>specific service</object-type>
+              <system-id>dynac_self</system-id>
+            </object>
+          </deployed-by>
+          <availability-explanation>in use..wait for the service that claimed this device to stop</availability-explanation>
+        </service-device>
+      </otmc-service-device-list>
+    </tmdd-object>
+  </tmdd-object-list>
+</tmdd:anyTypeStatusMsg>

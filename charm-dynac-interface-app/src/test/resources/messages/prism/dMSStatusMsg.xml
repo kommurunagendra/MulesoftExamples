@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns2:dMSStatusMsg xmlns:ns2="http://www.tmdd.org/3/messages"
+	xmlns:ns3="http://www.ntcip.org/c2c-message-administration">
+	<dms-status-item xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:type="ns2:DMSDeviceStatusCharm">
+		<device-status-header xsi:type="ns2:DeviceStatusHeaderCharm">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>id1</device-id>
+			<device-status>on</device-status>
+			<last-comm-time>
+				<date>20060504</date>
+				<time>181351</time>
+			</last-comm-time>
+			<device-type>cms sign</device-type>
+		</device-status-header>
+		<current-message>prism_state_mnemonic</current-message>
+		<message-number>0</message-number>
+		<sign-test>on</sign-test>
+	</dms-status-item>
+</ns2:dMSStatusMsg>

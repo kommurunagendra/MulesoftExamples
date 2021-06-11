@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="6e567f82-5853-454e-8ccd-8e5e79490bf4" >
+		<file:connection workingDir="D:\mule4-nov2018\nov2018-ws\01-batch-solution\src\main\resources" />
+	</file:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="b0f7d110-b419-4e51-8b73-30d2ca466a21" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="muletrainingdb" />
+	</db:config>
+	<flow name="for-each-demo" doc:id="1b229486-d1fb-45b4-a27e-64eee9d2d324" >
+		<file:listener doc:name="On New or Updated File" doc:id="c83a0afd-c6cc-4f72-a3ca-a195ae394e83" config-ref="File_Config" directory="input" watermarkMode="MODIFIED_TIMESTAMP">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<ee:transform doc:name="Transform Message" doc:id="246df93c-4e03-4483-8361-03979ed8bcf9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[sizeOf(payload)]" doc:name="size" doc:id="a57dea8c-4c17-4e20-bd84-55da68cfa50d" variableName="size"/>
+		<batch:job jobName="processbatch" doc:id="8a64adf3-4a8a-49d5-97ac-438baeaf24e8">
+			<batch:process-records>
+				<batch:step name="step1" doc:id="960aac28-d605-4dcd-bb5e-8259c1cf7d30" >
+					<ee:transform doc:name="Transform Message" doc:id="3efe42eb-279e-474b-ae18-1138d98e6b87" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="name" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.Name as String]]></ee:set-variable>
+							<ee:set-variable variableName="city" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.City as String]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<db:select doc:name="Select" doc:id="947e5f20-b696-480d-b886-bf88cf20e7c2" config-ref="Database_Config" target="ispresent" targetValue="#[sizeOf(payload ) &gt;0]">
+						<db:sql >select * from sales where Name=:myname and City=:mycity</db:sql>
+						<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	mycity: vars.city,
+	myname: vars.name
+}]]]></db:input-parameters>
+					</db:select>
+				</batch:step>
+				<batch:step name="step2" doc:id="2fd74474-46d8-48ac-985b-7c21308b72d4" acceptExpression="#[ not vars.ispresent]">
+					<logger level="INFO" doc:name="Logger" doc:id="ae5b6291-acb7-4f35-a805-9174c46be43f" message="in step2---- before agregator"/>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="97cd2ca6-296e-45e1-a66f-afae01a57692" size="50">
+						<logger level="INFO" doc:name="Logger" doc:id="49796643-ffcc-44eb-bd24-365a73b3b2f7" message="#['In Aggregator=== size is' ++ sizeOf(payload)]"/>
+						<db:bulk-insert doc:name="Bulk insert" doc:id="4fca4557-a8dd-443c-a796-390e3af9b088" config-ref="Database_Config">
+							<db:bulk-input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+payload map ( record , indexOfRecord ) -> {
+	mycity: record.City as String,
+	myname: record.Name as String
+}]]]></db:bulk-input-parameters>
+							<db:sql >insert into sales(Name,City) values(:myname, :mycity )</db:sql>
+						</db:bulk-insert>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="73f44456-4ecb-4a83-8552-5587b7b93b62" message="#[payload]"/>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+</mule>

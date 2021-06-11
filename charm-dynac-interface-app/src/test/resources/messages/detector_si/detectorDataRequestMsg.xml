@@ -1,0 +1,21 @@
+<tmdd:detectorDataRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+    <authentication>
+        <user-id>dummy</user-id>
+        <password>test</password>
+    </authentication>
+    <device-information-request-header>
+        <organization-information>
+            <organization-id>RWS</organization-id>
+        </organization-information>
+        <organization-requesting>
+            <organization-id>RWS</organization-id>
+        </organization-requesting>
+        <device-type>detector-si</device-type>
+        <device-information-type>device data</device-information-type>
+        <device-filter>
+            <device-id-list>
+                <device-id>mtm/fep</device-id>
+            </device-id-list>
+        </device-filter>
+    </device-information-request-header>
+</tmdd:detectorDataRequestMsg>

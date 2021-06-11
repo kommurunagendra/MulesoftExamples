@@ -1,0 +1,23 @@
+     <tmdd:genericDeviceStatusMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+         <generic-status-item>
+            <device-status-header xsi:type="tmdd:DeviceStatusHeaderCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+               <organization-information>
+                  <organization-id>RWS</organization-id>
+               </organization-information>
+               <device-id>deviceId1</device-id>
+               <device-status>on</device-status>
+               <device-type>wind sensor</device-type>
+            </device-status-header>
+            <generic-device-list>
+               <generic-object>
+                  <object-name>status</object-name>
+                  <generic-element-list>
+                     <generic-element>
+                        <element-name>state</element-name>
+                        <element-value>No connection with meetnet</element-value>
+                     </generic-element>
+                  </generic-element-list>
+               </generic-object>
+            </generic-device-list>
+         </generic-status-item>
+      </tmdd:genericDeviceStatusMsg>

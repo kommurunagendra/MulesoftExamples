@@ -1,0 +1,35 @@
+<ns2:anyTypeInventoryMsg xmlns:ns2="http://www.tmdd.org/3/messages">
+	<tmdd-object-list>
+		<tmdd-object xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xsi:type="ns2:OTMC-Service">
+			<inventory-header xsi:type="ns2:DeviceInventoryHeaderCharm">
+				<organization-information>
+					<organization-id>RWS</organization-id>
+				</organization-information>
+				<device-id>halt_traffic_service</device-id>
+				<device-location>
+					<latitude>1.0</latitude>
+					<longitude>2.0</longitude>
+				</device-location>
+				<device-name>device name</device-name>
+				<last-update-time>
+					<date>20060504</date>
+					<time>181351</time>
+				</last-update-time>
+				<link-direction>1</link-direction>
+				<device-type>otmc service</device-type>
+				<data-owner>otmc</data-owner>
+				<otmc-info>
+					<object-type>specific service</object-type>
+					<encoded-parameters>0FB8</encoded-parameters>
+					<involved-objects>
+						<object>
+							<id>12</id>
+							<object-type>variable message sign</object-type>
+						</object>
+					</involved-objects>
+				</otmc-info>
+			</inventory-header>
+		</tmdd-object>
+	</tmdd-object-list>
+</ns2:anyTypeInventoryMsg>

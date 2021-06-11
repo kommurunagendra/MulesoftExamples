@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="javaproducts" format="java">
+      <types:shape format="java" element="com.way2learnonline.Product"/>
+    </types:type>
+    <types:type name="productsjsonfromrest" format="json">
+      <types:shape format="weave" example="products.json"><![CDATA[%dw 2.0
+type productsjsonfromrest = Array<{|
+  productId: Number {"typeId": "int"}, 
+  name: String, 
+  description: String, 
+  originalPrice: Number {"typeId": "double"}, 
+  offer: {|
+    offerPrice: Number {"typeId": "double"}, 
+    offerValidUntil: Number {"typeId": "double"}
+  |}, 
+  brandName: String, 
+  images: Array<String>
+|}> {"MetadataFormat": "json",
+"example": "[{\"productId\":1,\"name\":\"Hp Pavilion laptop\",\"description\":\"Hp Laptop \",\"originalPrice\":1000.0,\"offer\":{\"offerPrice\":1000.0,\"offerValidUntil\":1542838955607},\"brandName\":\"HP\",\"images\":[\"image1.jpeg\",\"image2.jpeg\",\"image3.jpeg\"]},{\"productId\":2,\"name\":\"Macbook Pro laptop\",\"description\":\"Apple Laptop \",\"originalPrice\":3000.0,\"offer\":{\"offerPrice\":3000.0,\"offerValidUntil\":1542838956122},\"brandName\":\"Apple\",\"images\":[\"image3.jpeg\",\"image4.jpeg\",\"image5.jpeg\"]},{\"productId\":3,\"name\":\"Mac Book  laptop\",\"description\":\"Apple Laptop \",\"originalPrice\":2000.0,\"offer\":{\"offerPrice\":2000.0,\"offerValidUntil\":1542838956134},\"brandName\":\"Apple\",\"images\":[\"image6.jpeg\",\"image7.jpeg\",\"image8.jpeg\"]},{\"productId\":4,\"name\":\"IBM laptop\",\"description\":\"IBM Laptop \",\"originalPrice\":4000.0,\"offer\":{\"offerPrice\":4000.0,\"offerValidUntil\":1542838956145},\"brandName\":\"IBM\",\"images\":[\"image9.jpeg\",\"image10.jpeg\",\"image11.jpeg\"]},{\"productId\":5,\"name\":\"MotoX Mobile\",\"description\":\"Motorola Mobile \",\"originalPrice\":1000.0,\"offer\":{\"offerPrice\":1000.0,\"offerValidUntil\":1542838956151},\"brandName\":\"Motorola\",\"images\":[\"image12.jpeg\",\"image13.jpeg\",\"image14.jpeg\"]},{\"productId\":6,\"name\":\"Samsung Note 5\",\"description\":\"Samsung Mobile \",\"originalPrice\":5000.0,\"offer\":{\"offerPrice\":5000.0,\"offerValidUntil\":1542838956156},\"brandName\":\"Samsung\",\"images\":[\"image15.jpeg\",\"image16.jpeg\",\"image17.jpeg\"]}]"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="dw" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#d0a043c7-3267-468b-8169-d9b8480293ec"/>
+</types:mule>

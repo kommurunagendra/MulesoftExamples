@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmdd:organizationInformationUpdateMsg
+	xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<c2cMsgAdmin>
+		<informationalText>FULLSYNC</informationalText>
+		<subscriptionID>00000000-0000-0000-0000-100000000006</subscriptionID>
+	</c2cMsgAdmin>
+	<organization-list>
+		<organization-information-item xsi:type="tmdd:OrganizationInformationCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-id>ndw-id3</organization-id>
+			<organization-name>NDW ID3 name</organization-name>
+			<organization-function>client</organization-function>
+			<web-service-url>sasa</web-service-url>
+			<timeout>1</timeout>
+			<inventory-action>add</inventory-action>
+			<scan-on-off>true</scan-on-off>
+			<description>ndw-id3 description</description>
+			<alive-period>1</alive-period>
+			<acknowledge-timeout-period>2</acknowledge-timeout-period>
+			<organization-information-type>otmc-inbound information</organization-information-type>
+		</organization-information-item>
+		<organization-information-item xsi:type="tmdd:OrganizationInformationCharm"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-id>ndw-id3</organization-id>
+			<organization-name>NDW ID3 name</organization-name>
+			<organization-function>client</organization-function>
+			<web-service-url>sasa</web-service-url>
+			<timeout>1</timeout>
+			<inventory-action>add</inventory-action>
+			<scan-on-off>true</scan-on-off>
+			<description>ndw-id3 description</description>
+			<alive-period>1</alive-period>
+			<acknowledge-timeout-period>2</acknowledge-timeout-period>
+			<organization-information-type>otmc-inbound information</organization-information-type>
+		</organization-information-item>
+	</organization-list>
+</tmdd:organizationInformationUpdateMsg>
+

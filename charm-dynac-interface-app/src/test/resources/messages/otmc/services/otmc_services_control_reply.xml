@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<otmc_services_control_reply xmlns="http://services.otmc.cdm.charm.cgi.com"
+	version="1.0.0">
+	<meta_reply>
+		<message_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</message_id>
+		<message_create_date>2006-05-04T18:13:51Z</message_create_date>
+		<request_id>
+			<uuid>00000000-0000-0000-0000-000000000000</uuid>
+		</request_id>
+	</meta_reply>
+	<message_ref>
+		<property>
+			<key>key</key>
+			<value>value</value>
+		</property>
+	</message_ref>
+	<otmc_services_control_mutations>
+		<processed>true</processed>
+		<otmc_services_control_attr>
+			<otmc_id>
+				<id>id1</id>
+			</otmc_id>
+			<timestamp>2006-05-04T18:13:51Z</timestamp>
+			<otmc_object_type>SPECIFIC_SERVICE</otmc_object_type>
+			<reason>hoi</reason>
+			<request_id>id</request_id>
+			<service_start_request>
+				<duration>1</duration>
+				<encoded_parameters>0FB8</encoded_parameters>
+			</service_start_request>
+		</otmc_services_control_attr>
+		
+		<otmc_services_control_response>
+			<timestamp>2006-05-04T18:13:51Z</timestamp>
+			<request_id>id</request_id>
+		</otmc_services_control_response>
+	</otmc_services_control_mutations>
+</otmc_services_control_reply>

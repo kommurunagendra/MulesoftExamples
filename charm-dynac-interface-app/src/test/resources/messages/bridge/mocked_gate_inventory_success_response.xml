@@ -1,0 +1,19 @@
+<tmdd:gateInventoryMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<gate-inventory-item>
+		<device-inventory-header xsi:type="tmdd:DeviceInventoryHeaderCharm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<organization-information>
+				<organization-id>RWS</organization-id>
+			</organization-information>
+			<device-id>grandbridge1</device-id>
+            <device-location>
+                <latitude>22.0</latitude>
+                <longitude>33.0</longitude>
+            </device-location>
+            <device-name>Grand Bridge</device-name>
+            <device-description>Grand Bridge over the canal</device-description>
+			<device-type>bridge</device-type>
+			<scan-on-off>true</scan-on-off>
+			<scan-interval>333</scan-interval>
+		</device-inventory-header>
+	</gate-inventory-item>
+</tmdd:gateInventoryMsg>

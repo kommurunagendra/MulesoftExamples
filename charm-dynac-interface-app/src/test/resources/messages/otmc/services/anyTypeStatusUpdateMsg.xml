@@ -1,0 +1,42 @@
+<tmdd:anyTypeStatusUpdateMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+  <tmdd-object-list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.tmdd.org/3/messages">
+    <tmdd-object xsi:type="tmdd:OTMC-Service">
+      <status-header xsi:type="tmdd:DeviceStatusHeaderCharm">
+        <organization-information>
+          <organization-id>RWS</organization-id>
+        </organization-information>
+        <device-id>id0</device-id>
+        <device-status>on</device-status>
+        <device-comm-status>operational</device-comm-status>
+        <last-comm-time>
+          <date>20060504</date>
+          <time>181351</time>
+        </last-comm-time>
+        <device-type>otmc service</device-type>
+        <otmc-parameters>
+          <availability-explanation>this service was activated by a specific otmc</availability-explanation>
+          <state-source-description>description</state-source-description>
+          <state-explanation>explanation</state-explanation>
+          <deployed-by-list>
+            <object>
+              <id>12</id>
+              <object-type>traffic light controller</object-type>
+              <system-id>11</system-id>
+            </object>
+          </deployed-by-list>
+          <encoded-parameters>0FB8</encoded-parameters>
+        </otmc-parameters>
+      </status-header>
+      <otmc-service-response-list>
+        <service-response>
+          <id>otmc_amsterdam</id>
+          <request-id>352</request-id>
+          <request-state>ACCEPTED</request-state>
+        </service-response>
+      </otmc-service-response-list>
+    </tmdd-object>
+  </tmdd-object-list>
+  <c2cMsgAdmin>
+    <subscriptionID>00000000-0000-0000-0000-000000000000</subscriptionID>
+  </c2cMsgAdmin>
+</tmdd:anyTypeStatusUpdateMsg>

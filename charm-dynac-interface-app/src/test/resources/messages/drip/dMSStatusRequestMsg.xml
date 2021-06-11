@@ -1,0 +1,23 @@
+<tmdd:dMSStatusRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>unknonw</user-id>
+		<password>unknonw</password>
+		<!--Optional: -->
+		<operator-id>unknonw</operator-id>
+	</authentication>
+
+	<organization-information>
+		<organization-id>RWS</organization-id>
+	</organization-information>
+	<organization-requesting>
+		<organization-id>kapsch</organization-id>
+	</organization-requesting>
+	<device-type>text dms</device-type>
+	<device-information-type>device status</device-information-type>
+	<device-filter>
+		<device-id-list>
+			<device-id>D-A20-2,244</device-id>
+		</device-id-list>
+	</device-filter>
+	<all_subscriptions>false</all_subscriptions>
+</tmdd:dMSStatusRequestMsg>

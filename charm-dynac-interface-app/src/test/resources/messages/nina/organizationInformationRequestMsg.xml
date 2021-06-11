@@ -1,0 +1,15 @@
+<tmdd:organizationInformationRequestMsg xmlns:tmdd="http://www.tmdd.org/3/messages">
+	<authentication>
+		<user-id>dummy</user-id>
+		<password>test</password>
+	</authentication>
+	<organization-requesting>
+		<organization-id>RWS</organization-id>
+	</organization-requesting>
+	<organization-information-type>nina information</organization-information-type>
+	<organization-id>DASB</organization-id>
+	<center-id-list>
+		<center-id>Id-01</center-id>
+		<center-id>Id-02</center-id>
+	</center-id-list>
+</tmdd:organizationInformationRequestMsg>
